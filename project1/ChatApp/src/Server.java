@@ -26,11 +26,28 @@ public class Server {
 		}
 	}
 	
-	public void broadcast(String username, String message) throws IOException {
-		String newMessage = "BROADCAST FROM "+username+": "+message;
+	public String sendMessage(String from, String to, String message) throws IOException {
+		String returnMessage = "Failure. User does not exist!";
+		String newMessage = "DIRECT MESSAGE FROM "+from+":"+message+"\n";
 		for (Worker worker: workers) {
-			if (!worker.username.equals(username) ) {
-				worker.send(newMessage);
+			if (worker.username != null) {
+				if (worker.username.equals(to)) {
+					worker.send(newMessage);
+					returnMessage = "Successfully sent message.";
+					break;
+				}
+			}
+		}
+		return returnMessage;
+	}
+	
+	public void broadcast(String username, String message) throws IOException {
+		String newMessage = "BROADCAST FROM "+username+": "+message+"\n";
+		for (Worker worker: workers) {
+			if (worker.username != null) {
+				if (!worker.username.equals(username) ) {
+					worker.send(newMessage);
+				}
 			}
 		}
 	}
