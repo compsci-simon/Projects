@@ -31,9 +31,9 @@ public class Client {
 		return false;
 	}
 	
-	public boolean login(String login, String password) throws IOException{
+	public boolean login(String username, String password) throws IOException{
 		String response = bufferedIn.readLine();
-		serverOut.write(login.getBytes());
+		serverOut.write(username.getBytes());
 		return true;
 	}
 }
