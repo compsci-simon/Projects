@@ -81,7 +81,8 @@ public class Worker extends Thread {
 				}
 				break;
 			case 4:
-				handle_message(user_command_tokens);
+				String res = handle_message(user_command_tokens);
+				outStream.write(res.getBytes());
 				break;
 			}
 			if (!loop) {
