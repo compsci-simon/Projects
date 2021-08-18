@@ -1,6 +1,6 @@
 
 public class ServerMain {
 	public static void main(String[] args) {
-		Server server = new Server(9006);
+		Server server = new Server(9005);
 	}
 }
