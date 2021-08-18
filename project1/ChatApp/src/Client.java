@@ -32,20 +32,26 @@ public class Client {
 	}
 	
 	public boolean login(String username, String password) throws IOException{
+		serverOut.write("quit".getBytes());
 		BufferedReader reader = new BufferedReader(new InputStreamReader(serverIn));
 		String line;
 		line = reader.readLine();
 		System.out.println(line);
 		String login_string = "login " + username + " " + password;
 		System.out.println(login_string);
-		this.serverOut.write(login_string.getBytes());
+		serverOut.write(login_string.getBytes());
 		System.out.println("hey");
 		//line = reader.readLine();
 		//System.out.println(line);
 		return true;
 	}
 	
-	public boolean SendMessage() {
+	public boolean SendMessage() throws IOException {
+		serverOut.write("quit".getBytes());
+		BufferedReader reader = new BufferedReader(new InputStreamReader(serverIn));
+		String line;
+		line = reader.readLine();
+		System.out.println(line);
 		return true;
 	}
 	
