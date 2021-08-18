@@ -1,8 +1,10 @@
 import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 
+import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -14,7 +16,7 @@ public class ClientInterface extends JFrame {
 	Client client;
 	JFrame connection_frame = new JFrame();
 	JFrame login_frame = new JFrame();
-	JFrame home_frame = new JFrame();
+	//JFrame home_frame = new JFrame();
 	JTextField username_text = new JTextField();
 	JTextField password_text = new JTextField();
 	JButton login_button = new JButton("Login");
@@ -127,30 +129,55 @@ public class ClientInterface extends JFrame {
 	}
 	
 	public void home_page() {
-		home_frame.setSize(400,500);
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		JFrame home_frame = new JFrame();
+		home_frame.setSize(400,500); 
+		JButton ListUsers_button = new JButton("List online users");
+		home_frame.add(ListUsers_button);
+		JLabel Message = new JLabel("Message");
 		JPanel home_panel = new JPanel();
 		home_panel.setLayout(new BoxLayout(home_panel, BoxLayout.Y_AXIS));
-		JLabel Message = new JLabel("Message");
 		home_panel.add(Message);
 		home_panel.add(message_text);
 		JLabel destination = new JLabel("To");
 		home_panel.add(destination);
 		home_panel.add(destination_text);
 		home_panel.add(send_button);
+		JButton Exit_button = new JButton("Exit");
 		
-		home_frame.add(home_panel, BorderLayout.SOUTH);
+		home_frame.add(ListUsers_button, BorderLayout.NORTH);
+		home_frame.add(home_panel);
+		home_frame.add(Exit_button, BorderLayout.SOUTH);
+		
 		home_frame.setVisible(true);
+		
 		send_button.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				SendMessage();
 			}
 		});
+		ListUsers_button.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				ListUsers();
+			}
+		});
+		Exit_button.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				Exit();
+			}
+		});
 	}
 	public void SendMessage() {
-		
-		System.out.println("sent");
+		System.out.println("Sent");
+	}
+	
+	public void ListUsers() {
+		System.out.println("listing online users");
+	}
+	public void Exit() {
+		System.out.println("Exit");
 	}
 	
 	public static void main(String[] args) throws IOException {
