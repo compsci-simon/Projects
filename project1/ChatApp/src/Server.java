@@ -26,4 +26,13 @@ public class Server {
 		}
 	}
 	
+	public void broadcast(String username, String message) throws IOException {
+		String newMessage = "BROADCAST FROM "+username+": "+message;
+		for (Worker worker: workers) {
+			if (!worker.username.equals(username) ) {
+				worker.send(newMessage);
+			}
+		}
+	}
+	
 }
