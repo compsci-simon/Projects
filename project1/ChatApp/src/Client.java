@@ -26,7 +26,7 @@ public class Client {
 			this.bufferedIn = new BufferedReader(new InputStreamReader(serverIn));
 			return true;
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.out.println("Could not connect to server");
 		}
 		return false;
 	}
@@ -38,10 +38,15 @@ public class Client {
 		System.out.println(line);
 		String login_string = "login " + username + " " + password;
 		System.out.println(login_string);
-		serverOut.write(login_string.getBytes());
-		//System.out.println("hey");
+		this.serverOut.write(login_string.getBytes());
+		System.out.println("hey");
 		//line = reader.readLine();
 		//System.out.println(line);
 		return true;
 	}
+	
+	public boolean SendMessage() {
+		return true;
+	}
+	
 }

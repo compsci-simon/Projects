@@ -6,6 +6,7 @@ import java.io.IOException;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
@@ -21,12 +22,13 @@ public class ClientInterface extends JFrame {
 	JTextField port_text = new JTextField();
 	JButton conn_button = new JButton("Connect");
 	JTextField message_text = new JTextField();
-	JButton message_button = new JButton("Send");
+	JTextField destination_text = new JTextField();
+	JButton send_button = new JButton("Send");
 	
 	public ClientInterface() throws IOException {
-		connection_page();
+		//connection_page();
 		Client client;
-		/*
+		
 		this.client = new Client("localhost", 9005);
 		if (this.client.connectToServer()) {
 			System.out.println("Client connected");
@@ -36,7 +38,7 @@ public class ClientInterface extends JFrame {
 			System.out.println("Client could not connect");
 			return;
 		}
-		*/
+		
 		//String username = "jaco";
 		//String password = "jaco";
 		//this.client.login(username, password);
@@ -48,9 +50,15 @@ public class ClientInterface extends JFrame {
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		JPanel conn_panel = new JPanel();
 		conn_panel.setLayout(new BoxLayout(conn_panel, BoxLayout.Y_AXIS));
+		JLabel address = new JLabel("address");
+		conn_panel.add(address);
 		conn_panel.add(address_text);
+		JLabel port = new JLabel("port");
+		conn_panel.add(port);
 		conn_panel.add(port_text);
 		conn_panel.add(conn_button);
+		connection_frame.add(conn_panel, BorderLayout.SOUTH);
+		connection_frame.setVisible(true);
 		
 		conn_button.addActionListener(new ActionListener() {
 			@Override
@@ -58,18 +66,24 @@ public class ClientInterface extends JFrame {
 				ClientConnect();
 			}
 		});
-		connection_frame.add(conn_panel, BorderLayout.SOUTH);
-		connection_frame.setVisible(true);
 	}
 	
 	public void login_page() {
+		JLabel conn_suc = new JLabel("You are connected to the server");
 		login_frame.setSize(400,500);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		JPanel login_panel = new JPanel();
 		login_panel.setLayout(new BoxLayout(login_panel, BoxLayout.Y_AXIS));
+		JLabel username = new JLabel("username");
+		login_panel.add(username);
 		login_panel.add(username_text);
+		JLabel password = new JLabel("password");
+		login_panel.add(password);
 		login_panel.add(password_text);
 		login_panel.add(login_button);
+		login_frame.add(conn_suc, BorderLayout.CENTER);
+		login_frame.add(login_panel, BorderLayout.SOUTH);
+		login_frame.setVisible(true);
 		
 		login_button.addActionListener(new ActionListener() {
 			@Override
@@ -82,21 +96,20 @@ public class ClientInterface extends JFrame {
 				}
 			}
 		});
-		login_frame.add(login_panel, BorderLayout.SOUTH);
-		login_frame.setVisible(true);
 	}
 	
 	public void ClientConnect() {
 		String address = address_text.getText();
 		int port = Integer.parseInt(port_text.getText());
-		System.out.println(address);
-		System.out.println(port);
 		this.client = new Client(address, port);
 		if (client.connectToServer()) {
 			System.out.println("Client connected");
 			connection_frame.setVisible(false);
 			login_page();
 		} else {
+			JLabel conn_fail = new JLabel("Failed to connect, provide correct address and port");
+			connection_frame.add(conn_fail, BorderLayout.CENTER);
+			connection_frame.setVisible(true);
 			System.out.println("Client could not connect");
 			return;
 		}
@@ -118,22 +131,26 @@ public class ClientInterface extends JFrame {
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		JPanel home_panel = new JPanel();
 		home_panel.setLayout(new BoxLayout(home_panel, BoxLayout.Y_AXIS));
+		JLabel Message = new JLabel("Message");
+		home_panel.add(Message);
 		home_panel.add(message_text);
-		home_panel.add(message_button);
+		JLabel destination = new JLabel("To");
+		home_panel.add(destination);
+		home_panel.add(destination_text);
+		home_panel.add(send_button);
 		
-		message_button.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				try {
-					ClientLogin();
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-			}
-		});
 		home_frame.add(home_panel, BorderLayout.SOUTH);
 		home_frame.setVisible(true);
+		send_button.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				SendMessage();
+			}
+		});
+	}
+	public void SendMessage() {
+		
+		System.out.println("sent");
 	}
 	
 	public static void main(String[] args) throws IOException {
