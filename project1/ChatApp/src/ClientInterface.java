@@ -13,18 +13,34 @@ public class ClientInterface extends JFrame {
 	Client client;
 	JFrame connection_frame = new JFrame();
 	JFrame login_frame = new JFrame();
+	JFrame home_frame = new JFrame();
 	JTextField username_text = new JTextField();
 	JTextField password_text = new JTextField();
 	JButton login_button = new JButton("Login");
 	JTextField address_text = new JTextField();
 	JTextField port_text = new JTextField();
 	JButton conn_button = new JButton("Connect");
+	JTextField message_text = new JTextField();
+	JButton message_button = new JButton("Send");
 	
-	public ClientInterface() {
+	public ClientInterface() throws IOException {
 		connection_page();
 		Client client;
+		/*
+		this.client = new Client("localhost", 9005);
+		if (this.client.connectToServer()) {
+			System.out.println("Client connected");
+			connection_frame.setVisible(false);
+			login_page();
+		} else {
+			System.out.println("Client could not connect");
+			return;
+		}
+		*/
+		//String username = "jaco";
+		//String password = "jaco";
+		//this.client.login(username, password);
 		
-		//this.client = new Client("localhost", 9005);
 	}
 	
 	public void connection_page() {
@@ -91,10 +107,36 @@ public class ClientInterface extends JFrame {
 		String password = password_text.getText();
 		System.out.println(username);
 		System.out.println(password);
-		this.client.login(username, password);
+		if(this.client.login(username, password)) {
+			login_frame.setVisible(false);
+			home_page();
+		}
 	}
 	
-	public static void main(String[] args) {
+	public void home_page() {
+		home_frame.setSize(400,500);
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		JPanel home_panel = new JPanel();
+		home_panel.setLayout(new BoxLayout(home_panel, BoxLayout.Y_AXIS));
+		home_panel.add(message_text);
+		home_panel.add(message_button);
+		
+		message_button.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					ClientLogin();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			}
+		});
+		home_frame.add(home_panel, BorderLayout.SOUTH);
+		home_frame.setVisible(true);
+	}
+	
+	public static void main(String[] args) throws IOException {
 		ClientInterface client_interface = new ClientInterface();
 	}
 	
