@@ -32,8 +32,16 @@ public class Client {
 	}
 	
 	public boolean login(String username, String password) throws IOException{
-		String response = bufferedIn.readLine();
-		serverOut.write(username.getBytes());
+		BufferedReader reader = new BufferedReader(new InputStreamReader(serverIn));
+		String line;
+		line = reader.readLine();
+		System.out.println(line);
+		String login_string = "login " + username + " " + password;
+		System.out.println(login_string);
+		serverOut.write(login_string.getBytes());
+		System.out.println("hey");
+		line = reader.readLine();
+		System.out.println(line);
 		return true;
 	}
 }

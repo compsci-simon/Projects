@@ -1,6 +1,7 @@
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -21,6 +22,7 @@ public class ClientInterface extends JFrame {
 	
 	public ClientInterface() {
 		connection_page();
+		Client client;
 		
 		//this.client = new Client("localhost", 9005);
 	}
@@ -56,7 +58,12 @@ public class ClientInterface extends JFrame {
 		login_button.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				ClientLogin();
+				try {
+					ClientLogin();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 			}
 		});
 		login_frame.add(login_panel, BorderLayout.SOUTH);
@@ -68,8 +75,7 @@ public class ClientInterface extends JFrame {
 		int port = Integer.parseInt(port_text.getText());
 		System.out.println(address);
 		System.out.println(port);
-		Client client = new Client(address, port);
-		/*
+		this.client = new Client(address, port);
 		if (client.connectToServer()) {
 			System.out.println("Client connected");
 			connection_frame.setVisible(false);
@@ -78,14 +84,14 @@ public class ClientInterface extends JFrame {
 			System.out.println("Client could not connect");
 			return;
 		}
-		*/
 	}
 	
-	public void ClientLogin() {
+	public void ClientLogin() throws IOException {
 		String username = username_text.getText();
 		String password = password_text.getText();
 		System.out.println(username);
 		System.out.println(password);
+		this.client.login(username, password);
 	}
 	
 	public static void main(String[] args) {
