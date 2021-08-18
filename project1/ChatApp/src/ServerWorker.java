@@ -29,15 +29,12 @@ public class ServerWorker extends Thread {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		server.userDisconnected(clientName);
 	}
 
 	private void handle_client(Socket clientSocket) throws IOException, InterruptedException {
 		BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
 		
 		String line;
-		
-		handle_login();
 
 		while ((line = reader.readLine()) != null) {
 			if ("quit".equalsIgnoreCase(line)) {
@@ -52,6 +49,8 @@ public class ServerWorker extends Thread {
 				handle_message();
 			} else if ("list".equalsIgnoreCase(line)) {
 				listUsers();
+			} else if ("login".equalsIgnoreCase(line)) {
+				handle_login();
 			} else {
 				outputStream.write("Unrecognized command\n".getBytes());
 			}
@@ -63,11 +62,21 @@ public class ServerWorker extends Thread {
 		BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
 		
 		String line;
-		String username;
-		String password;
+		String username = "";
+		String password = "";
 
 		while (true) {
-			outputStream.write("Username:\n".getBytes());
+			if (username.equals(password) && !username.isEmpty()) {
+				clientName = username;
+				outputStream.write("You have successfully logged in!\n".getBytes());
+				System.out.printf("%s has logged in!\n", username);
+				server.broadcastUsers();
+				return;
+			} else if (!username.equals(password)) {
+				outputStream.write("Incorrect username, password combination! Try again:\n".getBytes());
+			} else {
+				outputStream.write("Username:\n".getBytes());
+			}
 			line = reader.readLine();
 			username = line;
 			
@@ -83,15 +92,6 @@ public class ServerWorker extends Thread {
 				outputStream.write("Password:\n".getBytes());
 				line = reader.readLine();
 				password = line;
-				if (username.equals(password)) {
-					clientName = username;
-					outputStream.write("You have successfully logged in!\n".getBytes());
-					System.out.printf("%s has logged in!\n", username);
-					server.broadcastUsers();
-					return;
-				} else {
-					outputStream.write("Incorrect username, password combination!\n".getBytes());
-				}
 			} else {
 				outputStream.write("Username already in use!\n".getBytes());
 			}

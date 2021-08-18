@@ -26,7 +26,7 @@ public class Server extends ServerMain {
 	}
 	
 	public void userDisconnected(String user) {
-		System.out.printf("%s disconected\n", user);
+		System.out.printf("%s disconnected\n", user);
 		
 //		This causes and error for some reason
 //		for (ServerWorker worker: workers) {
