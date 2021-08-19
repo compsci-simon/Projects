@@ -4,6 +4,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -171,16 +172,25 @@ public class ClientInterface extends JFrame {
 		list_frame.setVisible(true);
 	}
 	
-	public void news_page() {
+	public void news_page() throws IOException {
 		news_frame.setSize(600,500);
 		JLabel news_label = new JLabel("your news will arrive here");
-		news_frame.add(news_label);
-		news_frame.setVisible(true);
-		/*
+		news_frame.add(news_label, BorderLayout.NORTH);
+		
 		Thread t = new Thread() {
 			public void run() {
 				try {
-					client.recv_messages();
+					String line;
+					clientIn = new BufferedReader(new InputStreamReader(client.clientSock.getInputStream()));
+					while ((line = clientIn.readLine()) != null) {
+						System.out.println(line);
+						JLabel new_news = new JLabel(line);
+						news_frame.add(new_news, BorderLayout.CENTER);
+						news_frame.setVisible(true);
+						if (line.equals("Successfully logged out")) {
+							break;
+						}
+					}
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -188,8 +198,7 @@ public class ClientInterface extends JFrame {
 			}
 		};
 		t.start();
-		*/
-		
+		news_frame.setVisible(true);
 	}
 	
 	public void ClientConnect() {
