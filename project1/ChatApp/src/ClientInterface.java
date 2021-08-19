@@ -13,10 +13,10 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 public class ClientInterface extends JFrame {
-	Client client;
+	simpleClient client;
 	JFrame connection_frame = new JFrame();
 	JFrame login_frame = new JFrame();
-	//JFrame home_frame = new JFrame();
+	JFrame home_frame = new JFrame();
 	JTextField username_text = new JTextField();
 	JTextField password_text = new JTextField();
 	JButton login_button = new JButton("Login");
@@ -26,24 +26,10 @@ public class ClientInterface extends JFrame {
 	JTextField message_text = new JTextField();
 	JTextField destination_text = new JTextField();
 	JButton send_button = new JButton("Send");
+	JLabel conn_suc = new JLabel("You are connected to the server");
 	
 	public ClientInterface() throws IOException {
-		//connection_page();
-		Client client;
-		
-		this.client = new Client("localhost", 9005);
-		if (this.client.connectToServer()) {
-			System.out.println("Client connected");
-			connection_frame.setVisible(false);
-			login_page();
-		} else {
-			System.out.println("Client could not connect");
-			return;
-		}
-		
-		//String username = "jaco";
-		//String password = "jaco";
-		//this.client.login(username, password);
+		connection_page();
 		
 	}
 	
@@ -71,7 +57,6 @@ public class ClientInterface extends JFrame {
 	}
 	
 	public void login_page() {
-		JLabel conn_suc = new JLabel("You are connected to the server");
 		login_frame.setSize(400,500);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		JPanel login_panel = new JPanel();
@@ -103,8 +88,8 @@ public class ClientInterface extends JFrame {
 	public void ClientConnect() {
 		String address = address_text.getText();
 		int port = Integer.parseInt(port_text.getText());
-		this.client = new Client(address, port);
-		if (client.connectToServer()) {
+		this.client = new simpleClient(address, port);
+		if (client.connect()) {
 			System.out.println("Client connected");
 			connection_frame.setVisible(false);
 			login_page();
@@ -120,16 +105,19 @@ public class ClientInterface extends JFrame {
 	public void ClientLogin() throws IOException {
 		String username = username_text.getText();
 		String password = password_text.getText();
-		System.out.println(username);
-		System.out.println(password);
 		if(this.client.login(username, password)) {
 			login_frame.setVisible(false);
 			home_page();
+		} else {
+			JLabel login_fail = new JLabel("Failed to login, provide correct username and password");
+			login_frame.add(login_fail, BorderLayout.CENTER);
+			conn_suc.setVisible(false);
+			login_frame.setVisible(true);
+			System.out.println("Client could not login");
 		}
 	}
 	
 	public void home_page() {
-		JFrame home_frame = new JFrame();
 		home_frame.setSize(400,500); 
 		JButton ListUsers_button = new JButton("List online users");
 		home_frame.add(ListUsers_button);

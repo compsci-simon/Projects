@@ -8,18 +8,18 @@ public class simpleClient {
 	OutputStream clientOut;
 	BufferedReader clientIn;
 	
-	public simpleClient(int port) {
+	public simpleClient(String address, int port) {
+		this.address = address;
 		this.port = port;
 	}
 	
 	public static void main(String[] args) throws IOException {
-		simpleClient c = new simpleClient(9006);
+		simpleClient c = new simpleClient("localhost", 9005);
 		if (!c.connect()) {
 			System.out.println("Failure to connect");
 		} else {
 			System.out.println("Successfully connected");
-			
-			c.login("simon", "simosn");
+			c.login("simon", "simon");
 		}
 	}
 	
@@ -32,7 +32,11 @@ public class simpleClient {
 		clientOut.write(command.getBytes());
 		String res = clientIn.readLine();
 		System.out.println(res);
-		return true;
+		if (res.compareTo("Login failed!") == 0) {
+			return false;
+		} else {
+			return true;
+		}
 	}
 	
 	public boolean connect() {
