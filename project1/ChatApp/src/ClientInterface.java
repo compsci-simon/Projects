@@ -2,6 +2,7 @@ import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedReader;
 import java.io.IOException;
 
 import javax.swing.BorderFactory;
@@ -17,6 +18,8 @@ public class ClientInterface extends JFrame {
 	JFrame connection_frame = new JFrame();
 	JFrame login_frame = new JFrame();
 	JFrame home_frame = new JFrame();
+	JFrame news_frame = new JFrame();
+	JFrame list_frame = new JFrame();
 	JTextField username_text = new JTextField();
 	JTextField password_text = new JTextField();
 	JButton login_button = new JButton("Login");
@@ -26,11 +29,16 @@ public class ClientInterface extends JFrame {
 	JTextField message_text = new JTextField();
 	JTextField destination_text = new JTextField();
 	JButton send_button = new JButton("Send");
+	JButton broadcast_button = new JButton("Broadcast");
 	JLabel conn_suc = new JLabel("You are connected to the server");
 	
+	BufferedReader clientIn;
+	
 	public ClientInterface() throws IOException {
-		connection_page();
-		
+		//connection_page();
+		client = new simpleClient("localhost", 9005);
+		client.connect();
+		login_page();
 	}
 	
 	public void connection_page() {
@@ -79,10 +87,109 @@ public class ClientInterface extends JFrame {
 					ClientLogin();
 				} catch (IOException e1) {
 					// TODO Auto-generated catch block
+				}
+			}
+		});
+	}
+	
+	public void home_page() {
+		home_frame.setSize(400,500); 
+		JButton ListUsers_button = new JButton("List online users");
+		home_frame.add(ListUsers_button);
+		JLabel Message = new JLabel("Message");
+		JPanel home_panel = new JPanel();
+		home_panel.setLayout(new BoxLayout(home_panel, BoxLayout.Y_AXIS));
+		home_panel.add(Message);
+		home_panel.add(message_text);
+		JLabel destination = new JLabel("To");
+		home_panel.add(destination);
+		home_panel.add(destination_text);
+		home_panel.add(send_button);
+		home_panel.add(broadcast_button);
+		JButton Exit_button = new JButton("Exit");
+		
+		home_frame.add(ListUsers_button, BorderLayout.NORTH);
+		home_frame.add(home_panel);
+		home_frame.add(Exit_button, BorderLayout.SOUTH);
+		
+		home_frame.setVisible(true);
+		
+		send_button.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					SendMessage();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
 			}
 		});
+		
+		broadcast_button.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					BroadcastMessage();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			}
+		});
+		
+		ListUsers_button.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					ListUsers();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			}
+		});
+		Exit_button.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					Exit();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			}
+		});
+	}
+	
+	public void list_page(String users) {
+		list_frame.setSize(600,500);
+		JLabel list_label = new JLabel("all of the online users:");
+		JLabel user_list = new JLabel(users);
+		list_frame.add(list_label, BorderLayout.NORTH);
+		list_frame.add(user_list, BorderLayout.CENTER);
+		list_frame.setVisible(true);
+	}
+	
+	public void news_page() {
+		news_frame.setSize(600,500);
+		JLabel news_label = new JLabel("your news will arrive here");
+		news_frame.add(news_label);
+		news_frame.setVisible(true);
+		/*
+		Thread t = new Thread() {
+			public void run() {
+				try {
+					client.recv_messages();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		};
+		t.start();
+		*/
+		
 	}
 	
 	public void ClientConnect() {
@@ -105,9 +212,10 @@ public class ClientInterface extends JFrame {
 	public void ClientLogin() throws IOException {
 		String username = username_text.getText();
 		String password = password_text.getText();
-		if(this.client.login(username, password)) {
+		if(client.login(username, password)) {
 			login_frame.setVisible(false);
 			home_page();
+			news_page();
 		} else {
 			JLabel login_fail = new JLabel("Failed to login, provide correct username and password");
 			login_frame.add(login_fail, BorderLayout.CENTER);
@@ -117,74 +225,34 @@ public class ClientInterface extends JFrame {
 		}
 	}
 	
-	public void home_page() {
-		home_frame.setSize(400,500); 
-		JButton ListUsers_button = new JButton("List online users");
-		home_frame.add(ListUsers_button);
-		JLabel Message = new JLabel("Message");
-		JPanel home_panel = new JPanel();
-		home_panel.setLayout(new BoxLayout(home_panel, BoxLayout.Y_AXIS));
-		home_panel.add(Message);
-		home_panel.add(message_text);
-		JLabel destination = new JLabel("To");
-		home_panel.add(destination);
-		home_panel.add(destination_text);
-		home_panel.add(send_button);
-		JButton Exit_button = new JButton("Exit");
-		
-		home_frame.add(ListUsers_button, BorderLayout.NORTH);
-		home_frame.add(home_panel);
-		home_frame.add(Exit_button, BorderLayout.SOUTH);
-		
-		home_frame.setVisible(true);
-		
-		send_button.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				try {
-					SendMessage();
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-			}
-		});
-		ListUsers_button.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				ListUsers();
-			}
-		});
-		Exit_button.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				try {
-					Exit();
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-			}
-		});
-	}
 	public void SendMessage() throws IOException {
 		String destination = destination_text.getText();
 		String message = message_text.getText();
-		//client.send_message(destination, message);
+		client.send_message(destination, message);
+		System.out.println("Sent");
+	}
+	
+	public void BroadcastMessage() throws IOException {
+		String message = message_text.getText();
 		client.broadcast_message(message);
 		System.out.println("Sent");
 	}
 	
-	public void ListUsers() {
+	public void ListUsers() throws IOException {
+		String users = client.list_users();
+		list_page(users);
+		//System.out.println(users);
 		System.out.println("listing online users");
 	}
 	public void Exit() throws IOException {
 		client.quit();
+		home_frame.setVisible(false);
+		news_frame.setVisible(false);
 		System.out.println("Exit");
+		System.exit(0);
 	}
 	
 	public static void main(String[] args) throws IOException {
 		ClientInterface client_interface = new ClientInterface();
 	}
-	
 }
