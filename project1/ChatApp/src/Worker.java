@@ -156,6 +156,9 @@ public class Worker extends Thread {
 		} else if (!user_command_token[1].equals(user_command_token[2])) {
 			return false;
 		} else {
+			if (server.userLoggedIn(user_command_token[1])) {
+				return false;
+			}
 			username = user_command_token[1];
 			return true;
 		}

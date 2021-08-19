@@ -101,4 +101,20 @@ public class Server {
 		return users;
 	}
 	
+	public boolean userLoggedIn(String username) {
+		lock.lock();
+		try {
+			for (Worker worker: workers) {
+				if (worker.username != null) {
+					if (worker.username.equals(username)) {
+						return true;
+					}
+				}
+			}
+		} finally {
+			lock.unlock();
+		}
+		return false;
+	}
+	
 }
