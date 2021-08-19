@@ -30,6 +30,38 @@ public class Server {
 		}
 	}
 	
+	public void user_joined(String username) throws IOException {
+		String newMessage = "SERVER: "+username+" joined the chat.\n";
+		lock.lock();
+		try {
+			for (Worker worker: workers) {
+				if (worker.username != null) {
+					if (!worker.username.equals(username) ) {
+						worker.send(newMessage);
+					}
+				}
+			}
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	public void user_logged_off(String username) throws IOException {
+		String newMessage = "SERVER: "+username+" logged off.\n";
+		lock.lock();
+		try {
+			for (Worker worker: workers) {
+				if (worker.username != null) {
+					if (!worker.username.equals(username) ) {
+						worker.send(newMessage);
+					}
+				}
+			}
+		} finally {
+			lock.unlock();
+		}
+	}
+	
 	public void logoff(int id) {
 		lock.lock();
 		Worker toRemove = null;
@@ -43,9 +75,13 @@ public class Server {
 			if (toRemove != null) {
 				workers.remove(toRemove);
 			}
+			for (Worker worker: workers) {
+				
+			}
 		} finally {
 			lock.unlock();
 		}
+		
 	}
 	
 	public String sendMessage(String from, String to, String message) throws IOException {

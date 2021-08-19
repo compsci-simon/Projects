@@ -21,6 +21,7 @@ public class Worker extends Thread {
 	public void run() {
 		try {
 			handle_Socket();
+			server.user_logged_off(username);
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -75,6 +76,7 @@ public class Worker extends Thread {
 					System.out.println("User failed to log in.");
 				} else {
 					outStream.write("Login succesfull!\n".getBytes());
+					server.user_joined(username);
 					System.out.println(username + " has succesfully logged in.");
 				}
 				break;
