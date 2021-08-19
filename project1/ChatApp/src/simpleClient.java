@@ -22,11 +22,44 @@ public class simpleClient {
 			System.out.println("Successfully connected");
 		}
 		
-		simon.handle_client();
+		Thread t = new Thread() {
+			public void run() {
+				try {
+					simon.recv_messages();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		};
+		t.start();
+		BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
+		
+		String userInput;
+		while ((userInput = stdIn.readLine()) != null) {
+			userInput += "\n";
+			simon.send_message(userInput);
+			if (userInput.equals("quit\n"))
+				break;
+		}
 		
 		//c.send_message("simon", "hello");
 		simon.quit();
 		
+	}
+	
+	public void recv_messages() throws IOException {
+		String line;
+		while ((line = clientIn.readLine()) != null) {
+			System.out.println(line);
+			if (line.equals("Successfully logged out")) {
+				break;
+			}
+		}
+	}
+	
+	public void send_message(String message) throws IOException {
+		clientOut.write(message.getBytes());
 	}
 	
 	public void handle_client() throws IOException {
@@ -66,14 +99,6 @@ public class simpleClient {
 			e.printStackTrace();
 			return false;
 		}
-	}
-	
-	public boolean send_message(String destination, String message) throws IOException {
-		String command = "msg " + destination + " " + message + "\n";
-		clientOut.write(command.getBytes());
-		String res = clientIn.readLine();
-		System.out.println(res);
-		return true;
 	}
 	
 	public boolean broadcast_message(String message) throws IOException {

@@ -24,7 +24,6 @@ public class Worker extends Thread {
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
-			System.out.println("Workers size = "+server.workers.size());
 			if (username == null) {
 				System.out.println("User left the server");
 			} else {
