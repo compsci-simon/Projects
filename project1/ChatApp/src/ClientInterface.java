@@ -248,9 +248,23 @@ public class ClientInterface extends JFrame {
 	}
 	
 	public void ListUsers() throws IOException {
-		String users = client.list_users();
-		list_page(users);
-		//System.out.println(users);
+		Thread x = new Thread() {
+			public void run() {
+					String users = "";
+					try {
+						users = client.list_users();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					list_page(users);
+			}
+		};
+		x.start();
+		
+		//String users = "";
+		//users = client.list_users();
+		//list_page(users);
 		System.out.println("listing online users");
 	}
 	public void Exit() throws IOException {

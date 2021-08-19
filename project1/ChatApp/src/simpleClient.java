@@ -61,15 +61,9 @@ public class simpleClient {
 		}
 	}
 	
-	public void send_message(String destination, String message) throws IOException {
-		String command = "msg " + destination + " " + message + "\n";
-		clientOut.write(command.getBytes());
-	}
-	
 	public void handle_client() throws IOException {
 		BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
 		String resp;
-		
 		while ((resp = stdIn.readLine()) != null) {
 	    	String userText = stdIn.readLine();
 	        if (userText != null) {
@@ -105,11 +99,14 @@ public class simpleClient {
 		}
 	}
 	
+	public void send_message(String destination, String message) throws IOException {
+		String command = "msg " + destination + " " + message + "\n";
+		clientOut.write(command.getBytes());
+	}
+	
 	public boolean broadcast_message(String message) throws IOException {
 		String command = "bcast " + message + "\n";
 		clientOut.write(command.getBytes());
-		String res = clientIn.readLine();
-		System.out.println(res);
 		return true;
 	}
 	
@@ -123,8 +120,6 @@ public class simpleClient {
 	public boolean help() throws IOException {
 		String command = "help\n";
 		clientOut.write(command.getBytes());
-		String res = clientIn.readLine();
-		System.out.println(res);
 		return true;
 		
 	}
@@ -132,8 +127,6 @@ public class simpleClient {
 	public boolean quit() throws IOException {
 		String command = "quit\n";
 		clientOut.write(command.getBytes());
-		String res = clientIn.readLine();
-		System.out.println(res);
 		return true;
 	}
 	
