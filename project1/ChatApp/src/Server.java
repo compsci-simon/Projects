@@ -93,7 +93,8 @@ public class Server {
 				if (worker.username != null) {
 					if (worker.username.equals(to)) {
 						worker.send(newMessage);
-						returnMessage = "Successfully sent message.\n";
+						//returnMessage = "Successfully sent message.\n";
+						returnMessage = newMessage;
 						break;
 					}
 				}
@@ -104,7 +105,7 @@ public class Server {
 		return returnMessage;
 	}
 	
-	public void broadcast(String username, String message) throws IOException {
+	public String broadcast(String username, String message) throws IOException {
 		String newMessage = "BROADCAST FROM "+username+": "+message+"\n";
 		lock.lock();
 		try {
@@ -112,12 +113,14 @@ public class Server {
 				if (worker.username != null) {
 					if (!worker.username.equals(username) ) {
 						worker.send(newMessage);
+						return newMessage;
 					}
 				}
 			}
 		} finally {
 			lock.unlock();
 		}
+		return "";
 	}
 	
 	public String listUsers(String username) {

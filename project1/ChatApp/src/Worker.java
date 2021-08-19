@@ -81,11 +81,8 @@ public class Worker extends Thread {
 				}
 				break;
 			case 3:
-				if (handle_broadcast(user_command_tokens)) {
-					outStream.write("Success broadcasting message!\n".getBytes());
-				} else {
-					outStream.write("Failure broadcasting message!\n".getBytes());
-				}
+				String response = handle_broadcast(user_command_tokens);
+				outStream.write(response.getBytes());
 				break;
 			case 4:
 				String res = handle_message(user_command_tokens);
@@ -113,7 +110,7 @@ public class Worker extends Thread {
 
 	private String handle_message(String[] user_command_tokens) {
 		if (username == null) {
-			return "Failed to send message. You must be logged in.";
+			return "Failed to send message. You must be logged in.\n";
 		} else if (user_command_tokens.length < 2) {
 			return "Failed to send message. Empty mesage.\n";
 		} else {
@@ -131,25 +128,25 @@ public class Worker extends Thread {
 		}
 	}
 
-	private boolean handle_broadcast(String[] user_command_tokens) {
-		System.out.println(username);
+	private String handle_broadcast(String[] user_command_tokens) {
 		if (username == null) {
-			return false;
+			return "Failed to send broadcast. You must be logged in\n";
 		} else if (user_command_tokens.length < 2) {
-			return false;
+			return "Failure broadcasting message!\n";
 		} else {
+			String returnMessage = "";
 			try {
 				String msg = "";
 				for (int i = 1; i < user_command_tokens.length; i++) {
 					msg += user_command_tokens[i]+" ";
 				}
-				server.broadcast(username, msg);
-				return true;
+				returnMessage = server.broadcast(username, msg);
+				return returnMessage;
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
+			return returnMessage;
 		}
-		return false;
 	}
 
 	private boolean handle_login(String[] user_command_token) {
