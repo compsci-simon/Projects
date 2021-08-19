@@ -1,5 +1,6 @@
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
@@ -167,8 +168,10 @@ public class ClientInterface extends JFrame {
 	
 	public void list_page(String users) {
 		list_frame.setSize(400,500); 
-		JLabel list_label = new JLabel("all of the online users:");
-		JLabel user_list = new JLabel(users);
+		JLabel list_label = new JLabel("All of the online users:", JLabel.CENTER);
+		list_label.setFont(new Font("Arial", Font.BOLD, 20));
+		JLabel user_list = new JLabel(users, JLabel.CENTER);
+		user_list.setFont(new Font("Arial", Font.BOLD, 15));
 		list_frame.add(list_label, BorderLayout.NORTH);
 		list_frame.add(user_list, BorderLayout.CENTER);
 		list_frame.setVisible(true);
