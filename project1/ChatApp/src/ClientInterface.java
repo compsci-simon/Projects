@@ -186,7 +186,9 @@ public class ClientInterface extends JFrame {
 					clientIn = new BufferedReader(new InputStreamReader(client.clientSock.getInputStream()));
 					while ((line = clientIn.readLine()) != null) {
 						System.out.println(line);
-						new_news.setText(new_news.getText() + "\n" + line);
+						String add = "<html>" + new_news.getText() + "<br>" + line + "<html>";
+						new_news.setText(add);
+						//new_news.setText(new_news.getText() + "\n" + line);
 						news_frame.add(new_news, BorderLayout.CENTER);
 						news_frame.setVisible(true);
 						if (line.equals("Successfully logged out")) {
