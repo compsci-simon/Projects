@@ -141,7 +141,12 @@ public class ClientInterface extends JFrame {
 		send_button.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				SendMessage();
+				try {
+					SendMessage();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 			}
 		});
 		ListUsers_button.addActionListener(new ActionListener() {
@@ -153,18 +158,27 @@ public class ClientInterface extends JFrame {
 		Exit_button.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				Exit();
+				try {
+					Exit();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 			}
 		});
 	}
-	public void SendMessage() {
+	public void SendMessage() throws IOException {
+		String destination = destination_text.getText();
+		String message = message_text.getText();
+		client.send_message(destination, message);
 		System.out.println("Sent");
 	}
 	
 	public void ListUsers() {
 		System.out.println("listing online users");
 	}
-	public void Exit() {
+	public void Exit() throws IOException {
+		client.quit();
 		System.out.println("Exit");
 	}
 	

@@ -20,6 +20,8 @@ public class simpleClient {
 		} else {
 			System.out.println("Successfully connected");
 			c.login("simon", "simon");
+			//c.send_message("jaco", "hello");
+			c.quit();
 		}
 	}
 	
@@ -52,5 +54,24 @@ public class simpleClient {
 			return false;
 		}
 	}
+	
+	public boolean send_message(String destination, String message) throws IOException {
+		String command = "msg " + destination + " " + message + "\n";
+		clientOut.write(command.getBytes());
+		String res = clientIn.readLine();
+		System.out.println(res);
+		return true;
+	}
+	
+	public boolean quit() throws IOException {
+		String command = "quit\n";
+		clientOut.write(command.getBytes());
+		String res = clientIn.readLine();
+		System.out.println(res);
+		return true;
+		
+	}
+	
+	
 	
 }
