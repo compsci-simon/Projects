@@ -14,20 +14,35 @@ public class simpleClient {
 	}
 	
 	public static void main(String[] args) throws IOException {
-		simpleClient c = new simpleClient("localhost", 9005);
-		if (!c.connect()) {
+		simpleClient simon = new simpleClient("localhost", 9005);
+		if (!simon.connect()) {
 			System.out.println("Failure to connect");
+			return;
 		} else {
 			System.out.println("Successfully connected");
-			c.login("simon", "simon");
-			//c.send_message("jaco", "hello");
-			c.quit();
 		}
-	}
-	
-	public void sendMessage(String message) {
+
+		simpleClient jaco = new simpleClient("localhost", 9005);
+		if (!jaco.connect()) {
+			System.out.println("Failure to connect");
+			return;
+		} else {
+			System.out.println("Successfully connected");
+		}
+		
+		jaco.login("jaco", "jaco");
+		simon.login("simon", "simon");
+		
+		//c.send_message("simon", "hello");
+		jaco.broadcast_message("hello everyone");
+		simon.broadcast_message("hello everyone");
+		jaco.quit();
+		
+		//c.send_message("simon", "hello");
+		simon.quit();
 		
 	}
+	
 	
 	public boolean login(String username, String password) throws IOException {
 		String command = "login "+username+" "+password+"\n";
@@ -63,13 +78,30 @@ public class simpleClient {
 		return true;
 	}
 	
+	public boolean broadcast_message(String message) throws IOException {
+		String command = "bcast " + message + "\n";
+		clientOut.write(command.getBytes());
+		String res = clientIn.readLine();
+		System.out.println(res);
+		return true;
+	}
+	
+	public boolean help() throws IOException {
+		String command = "help\n";
+		clientOut.write(command.getBytes());
+		String res = clientIn.readLine();
+		System.out.println(res);
+		return true;
+		
+	}
+	
+	
 	public boolean quit() throws IOException {
 		String command = "quit\n";
 		clientOut.write(command.getBytes());
 		String res = clientIn.readLine();
 		System.out.println(res);
 		return true;
-		
 	}
 	
 	

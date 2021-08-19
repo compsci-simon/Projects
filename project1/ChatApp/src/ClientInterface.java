@@ -170,7 +170,8 @@ public class ClientInterface extends JFrame {
 	public void SendMessage() throws IOException {
 		String destination = destination_text.getText();
 		String message = message_text.getText();
-		client.send_message(destination, message);
+		//client.send_message(destination, message);
+		client.broadcast_message(message);
 		System.out.println("Sent");
 	}
 	

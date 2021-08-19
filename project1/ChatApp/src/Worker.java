@@ -113,6 +113,7 @@ public class Worker extends Thread {
 	}
 
 	private boolean handle_broadcast(String[] user_command_tokens) {
+		System.out.println(username);
 		if (username == null) {
 			return false;
 		} else if (user_command_tokens.length < 2) {
