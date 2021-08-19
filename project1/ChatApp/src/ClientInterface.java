@@ -16,11 +16,11 @@ import javax.swing.JTextField;
 
 public class ClientInterface extends JFrame {
 	simpleClient client;
-	JFrame connection_frame = new JFrame();
-	JFrame login_frame = new JFrame();
-	JFrame home_frame = new JFrame();
-	JFrame news_frame = new JFrame();
-	JFrame list_frame = new JFrame();
+	JFrame connection_frame = new JFrame("Connect");
+	JFrame login_frame = new JFrame("Login");
+	JFrame home_frame = new JFrame("Home");
+	JFrame news_frame = new JFrame("News");
+	JFrame list_frame = new JFrame("Online Users");
 	JTextField username_text = new JTextField();
 	JTextField password_text = new JTextField();
 	JButton login_button = new JButton("Login");
@@ -31,7 +31,7 @@ public class ClientInterface extends JFrame {
 	JTextField destination_text = new JTextField();
 	JButton send_button = new JButton("Send");
 	JButton broadcast_button = new JButton("Broadcast");
-	JLabel conn_suc = new JLabel("You are connected to the server");
+	JLabel conn_suc = new JLabel("You are connected to the server", JLabel.CENTER);
 	
 	BufferedReader clientIn;
 	
@@ -97,20 +97,22 @@ public class ClientInterface extends JFrame {
 		home_frame.setSize(400,500); 
 		JButton ListUsers_button = new JButton("List online users");
 		home_frame.add(ListUsers_button);
-		JLabel Message = new JLabel("Message");
+		JLabel Message = new JLabel("Message: ", JLabel.CENTER);
 		JPanel home_panel = new JPanel();
 		home_panel.setLayout(new BoxLayout(home_panel, BoxLayout.Y_AXIS));
 		home_panel.add(Message);
 		home_panel.add(message_text);
-		JLabel destination = new JLabel("To");
+		JLabel destination = new JLabel("To: ", JLabel.CENTER);
 		home_panel.add(destination);
 		home_panel.add(destination_text);
-		home_panel.add(send_button);
-		home_panel.add(broadcast_button);
+		//home_panel.add(send_button);
+		//home_panel.add(broadcast_button);
 		JButton Exit_button = new JButton("Exit");
 		
 		home_frame.add(ListUsers_button, BorderLayout.NORTH);
 		home_frame.add(home_panel);
+		home_frame.add(send_button, BorderLayout.WEST);
+		home_frame.add(broadcast_button, BorderLayout.EAST);
 		home_frame.add(Exit_button, BorderLayout.SOUTH);
 		
 		home_frame.setVisible(true);
@@ -164,7 +166,7 @@ public class ClientInterface extends JFrame {
 	}
 	
 	public void list_page(String users) {
-		list_frame.setSize(600,500);
+		list_frame.setSize(400,500); 
 		JLabel list_label = new JLabel("all of the online users:");
 		JLabel user_list = new JLabel(users);
 		list_frame.add(list_label, BorderLayout.NORTH);
@@ -173,10 +175,10 @@ public class ClientInterface extends JFrame {
 	}
 	
 	public void news_page() throws IOException {
-		news_frame.setSize(600,500);
-		JLabel news_label = new JLabel("your news will arrive here");
+		news_frame.setSize(400,500); 
+		JLabel news_label = new JLabel("Your news will arrive here", JLabel.CENTER);
 		news_frame.add(news_label, BorderLayout.NORTH);
-		
+		JLabel new_news = new JLabel("");
 		Thread t = new Thread() {
 			public void run() {
 				try {
@@ -184,7 +186,7 @@ public class ClientInterface extends JFrame {
 					clientIn = new BufferedReader(new InputStreamReader(client.clientSock.getInputStream()));
 					while ((line = clientIn.readLine()) != null) {
 						System.out.println(line);
-						JLabel new_news = new JLabel(line);
+						new_news.setText(new_news.getText() + "\n" + line);
 						news_frame.add(new_news, BorderLayout.CENTER);
 						news_frame.setVisible(true);
 						if (line.equals("Successfully logged out")) {
@@ -203,14 +205,18 @@ public class ClientInterface extends JFrame {
 	
 	public void ClientConnect() {
 		String address = address_text.getText();
-		int port = Integer.parseInt(port_text.getText());
+		int port = 0;
+		try {
+	      	port = Integer.parseInt(port_text.getText());
+		} catch (NumberFormatException e) {
+		}
 		this.client = new simpleClient(address, port);
 		if (client.connect()) {
 			System.out.println("Client connected");
 			connection_frame.setVisible(false);
 			login_page();
 		} else {
-			JLabel conn_fail = new JLabel("Failed to connect, provide correct address and port");
+			JLabel conn_fail = new JLabel("Failed to connect, provide valid address and port", JLabel.CENTER);
 			connection_frame.add(conn_fail, BorderLayout.CENTER);
 			connection_frame.setVisible(true);
 			System.out.println("Client could not connect");

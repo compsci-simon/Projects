@@ -94,7 +94,6 @@ public class simpleClient {
 			System.out.println(res);
 			return true;
 		} catch (Exception e) {
-			e.printStackTrace();
 			return false;
 		}
 	}
