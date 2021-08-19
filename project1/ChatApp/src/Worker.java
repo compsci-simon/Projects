@@ -7,12 +7,14 @@ public class Worker extends Thread {
 	Socket clientSocket;
 	OutputStream outStream;
 	InputStream inStream;
-	String[] commands = {"quit", "help", "login", "bcast", "msg"};
+	String[] commands = {"quit", "help", "login", "bcast", "msg", "list"};
 	String username = null;
+	int id;
 
-	public Worker(Server server, Socket clientSocket) {
+	public Worker(Server server, Socket clientSocket, int id) {
 		this.server = server;
 		this.clientSocket = clientSocket;
+		this.id = id;
 	}
 
 	@Override
@@ -21,6 +23,14 @@ public class Worker extends Thread {
 			handle_Socket();
 		} catch (Exception e) {
 			e.printStackTrace();
+		} finally {
+			System.out.println("Workers size = "+server.workers.size());
+			if (username == null) {
+				System.out.println("User left the server");
+			} else {
+				System.out.println(username+" logged off.");
+			}
+			server.logoff(id);
 		}
 	}
 	
@@ -48,11 +58,6 @@ public class Worker extends Thread {
 				break;
 			case 0:
 				outStream.write("Successfully logged out\n".getBytes());
-				if (username == null) {
-					System.out.println("User left the server");
-				} else {
-					System.out.println(username+" logged off.");
-				}
 				loop = false;
 				break;
 			case 1:
@@ -60,6 +65,7 @@ public class Worker extends Thread {
 						+ "help: All commands\n"
 						+ "login <username> <password>: login command\n"
 						+ "bcast <message>: Broadcast a message to all users. You need to be logged in\n"
+						+ "list: list all online users\n"
 						+ "msg <To user> <message>: Sends a direct messge to a user\n"
 						+ "quit: leave the chat\n";
 				outStream.write(msg.getBytes());
@@ -84,12 +90,24 @@ public class Worker extends Thread {
 				String res = handle_message(user_command_tokens);
 				outStream.write(res.getBytes());
 				break;
+			case 5:
+				handle_list();
+				break;
 			}
 			if (!loop) {
 				break;
 			}
 		}
 		clientSocket.close();
+	}
+	
+	public void handle_list() {
+		String list = server.listUsers(username) + "\n";
+		try {
+			outStream.write(list.getBytes());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	private String handle_message(String[] user_command_tokens) {
@@ -121,8 +139,8 @@ public class Worker extends Thread {
 		} else {
 			try {
 				String msg = "";
-				for (String token: user_command_tokens) {
-					msg += token+" ";
+				for (int i = 1; i < user_command_tokens.length; i++) {
+					msg += user_command_tokens[i]+" ";
 				}
 				server.broadcast(username, msg);
 				return true;

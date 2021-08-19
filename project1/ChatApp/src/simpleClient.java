@@ -21,26 +21,24 @@ public class simpleClient {
 		} else {
 			System.out.println("Successfully connected");
 		}
-
-		simpleClient jaco = new simpleClient("localhost", 9005);
-		if (!jaco.connect()) {
-			System.out.println("Failure to connect");
-			return;
-		} else {
-			System.out.println("Successfully connected");
-		}
 		
-		jaco.login("jaco", "jaco");
-		simon.login("simon", "simon");
-		
-		//c.send_message("simon", "hello");
-		jaco.broadcast_message("hello everyone");
-		simon.broadcast_message("hello everyone");
-		jaco.quit();
+		simon.handle_client();
 		
 		//c.send_message("simon", "hello");
 		simon.quit();
 		
+	}
+	
+	public void handle_client() throws IOException {
+		BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
+		String resp;
+		
+		while ((resp = stdIn.readLine()) != null) {
+	    	String userText = stdIn.readLine();
+	        if (userText != null) {
+	            clientOut.write((userText+"\n").getBytes());
+	        }
+		}
 	}
 	
 	
@@ -86,6 +84,12 @@ public class simpleClient {
 		return true;
 	}
 	
+	public void list_users() throws IOException {
+		clientOut.write("list\n".getBytes());
+		String users = clientIn.readLine();
+		System.out.println(users);
+	}
+	
 	public boolean help() throws IOException {
 		String command = "help\n";
 		clientOut.write(command.getBytes());
@@ -94,7 +98,6 @@ public class simpleClient {
 		return true;
 		
 	}
-	
 	
 	public boolean quit() throws IOException {
 		String command = "quit\n";
