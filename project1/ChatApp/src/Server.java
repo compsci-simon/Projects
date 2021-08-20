@@ -93,7 +93,6 @@ public class Server {
 				if (worker.username != null) {
 					if (worker.username.equals(to)) {
 						worker.send(newMessage);
-						//returnMessage = "Successfully sent message.\n";
 						returnMessage = newMessage;
 						break;
 					}
@@ -130,7 +129,7 @@ public class Server {
 			for (Worker worker: workers) {
 				if (worker.username != null) {
 					if (!worker.username.equals(username) ) {
-						users += worker.username + " ";
+						users += worker.username + ", ";
 					}
 				}
 			}

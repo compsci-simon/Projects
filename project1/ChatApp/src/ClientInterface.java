@@ -193,13 +193,10 @@ public class ClientInterface extends JFrame {
 					clientIn = new BufferedReader(new InputStreamReader(client.clientSock.getInputStream()));
 					while ((line = clientIn.readLine()) != null) {
 						if (line.contains("List of users:")) {
-							System.out.println(line);
 							list_page(line);
 						} else {
-							//System.out.println(line);
 							String add = "<html>" + new_news.getText() + "<br>" + line + "<html>";
 							new_news.setText(add);
-							//new_news.setText(new_news.getText() + "\n" + line);
 							news_frame.add(new_news, BorderLayout.CENTER);
 							news_frame.setVisible(true);
 						}
@@ -208,8 +205,7 @@ public class ClientInterface extends JFrame {
 						}
 					}
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+				System.out.println("Could not create Thread");
 				}
 			}
 		};
@@ -260,35 +256,15 @@ public class ClientInterface extends JFrame {
 		String destination = destination_text.getText();
 		String message = message_text.getText();
 		client.send_message(destination, message);
-		System.out.println("Sent");
 	}
 	
 	public void BroadcastMessage() throws IOException {
 		String message = message_text.getText();
 		client.broadcast_message(message);
-		System.out.println("Sent");
 	}
 	
 	public void ListUsers() throws IOException {
-		/*
-		Thread x = new Thread() {
-			public void run() {
-					String users = "";
-					try {
-						users = client.list_users();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					list_page(users);
-			}
-		};
-		x.start();
-		*/
-		String users = "";
-		users = client.list_users();
-		//list_page(users);
-		System.out.println("listing online users");
+		client.list_users();
 	}
 	public void Exit() throws IOException {
 		client.quit();

@@ -14,6 +14,7 @@ public class simpleClient {
 	}
 	
 	public static void main(String[] args) throws IOException {
+		/*
 		simpleClient simon = new simpleClient("localhost", 9005);
 		if (!simon.connect()) {
 			System.out.println("Failure to connect");
@@ -33,8 +34,6 @@ public class simpleClient {
 			}
 		};
 		t.start();
-		
-		/*
 		BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
 		
 		String userInput;
@@ -45,10 +44,6 @@ public class simpleClient {
 				break;
 		}
 		*/
-		
-		//c.send_message("simon", "hello");
-		//simon.quit();
-		
 	}
 	
 	public void recv_messages() throws IOException {
@@ -109,12 +104,8 @@ public class simpleClient {
 		return true;
 	}
 	
-	public String list_users() throws IOException {
+	public void list_users() throws IOException {
 		clientOut.write("list\n".getBytes());
-		//String users = clientIn.readLine();
-		String users = "";
-		System.out.println(users);
-		return users;
 	}
 	
 	public boolean help() throws IOException {
@@ -129,7 +120,4 @@ public class simpleClient {
 		clientOut.write(command.getBytes());
 		return true;
 	}
-	
-	
-	
 }
