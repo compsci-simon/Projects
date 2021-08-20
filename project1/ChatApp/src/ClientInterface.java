@@ -38,10 +38,12 @@ public class ClientInterface extends JFrame {
 	BufferedReader clientIn;
 	
 	public ClientInterface() throws IOException {
-		//connection_page();
+		connection_page();
+		/*
 		client = new simpleClient("localhost", 9005);
 		client.connect();
 		login_page();
+		*/
 	}
 	
 	public void connection_page() {
@@ -107,14 +109,14 @@ public class ClientInterface extends JFrame {
 		JLabel destination = new JLabel("To: ", JLabel.CENTER);
 		home_panel.add(destination);
 		home_panel.add(destination_text);
-		//home_panel.add(send_button);
-		//home_panel.add(broadcast_button);
+		home_panel.add(send_button, BorderLayout.WEST);
+		home_panel.add(broadcast_button, BorderLayout.EAST);
 		JButton Exit_button = new JButton("Exit");
 		
 		home_frame.add(ListUsers_button, BorderLayout.NORTH);
 		home_frame.add(home_panel);
-		home_frame.add(send_button, BorderLayout.WEST);
-		home_frame.add(broadcast_button, BorderLayout.EAST);
+		//home_frame.add(send_button, BorderLayout.WEST);
+		//home_frame.add(broadcast_button, BorderLayout.EAST);
 		home_frame.add(Exit_button, BorderLayout.SOUTH);
 		
 		home_frame.setVisible(true);
@@ -192,6 +194,7 @@ public class ClientInterface extends JFrame {
 					String line;
 					clientIn = new BufferedReader(new InputStreamReader(client.clientSock.getInputStream()));
 					while ((line = clientIn.readLine()) != null) {
+						System.out.println(line);
 						if (line.contains("List of users:")) {
 							list_page(line);
 						} else {

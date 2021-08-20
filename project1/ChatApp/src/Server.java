@@ -85,7 +85,7 @@ public class Server {
 	}
 	
 	public String sendMessage(String from, String to, String message) throws IOException {
-		String returnMessage = "Failure. User does not exist!";
+		String returnMessage = "Failure. User does not exist!\n";
 		String newMessage = "DIRECT MESSAGE FROM "+from+": "+message+"\n";
 		lock.lock();
 		try {
@@ -129,7 +129,7 @@ public class Server {
 			for (Worker worker: workers) {
 				if (worker.username != null) {
 					if (!worker.username.equals(username) ) {
-						users += worker.username + ", ";
+						users += worker.username + "  ";
 					}
 				}
 			}
