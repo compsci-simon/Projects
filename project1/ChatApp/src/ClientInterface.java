@@ -33,7 +33,8 @@ public class ClientInterface extends JFrame {
 	JButton send_button = new JButton("Send");
 	JButton broadcast_button = new JButton("Broadcast");
 	JLabel conn_suc = new JLabel("You are connected to the server", JLabel.CENTER);
-	
+	JLabel user_list = new JLabel("");
+	JLabel list_label = new JLabel("");
 	BufferedReader clientIn;
 	
 	public ClientInterface() throws IOException {
@@ -167,15 +168,18 @@ public class ClientInterface extends JFrame {
 	}
 	
 	public void list_page(String users) {
+		list_frame.remove(user_list);
+		list_frame.remove(list_label);
 		list_frame.setSize(400,500); 
-		JLabel list_label = new JLabel("All of the online users:", JLabel.CENTER);
+		list_label = new JLabel("All of the online users:", JLabel.CENTER);
 		list_label.setFont(new Font("Arial", Font.BOLD, 20));
-		JLabel user_list = new JLabel(users, JLabel.CENTER);
+		user_list = new JLabel(users, JLabel.CENTER);
 		user_list.setFont(new Font("Arial", Font.BOLD, 15));
 		list_frame.add(list_label, BorderLayout.NORTH);
 		list_frame.add(user_list, BorderLayout.CENTER);
 		list_frame.setVisible(true);
 	}
+	
 	
 	public void news_page() throws IOException {
 		news_frame.setSize(400,500); 
@@ -188,12 +192,17 @@ public class ClientInterface extends JFrame {
 					String line;
 					clientIn = new BufferedReader(new InputStreamReader(client.clientSock.getInputStream()));
 					while ((line = clientIn.readLine()) != null) {
-						System.out.println(line);
-						String add = "<html>" + new_news.getText() + "<br>" + line + "<html>";
-						new_news.setText(add);
-						//new_news.setText(new_news.getText() + "\n" + line);
-						news_frame.add(new_news, BorderLayout.CENTER);
-						news_frame.setVisible(true);
+						if (line.contains("List of users:")) {
+							System.out.println(line);
+							list_page(line);
+						} else {
+							//System.out.println(line);
+							String add = "<html>" + new_news.getText() + "<br>" + line + "<html>";
+							new_news.setText(add);
+							//new_news.setText(new_news.getText() + "\n" + line);
+							news_frame.add(new_news, BorderLayout.CENTER);
+							news_frame.setVisible(true);
+						}
 						if (line.equals("Successfully logged out")) {
 							break;
 						}
@@ -236,6 +245,8 @@ public class ClientInterface extends JFrame {
 			login_frame.setVisible(false);
 			home_page();
 			news_page();
+			list_frame.add(list_label);
+			list_frame.add(user_list);
 		} else {
 			JLabel login_fail = new JLabel("Failed to login, provide correct username and password");
 			login_frame.add(login_fail, BorderLayout.CENTER);
@@ -259,6 +270,7 @@ public class ClientInterface extends JFrame {
 	}
 	
 	public void ListUsers() throws IOException {
+		/*
 		Thread x = new Thread() {
 			public void run() {
 					String users = "";
@@ -272,9 +284,9 @@ public class ClientInterface extends JFrame {
 			}
 		};
 		x.start();
-		
-		//String users = "";
-		//users = client.list_users();
+		*/
+		String users = "";
+		users = client.list_users();
 		//list_page(users);
 		System.out.println("listing online users");
 	}

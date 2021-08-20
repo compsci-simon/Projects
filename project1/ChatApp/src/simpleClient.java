@@ -111,7 +111,8 @@ public class simpleClient {
 	
 	public String list_users() throws IOException {
 		clientOut.write("list\n".getBytes());
-		String users = clientIn.readLine();
+		//String users = clientIn.readLine();
+		String users = "";
 		System.out.println(users);
 		return users;
 	}

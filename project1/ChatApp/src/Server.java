@@ -124,7 +124,7 @@ public class Server {
 	}
 	
 	public String listUsers(String username) {
-		String users = "";
+		String users = "List of users: ";
 		lock.lock();
 		try {
 			for (Worker worker: workers) {
