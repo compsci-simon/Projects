@@ -93,7 +93,7 @@ public class Server {
 				if (worker.username != null) {
 					if (worker.username.equals(to)) {
 						worker.send(newMessage);
-						returnMessage = newMessage;
+						returnMessage = "DIRECT MESSAGE TO "+ to +": "+message+ "\n";
 						break;
 					}
 				}
@@ -112,6 +112,7 @@ public class Server {
 				if (worker.username != null) {
 					if (!worker.username.equals(username) ) {
 						worker.send(newMessage);
+						newMessage = "BROADCAST TO EVERYONE: "+message+"\n";
 						return newMessage;
 					}
 				}
@@ -119,7 +120,7 @@ public class Server {
 		} finally {
 			lock.unlock();
 		}
-		return "";
+		return "Failure. You are the only user\n";
 	}
 	
 	public String listUsers(String username) {
