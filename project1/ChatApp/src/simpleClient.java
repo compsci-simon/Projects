@@ -72,6 +72,10 @@ public class simpleClient {
 		String command = "login "+username+" "+password+"\n";
 		clientOut.write(command.getBytes());
 		String res = clientIn.readLine();
+		if (res == null) {
+			System.out.println("You are no longer connected, try again later");
+			System.exit(1);
+		}
 		System.out.println(res);
 		if (res.compareTo("Login failed!") == 0) {
 			return false;
@@ -95,29 +99,55 @@ public class simpleClient {
 	
 	public void send_message(String destination, String message) throws IOException {
 		String command = "msg " + destination + " " + message + "\n";
-		clientOut.write(command.getBytes());
+		try {
+			clientOut.write(command.getBytes());
+		} catch (Exception e) {
+			System.out.println("You are no longer connected, try again later");
+			System.exit(1);
+		}
 	}
 	
 	public boolean broadcast_message(String message) throws IOException {
 		String command = "bcast " + message + "\n";
-		clientOut.write(command.getBytes());
+		try {
+			clientOut.write(command.getBytes());
+		} catch (Exception e) {
+			System.out.println("You are no longer connected, try again later");
+			System.exit(1);
+		}
 		return true;
 	}
 	
 	public void list_users() throws IOException {
-		clientOut.write("list\n".getBytes());
+		String command = "list\n";
+		try {
+			clientOut.write(command.getBytes());
+		} catch (Exception e) {
+			System.out.println("You are no longer connected, try again later");
+			System.exit(1);
+		}
 	}
 	
 	public boolean help() throws IOException {
 		String command = "help\n";
-		clientOut.write(command.getBytes());
+		try {
+			clientOut.write(command.getBytes());
+		} catch (Exception e) {
+			System.out.println("You are no longer connected, try again later");
+			System.exit(1);
+		}
 		return true;
 		
 	}
 	
 	public boolean quit() throws IOException {
 		String command = "quit\n";
-		clientOut.write(command.getBytes());
+		try {
+			clientOut.write(command.getBytes());
+		} catch (Exception e) {
+			System.out.println("You are no longer connected, try again later");
+			System.exit(1);
+		}
 		return true;
 	}
 }
