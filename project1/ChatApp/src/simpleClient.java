@@ -53,7 +53,7 @@ public class simpleClient {
 	
 	public boolean connect() {
 		try {
-			this.clientSock = new Socket("localhost", port);
+			this.clientSock = new Socket(address, port);
 			clientOut = clientSock.getOutputStream();
 			clientIn = new BufferedReader(new InputStreamReader(clientSock.getInputStream()));
 			String res = clientIn.readLine();
