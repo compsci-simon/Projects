@@ -13,39 +13,6 @@ public class simpleClient {
 		this.port = port;
 	}
 	
-	public static void main(String[] args) throws IOException {
-		/*
-		simpleClient simon = new simpleClient("localhost", 9005);
-		if (!simon.connect()) {
-			System.out.println("Failure to connect");
-			return;
-		} else {
-			System.out.println("Successfully connected");
-		}
-		
-		Thread t = new Thread() {
-			public void run() {
-				try {
-					simon.recv_messages();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-		};
-		t.start();
-		BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
-		
-		String userInput;
-		while ((userInput = stdIn.readLine()) != null) {
-			userInput += "\n";
-			simon.send_message(userInput);
-			if (userInput.equals("quit\n"))
-				break;
-		}
-		*/
-	}
-	
 	public void recv_messages() throws IOException {
 		String line;
 		while ((line = clientIn.readLine()) != null) {

@@ -18,7 +18,6 @@ public class Server {
 			System.out.println("Server started...");
 			
 			while (true) {
-				
 				Socket clientSocket = socket.accept();
 				System.out.printf("%s connected to the server!\n", clientSocket);
 				Worker worker = new Worker(this, clientSocket, workerid++);
@@ -74,9 +73,6 @@ public class Server {
 			}
 			if (toRemove != null) {
 				workers.remove(toRemove);
-			}
-			for (Worker worker: workers) {
-				
 			}
 		} finally {
 			lock.unlock();

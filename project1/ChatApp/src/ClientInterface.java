@@ -39,11 +39,6 @@ public class ClientInterface extends JFrame {
 	
 	public ClientInterface() throws IOException {
 		connection_page();
-		/*
-		client = new simpleClient("localhost", 9005);
-		client.connect();
-		login_page();
-		*/
 	}
 	
 	public void connection_page() {
@@ -115,8 +110,6 @@ public class ClientInterface extends JFrame {
 		
 		home_frame.add(ListUsers_button, BorderLayout.NORTH);
 		home_frame.add(home_panel);
-		//home_frame.add(send_button, BorderLayout.WEST);
-		//home_frame.add(broadcast_button, BorderLayout.EAST);
 		home_frame.add(Exit_button, BorderLayout.SOUTH);
 		
 		home_frame.setVisible(true);
