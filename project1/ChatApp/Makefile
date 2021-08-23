@@ -1,6 +1,6 @@
 JC = javac
 
-default:
+default: clean
 	javac -d bin src/*.java
 	
 clean:
