@@ -103,20 +103,23 @@ public class Server {
 	public String broadcast(String username, String message) throws IOException {
 		String newMessage = "BROADCAST FROM "+username+": "+message+"\n";
 		lock.lock();
+		if (workers.size() == 1) {
+			lock.unlock();
+			return "Failure. You are the only user\n";
+		}
 		try {
 			for (Worker worker: workers) {
 				if (worker.username != null) {
 					if (!worker.username.equals(username) ) {
 						worker.send(newMessage);
-						newMessage = "BROADCAST TO EVERYONE: "+message+"\n";
-						return newMessage;
 					}
 				}
 			}
 		} finally {
 			lock.unlock();
 		}
-		return "Failure. You are the only user\n";
+		newMessage = "BROADCAST TO EVERYONE: "+message+"\n";
+		return newMessage;
 	}
 	
 	public String listUsers(String username) {
