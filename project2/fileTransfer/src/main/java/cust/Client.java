@@ -15,10 +15,24 @@ public class Client {
   int tcpPort;
   int MAXPACKETSIZE = 32000;
 
-  public Client(int udpPort, int tcpPort, InetAddress hostAddress) throws Exception {
-    this.hostAddress = hostAddress;
+  public Client(int udpPort, int tcpPort, String hostAddress) throws Exception {
+    this.hostAddress = InetAddress.getByName(hostAddress);
     this.udpPort = udpPort;
     udpSock = new DatagramSocket();
+  }
+
+  public static void main(String[] args) {
+    try {
+      Client c = new Client(5555, 5556, "localhost");
+      if (!c.tcpConnect()) {
+        return;
+      }
+      System.out.println("Successfully connected");
+      byte[] message = "151000000 30000".getBytes();
+      c.tcpSend(message);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
   }
 
   public void udpSend(byte[] message) throws IOException {

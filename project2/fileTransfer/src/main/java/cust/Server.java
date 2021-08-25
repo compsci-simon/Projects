@@ -20,29 +20,37 @@ public class Server {
     this.tcpPort = tcpPort;
   }
 
-  public void handle_tcp_connections() {
-    
+  public static void main (String[] args) throws Exception {
+    Server s = new Server(5555, 5556);
+    s.accept_tcp_connection();
+    String msg = s.tcpReceive();
+    s.closeTcp();
+    System.out.println(msg);
+  }
+
+  public void accept_tcp_connection() {
     try {
       serverSock = new ServerSocket(tcpPort);
       tcpSock = serverSock.accept();
       tcpOut = tcpSock.getOutputStream();
       tcpIn = new BufferedReader(new InputStreamReader(tcpSock.getInputStream()));
-      String in;
-      char[] buff = new char[1024];
-      while (true) {
-        tcpIn.read(buff);
-        String line = buff.toString();
-        if (line.equals("quit"))
-          break;
-        System.out.println(line);
-      }
     } catch (Exception e) {
       System.exit(0);
     }
   }
 
-  public void receive() {
-    
+  public void closeTcp() throws Exception {
+    tcpSock.close();
+  }
+
+  public String tcpReceive() {
+    String message = null;
+    try {
+      message = tcpIn.readLine();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    return message;
   }
 
   public void writeBytesToPath(byte[] bytes, String path) throws Exception {
