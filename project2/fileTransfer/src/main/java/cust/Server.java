@@ -22,13 +22,14 @@ public class Server {
 
   public static void main (String[] args) throws Exception {
     Server s = new Server(5555, 5556);
-    s.accept_tcp_connection();
+    System.out.println("Waiting for tcp connection");
+    s.acceptTcpConnection();
     String msg = s.tcpReceive();
     s.closeTcp();
     System.out.println(msg);
   }
 
-  public void accept_tcp_connection() {
+  public void acceptTcpConnection() {
     try {
       serverSock = new ServerSocket(tcpPort);
       tcpSock = serverSock.accept();
