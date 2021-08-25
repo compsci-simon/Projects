@@ -5,6 +5,11 @@ import java.net.*;
 import java.nio.file.*;
 import java.util.ArrayList;
 
+/*
+ * The server or receiver of the file. Maintains a tcp connection with
+ * the client in order to reliably send and receive synchronization and
+ * meta data.
+ */
 public class Server {
   DatagramSocket udpSock;
   ServerSocket serverSock;
@@ -29,6 +34,10 @@ public class Server {
     System.out.println(msg);
   }
 
+  /*
+   * This method simply accepts a tcp connection which can then be utilized at a later stage by sending
+   * and receiving messages over the connection.
+   */
   public void acceptTcpConnection() {
     try {
       serverSock = new ServerSocket(tcpPort);
@@ -40,10 +49,17 @@ public class Server {
     }
   }
 
+  /*
+   * Closes the tcp connection with the client.
+   */
   public void closeTcp() throws Exception {
     tcpSock.close();
   }
 
+  /*
+   * Receives metadata and synchronization data to ensure reliability of
+   * the datagram packets that have been sent.
+   */
   public String tcpReceive() {
     String message = null;
     try {
@@ -54,13 +70,10 @@ public class Server {
     return message;
   }
 
-  public void writeBytesToPath(byte[] bytes, String path) throws Exception {
-    Path path1 = Paths.get("/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file2.dmg");
-        
-    Files.write(path1, bytes);
-        
-  }
-
+  /*
+   * Used when the file has been received by rbudpRecv to write the file to the servers
+   * filesystem.
+   */
   public void writeFile(byte[] fileBytes, String path) throws Exception {
     Path newPath = Paths.get(path);
     Files.write(newPath, fileBytes);
