@@ -18,12 +18,17 @@ public class Server {
   BufferedReader tcpIn;
   int udpPort;
   int tcpPort;
+  int packetsize;
+  int payloadsize;
+  int blastlength;
+  byte[] fileBytes;
+  int fileSize;
 
   public Server(int udpPort, int tcpPort) throws Exception {
     this.udpPort = udpPort;
     this.tcpPort = tcpPort;
     udpSock = new DatagramSocket(udpPort);
-    udpSock.setSoTimeout(200);
+    udpSock.setSoTimeout(100);
   }
 
   public static void main (String[] args) throws Exception {
@@ -35,85 +40,118 @@ public class Server {
     s.closeTcp();
   }
 
+  /*
+   * Used to send files quickly with udp but is also reliable
+   */
   public void rbudpRecv () throws Exception {
     if (tcpSock == null) {
       System.err.println("You first need to establish a tcp connection to use this function.");
       return;
     }
     String metadata = tcpReceive();
-    int fileSize = Integer.parseInt(metadata.split(" ")[0]);
-    int packetSize = Integer.parseInt(metadata.split(" ")[1]);
-    int dataSize = packetSize - 1;
-    int blastlength = Integer.parseInt(metadata.split(" ")[2]);
-    System.out.printf("fileSize = %d, packetSize = %d, blastlength = %d\n", fileSize, packetSize, blastlength);
+    fileSize = Integer.parseInt(metadata.split(" ")[0]);
+    fileBytes = new byte[fileSize];
+    packetsize = Integer.parseInt(metadata.split(" ")[1]);
+    blastlength = Integer.parseInt(metadata.split(" ")[2]);
+    System.out.printf("fileSize = %d, packetSize = %d, blastlength = %d%n", fileSize, packetsize, blastlength);
 
-    tcpAck();
+    syn();
 
-    String fromTo = tcpReceive();
-    int from = Integer.parseInt(fromTo.split(" ")[0]);
-    int to = Integer.parseInt(fromTo.split(" ")[1]);
-    System.out.println(from+" "+to);
+    String from;
+    int fromPacket;
 
-    tcpAck();
+    from = tcpReceive();
+    fromPacket = Integer.parseInt(from);
+    System.out.println(fromPacket);
+    receiveBlast(fromPacket);
+    System.out.println("Received all packets");
 
-    byte[] output = new byte[dataSize*blastlength];
-    byte[] packetbuffer = new byte[packetSize];
+    syn();
+
+    from = tcpReceive();
+    fromPacket = Integer.parseInt(from);
+    System.out.println(fromPacket);
+    receiveBlast(fromPacket);
+    System.out.println("Received all packets");
+
+    
+    // syn();
+    
+  }
+
+  /*
+   * Used to receive a blast of udp packets during the rbudp receive method.
+   */
+  public void receiveBlast(int fromPacket) {
+    
+    payloadsize = packetsize - 1;
+    byte[] packetbuffer = new byte[packetsize];
     boolean[] packetsReceived = new boolean[blastlength];
     int packetsNotReceived = blastlength;
 
+    
     for (int i = 0; i < blastlength; i++) {
-      packetbuffer = udpRecv(packetSize);
+      packetbuffer = udpRecv(packetsize);
       if (packetbuffer == null)
         continue;
       int packetNum = packetbuffer[0];
-      packetsReceived[packetNum - from] = true;
+      packetsReceived[packetNum - fromPacket] = true;
       packetsNotReceived--;
       System.out.printf("Received packet %d\n", packetNum);
-      System.arraycopy(packetbuffer, 1, output, packetNum*dataSize, dataSize);
+      System.arraycopy(packetbuffer, 1, fileBytes, packetNum*payloadsize, payloadsize);
     }
+
+    if (packetsNotReceived > 0) {
+      blastRequestPackets(packetsNotReceived, fromPacket, packetsReceived);
+    } else {
+      tcpSend("\n");
+    }
+  }
+
+  /*
+   * Used when a blast is received but some packets are missing.
+   */
+  public void blastRequestPackets(int packetsNotReceived, int fromPacket, boolean[] packetsReceived) {
+    
+    byte[] packetbuffer = new byte[packetsize];
     while (packetsNotReceived > 0) {
-      String resendPackets = resendPackets(from, to, packetsReceived);
-      if (resendPackets != null) {
-        resendPackets += "\n";
-        tcpSend(resendPackets);
-      }
+      String requestPackets = resendPackets(fromPacket, blastlength, packetsReceived);
+      requestPackets += "\n";
+      tcpSend(requestPackets);
+
       for (int i = 0; i < packetsNotReceived; i++) {
-        packetbuffer = udpRecv(packetSize);
+        packetbuffer = udpRecv(packetsize);
         if (packetbuffer == null)
           continue;
         int packetNum = packetbuffer[0];
-        packetsReceived[packetNum - from] = true;
+        packetsReceived[packetNum - fromPacket] = true;
         packetsNotReceived--;
         System.out.printf("Received packet %d\n", packetNum);
-        System.arraycopy(packetbuffer, 1, output, packetNum*dataSize, dataSize);
+        System.arraycopy(packetbuffer, 1, fileBytes, packetNum*payloadsize, payloadsize);
       }
     }
-    System.out.println("Received all packets");
-    
-    // tcpAck();
-    
+    tcpSend("\n");
+
   }
 
-  public String resendPackets(int from, int to, String packetsReceived) {
-    String[] packets = packetsReceived.split(" ");
+  /*
+   * @param from - Starting range on packets in blast
+   * @param to - End range on packets in blast
+   * @param packetsReceived - String of all packets that have been received. 
+   * Must be space seperated.
+   * 
+   * 
+   * Used to create a string to send to the client for packets to be resent.
+   * During rbudp the udp packets may not arrive and the server needs to let 
+   * the client know which packets have not arrived. This method creates a 
+   * string of all packets not yet received.
+   * 
+   * Packet numbers to resend. Not number of packet in loop but number of
+   * actual packet number i.e. packet #192 not packet 2
+   */
+  public String resendPackets(int from, int blastLength, boolean[] packetsReceived) {
     String resend = "";
-    for (int i = from; i <= to; i++) {
-      int j = 0;
-      for (; j < packets.length; j++) {
-        if (i == Integer.parseInt(packets[j])) {
-          break;
-        }
-      }
-      if (j == packets.length) {
-        resend += i + " ";
-      }
-    }
-    return resend;
-  }
-
-  public String resendPackets(int from, int to, boolean[] packetsReceived) {
-    String resend = "";
-    for (int i = from - from; i <= to - from; i++) {
+    for (int i = 0; i < blastLength; i++) {
       if (packetsReceived[i] == false) {
         resend += from + i + " ";
       }
@@ -124,7 +162,7 @@ public class Server {
   /*
    * Used to acknowledge a message was received and communication can continue
    */
-  public void tcpAck() {
+  public void syn() {
     tcpSend("1\n");
   }
 

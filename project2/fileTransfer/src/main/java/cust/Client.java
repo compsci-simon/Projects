@@ -19,8 +19,8 @@ public class Client {
   InetAddress hostAddress;
   int udpPort;
   int tcpPort;
-  int packetsize = 10001;
-  int dataSize = packetsize - 1;
+  int packetsize = 55001;
+  int payloadsize = packetsize - 1;
   int blastLength = 10;
 
   public Client(int udpPort, int tcpPort, String hostAddress) throws Exception {
@@ -35,6 +35,7 @@ public class Client {
    */
   public static void main(String[] args) {
     try {
+      System.out.println("".isEmpty());
       Client c = new Client(5555, 5556, "localhost");
       if (!c.tcpConnect()) {
         System.out.println("Failed to connect");
@@ -60,42 +61,71 @@ public class Client {
     byte[] parameters = (message.length + " " + packetsize + " " + blastLength + "\n").getBytes();
     tcpSend(parameters);
     
-    recvAck();
+    recvSyn();
 
-    parameters = ("0 " + (blastLength - 1) + "\n").getBytes();
+    parameters = ("0\n").getBytes();
     tcpSend(parameters);
+    blast(0, message);
+    System.out.println();
+    System.out.println("Sent all packets for a blast.");
+    System.out.println();
 
-    recvAck();
+    recvSyn();
+
+    parameters = (blastLength+"\n").getBytes();
+    tcpSend(parameters);
+    blast(0, message);
+    System.out.println();
+    System.out.println("Sent all packets for a blast.");
+    System.out.println();
+
     
-    int i = 0;
-    for (; i < blastLength; i++) {
-      byte[] packetBuff = new byte[packetsize];
-      packetBuff[0] = (byte) i;
-      System.arraycopy(message, i*(dataSize), packetBuff, 1, dataSize);
-      udpSend(packetBuff);
-    }
-    String resendPackets = tcpRecv();
-    while (resendPackets != null) {
-      udpResendPackets(resendPackets, message, i);
-      System.out.println("Packets were resent");
-      resendPackets = tcpRecv();
-    }
+    
     System.out.println("Done");
 
-    // recvAck();
+    // recvSyn();
+  }
+
+  /*
+   * Completes one blast which is used in rbudpSend. This
+   * method will reliable complete the blast.
+   * 
+   * @param startPacket - The packet to start the blast at.
+   * 
+   */
+  public void blast(int startPacket, byte[] message) throws Exception {
+    int frombyte = startPacket*payloadsize;
+  
+    for (int i = 0; i < blastLength; i++) {
+      byte[] packetBuff = new byte[packetsize];
+      packetBuff[0] = (byte) (i + startPacket);
+      System.arraycopy(message, frombyte + i*(payloadsize), packetBuff, 1, payloadsize);
+      udpSend(packetBuff);
+    }
+
+    String resendPackets;
+
+    while ((resendPackets = tcpRecv().trim()) != null && !resendPackets.isEmpty()) {
+      System.out.println("Resend packets "+resendPackets);
+      udpResendPackets(resendPackets, message);
+      System.out.println("Packets were resent");
+    }
   }
 
   /*
    * Used to resend packets that were not received by the server
    * during an rbudp blast
    */
-  public void udpResendPackets(String packets, byte[] message, int from) throws Exception {
+  public void udpResendPackets(String packets, byte[] message) throws Exception {
+
     String[] resendPackets = packets.split(" ");
     for (int i = 0; i < resendPackets.length; i++) {
+      if (resendPackets[i].isEmpty())
+        continue;
       byte[] packetBuff = new byte[packetsize];
       int packetNum = Integer.parseInt(resendPackets[i]);
       packetBuff[0] = (byte) packetNum;
-      System.arraycopy(message, from + i*(dataSize), packetBuff, 1, dataSize);
+      System.arraycopy(message, packetNum*payloadsize, packetBuff, 1, payloadsize);
       udpSend(packetBuff);
     }
   }
@@ -103,7 +133,7 @@ public class Client {
   /*
    * Used to receive an Ack message from the server
    */
-  public void recvAck() {
+  public void recvSyn() {
     String res = null;
     try {
       res = tcpInClient.readLine();
@@ -132,6 +162,7 @@ public class Client {
   public boolean tcpConnect() {
     try {
       tcpSock = new Socket(hostAddress, tcpPort);
+      tcpSock.setSoTimeout(5000);
       tcpOutClient = tcpSock.getOutputStream();
       tcpInClient = new BufferedReader(new InputStreamReader(tcpSock.getInputStream()));
       return true;
