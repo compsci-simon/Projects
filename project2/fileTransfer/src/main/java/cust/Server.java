@@ -29,9 +29,21 @@ public class Server {
     Server s = new Server(5555, 5556);
     System.out.println("Waiting for tcp connection");
     s.acceptTcpConnection();
-    String msg = s.tcpReceive();
+    s.rbudpRecv();
     s.closeTcp();
-    System.out.println(msg);
+  }
+
+  public void rbudpRecv () throws Exception {
+    if (tcpSock == null) {
+      System.err.println("You first need to establish a tcp connection to use this function.");
+      return;
+    }
+    String metadata = tcpIn.readLine();
+    int fileSize = Integer.parseInt(metadata.split(" ")[0]);
+    int packetSize = Integer.parseInt(metadata.split(" ")[1]);
+    int blastlength = Integer.parseInt(metadata.split(" ")[2]);
+    System.out.printf("fileSize = %d, packetSize = %d, blastlength = %d\n", fileSize, packetSize, blastlength);
+    tcpOut.write("1\n".getBytes());
   }
 
   /*

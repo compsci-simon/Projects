@@ -19,7 +19,8 @@ public class Client {
   InetAddress hostAddress;
   int udpPort;
   int tcpPort;
-  int MAXPACKETSIZE = 32000;
+  int MAXPACKETSIZE = 32001;
+  int blastLength = 10;
 
   public Client(int udpPort, int tcpPort, String hostAddress) throws Exception {
     this.hostAddress = InetAddress.getByName(hostAddress);
@@ -39,8 +40,8 @@ public class Client {
         return;
       }
       System.out.println("Successfully connected");
-      byte[] message = "151000000 30000".getBytes();
-      c.tcpSend(message);
+      byte[] file = c.readFileToBytes("/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file.mov");
+      c.rbudpSend(file);
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -55,8 +56,12 @@ public class Client {
       return;
     }
 
-    byte[] parameters = (message.length + " " + MAXPACKETSIZE).getBytes();
+    byte[] parameters = (message.length + " " + MAXPACKETSIZE + " " + blastLength + "\n").getBytes();
     tcpOutClient.write(parameters);
+    String res = tcpInClient.readLine();
+    for (int i = 0; i < blastLength; i++) {
+
+    }
   }
 
   /*
