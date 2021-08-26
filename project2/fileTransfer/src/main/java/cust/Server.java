@@ -58,21 +58,67 @@ public class Server {
 
     byte[] output = new byte[dataSize*blastlength];
     byte[] packetbuffer = new byte[packetSize];
-    String packetsReceived = "";
+    boolean[] packetsReceived = new boolean[blastlength];
+    int packetsNotReceived = blastlength;
+
     for (int i = 0; i < blastlength; i++) {
       packetbuffer = udpRecv(packetSize);
       if (packetbuffer == null)
         continue;
       int packetNum = packetbuffer[0];
-      packetsReceived += packetNum + " ";
+      packetsReceived[packetNum - from] = true;
+      packetsNotReceived--;
       System.out.printf("Received packet %d\n", packetNum);
       System.arraycopy(packetbuffer, 1, output, packetNum*dataSize, dataSize);
     }
-    packetsReceived += "\n";
-    tcpSend(packetsReceived);
+    while (packetsNotReceived > 0) {
+      String resendPackets = resendPackets(from, to, packetsReceived);
+      if (resendPackets != null) {
+        resendPackets += "\n";
+        tcpSend(resendPackets);
+      }
+      for (int i = 0; i < packetsNotReceived; i++) {
+        packetbuffer = udpRecv(packetSize);
+        if (packetbuffer == null)
+          continue;
+        int packetNum = packetbuffer[0];
+        packetsReceived[packetNum - from] = true;
+        packetsNotReceived--;
+        System.out.printf("Received packet %d\n", packetNum);
+        System.arraycopy(packetbuffer, 1, output, packetNum*dataSize, dataSize);
+      }
+    }
+    System.out.println("Received all packets");
     
     // tcpAck();
     
+  }
+
+  public String resendPackets(int from, int to, String packetsReceived) {
+    String[] packets = packetsReceived.split(" ");
+    String resend = "";
+    for (int i = from; i <= to; i++) {
+      int j = 0;
+      for (; j < packets.length; j++) {
+        if (i == Integer.parseInt(packets[j])) {
+          break;
+        }
+      }
+      if (j == packets.length) {
+        resend += i + " ";
+      }
+    }
+    return resend;
+  }
+
+  public String resendPackets(int from, int to, boolean[] packetsReceived) {
+    String resend = "";
+    for (int i = from - from; i <= to - from; i++) {
+      if (packetsReceived[i] == false) {
+        resend += from + i + " ";
+      }
+    }
+    return resend;
   }
 
   /*

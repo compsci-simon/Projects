@@ -67,16 +67,37 @@ public class Client {
 
     recvAck();
     
-    for (int i = 0; i < blastLength; i++) {
+    int i = 0;
+    for (; i < blastLength; i++) {
       byte[] packetBuff = new byte[packetsize];
       packetBuff[0] = (byte) i;
       System.arraycopy(message, i*(dataSize), packetBuff, 1, dataSize);
       udpSend(packetBuff);
     }
-    String packetsReceived = tcpRecv();
-    System.out.println(packetsReceived);
+    String resendPackets = tcpRecv();
+    while (resendPackets != null) {
+      udpResendPackets(resendPackets, message, i);
+      System.out.println("Packets were resent");
+      resendPackets = tcpRecv();
+    }
+    System.out.println("Done");
 
     // recvAck();
+  }
+
+  /*
+   * Used to resend packets that were not received by the server
+   * during an rbudp blast
+   */
+  public void udpResendPackets(String packets, byte[] message, int from) throws Exception {
+    String[] resendPackets = packets.split(" ");
+    for (int i = 0; i < resendPackets.length; i++) {
+      byte[] packetBuff = new byte[packetsize];
+      int packetNum = Integer.parseInt(resendPackets[i]);
+      packetBuff[0] = (byte) packetNum;
+      System.arraycopy(message, from + i*(dataSize), packetBuff, 1, dataSize);
+      udpSend(packetBuff);
+    }
   }
 
   /*
