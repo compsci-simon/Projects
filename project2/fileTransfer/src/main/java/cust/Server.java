@@ -18,17 +18,19 @@ public class Server {
   BufferedReader tcpIn;
   int udpPort;
   int tcpPort;
-  int MAXPACKETSIZE = 32000;
 
   public Server(int udpPort, int tcpPort) throws Exception {
     this.udpPort = udpPort;
     this.tcpPort = tcpPort;
+    udpSock = new DatagramSocket(udpPort);
+    udpSock.setSoTimeout(200);
   }
 
   public static void main (String[] args) throws Exception {
     Server s = new Server(5555, 5556);
     System.out.println("Waiting for tcp connection");
     s.acceptTcpConnection();
+    System.out.println("Received connection");
     s.rbudpRecv();
     s.closeTcp();
   }
@@ -38,12 +40,73 @@ public class Server {
       System.err.println("You first need to establish a tcp connection to use this function.");
       return;
     }
-    String metadata = tcpIn.readLine();
+    String metadata = tcpReceive();
     int fileSize = Integer.parseInt(metadata.split(" ")[0]);
     int packetSize = Integer.parseInt(metadata.split(" ")[1]);
+    int dataSize = packetSize - 1;
     int blastlength = Integer.parseInt(metadata.split(" ")[2]);
     System.out.printf("fileSize = %d, packetSize = %d, blastlength = %d\n", fileSize, packetSize, blastlength);
-    tcpOut.write("1\n".getBytes());
+
+    tcpAck();
+
+    String fromTo = tcpReceive();
+    int from = Integer.parseInt(fromTo.split(" ")[0]);
+    int to = Integer.parseInt(fromTo.split(" ")[1]);
+    System.out.println(from+" "+to);
+
+    tcpAck();
+
+    byte[] output = new byte[dataSize*blastlength];
+    byte[] packetbuffer = new byte[packetSize];
+    String packetsReceived = "";
+    for (int i = 0; i < blastlength; i++) {
+      packetbuffer = udpRecv(packetSize);
+      if (packetbuffer == null)
+        continue;
+      int packetNum = packetbuffer[0];
+      packetsReceived += packetNum + " ";
+      System.out.printf("Received packet %d\n", packetNum);
+      System.arraycopy(packetbuffer, 1, output, packetNum*dataSize, dataSize);
+    }
+    packetsReceived += "\n";
+    tcpSend(packetsReceived);
+    
+    // tcpAck();
+    
+  }
+
+  /*
+   * Used to acknowledge a message was received and communication can continue
+   */
+  public void tcpAck() {
+    tcpSend("1\n");
+  }
+
+  public void tcpSend(String message) {
+    try {
+      tcpOut.write(message.getBytes());
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  public String tcpRecv() {
+    try {
+      return tcpIn.readLine();
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+  public byte[] udpRecv(int packetsize) {
+    byte[] buffer = new byte[packetsize];
+    DatagramPacket packet = new DatagramPacket(buffer, packetsize);
+    try {
+      udpSock.receive(packet);
+      return packet.getData();
+    } catch (Exception e) {
+      return null;
+    }
   }
 
   /*

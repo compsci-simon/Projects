@@ -19,7 +19,8 @@ public class Client {
   InetAddress hostAddress;
   int udpPort;
   int tcpPort;
-  int MAXPACKETSIZE = 32001;
+  int packetsize = 10001;
+  int dataSize = packetsize - 1;
   int blastLength = 10;
 
   public Client(int udpPort, int tcpPort, String hostAddress) throws Exception {
@@ -56,11 +57,40 @@ public class Client {
       return;
     }
 
-    byte[] parameters = (message.length + " " + MAXPACKETSIZE + " " + blastLength + "\n").getBytes();
-    tcpOutClient.write(parameters);
-    String res = tcpInClient.readLine();
-    for (int i = 0; i < blastLength; i++) {
+    byte[] parameters = (message.length + " " + packetsize + " " + blastLength + "\n").getBytes();
+    tcpSend(parameters);
+    
+    recvAck();
 
+    parameters = ("0 " + (blastLength - 1) + "\n").getBytes();
+    tcpSend(parameters);
+
+    recvAck();
+    
+    for (int i = 0; i < blastLength; i++) {
+      byte[] packetBuff = new byte[packetsize];
+      packetBuff[0] = (byte) i;
+      System.arraycopy(message, i*(dataSize), packetBuff, 1, dataSize);
+      udpSend(packetBuff);
+    }
+    String packetsReceived = tcpRecv();
+    System.out.println(packetsReceived);
+
+    // recvAck();
+  }
+
+  /*
+   * Used to receive an Ack message from the server
+   */
+  public void recvAck() {
+    String res = null;
+    try {
+      res = tcpInClient.readLine();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    if (Integer.parseInt(res) != 1) {
+      System.err.println("Ack did not equal 1");
     }
   }
 
@@ -95,6 +125,16 @@ public class Client {
    */
   public void tcpSend(byte[] message) throws IOException {
     tcpOutClient.write(message);
+  }
+
+  public String tcpRecv() {
+    String res = null;
+    try {
+      res = tcpInClient.readLine();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    return res;
   }
 
   /*
