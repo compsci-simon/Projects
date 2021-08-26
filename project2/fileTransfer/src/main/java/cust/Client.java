@@ -21,7 +21,7 @@ public class Client {
   int tcpPort;
   int packetsize = 55001;
   int payloadsize = packetsize - 1;
-  int blastLength = 10;
+  int blastlength = 10;
   static final boolean log = true;
 
   public Client(int udpPort, int tcpPort, String hostAddress) throws Exception {
@@ -41,7 +41,6 @@ public class Client {
         logger("Failed to connect");
         return;
       }
-      System.out.println("Successfully connected");
       logger("Successfully connected");
       byte[] file = c.readFileToBytes("/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file.mov");
       c.rbudpSend(file);
@@ -68,20 +67,20 @@ public class Client {
       return;
     }
 
-    byte[] parameters = (message.length + " " + packetsize + " " + blastLength + "\n").getBytes();
+    byte[] parameters = (message.length + " " + packetsize + " " + blastlength + "\n").getBytes();
     tcpSend(parameters);
     
     recvSyn();
 
-    parameters = ("0\n").getBytes();
+    parameters = ("0 " + (blastlength - 1) + "\n").getBytes();
     tcpSend(parameters);
     blast(0, message);
 
     recvSyn();
 
-    parameters = (blastLength+"\n").getBytes();
+    parameters = (blastlength+"\n").getBytes();
     tcpSend(parameters);
-    blast(blastLength, message);
+    blast(blastlength, message);
 
     logger("Done");
 
@@ -97,7 +96,7 @@ public class Client {
   public void blast(int startPacket, byte[] message) throws Exception {
     int frombyte = startPacket*payloadsize;
   
-    for (int i = 0; i < blastLength; i++) {
+    for (int i = 0; i < blastlength; i++) {
       byte[] packetBuff = new byte[packetsize];
       packetBuff[0] = (byte) (i + startPacket);
       System.arraycopy(message, frombyte + i*(payloadsize), packetBuff, 1, payloadsize);

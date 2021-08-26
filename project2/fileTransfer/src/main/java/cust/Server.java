@@ -58,25 +58,23 @@ public class Server {
 
     syn();
 
-    String from;
+    String fromTo;
     int fromPacket;
+    int toPacket;
 
-    from = tcpReceive();
-    fromPacket = Integer.parseInt(from);
-    receiveBlast(fromPacket);
+    fromTo = tcpReceive();
+    fromPacket = Integer.parseInt(fromTo.split(" ")[0]);
+    toPacket = Integer.parseInt(fromTo.split(" ")[1]);
+    receiveBlast(fromPacket, toPacket);
     logProgress(blastlength, fileSize);
 
     syn();
-
-    from = tcpReceive();
-    fromPacket = Integer.parseInt(from);
-    receiveBlast(fromPacket);
-    logProgress(blastlength, fileSize);
     
   }
 
   public void logProgress(int packetNum, int fileSize) {
-    logger(String.format("%f%n", (100.0 * packetNum)*payloadsize/fileSize));
+    System.out.printf("%f \n", (100.0 * packetNum)*payloadsize/fileSize);
+    // logger(String.format("%f%n", (100.0 * packetNum)*payloadsize/fileSize));
   }
 
   /*
@@ -91,15 +89,15 @@ public class Server {
   /*
    * Used to receive a blast of udp packets during the rbudp receive method.
    */
-  public void receiveBlast(int fromPacket) {
+  public void receiveBlast(int fromPacket, int toPacket) {
     
     payloadsize = packetsize - 1;
     byte[] packetbuffer = new byte[packetsize];
-    boolean[] packetsReceived = new boolean[blastlength];
-    int packetsNotReceived = blastlength;
+    boolean[] packetsReceived = new boolean[toPacket - fromPacket];
+    int packetsNotReceived = toPacket - fromPacket;
 
     
-    for (int i = 0; i < blastlength; i++) {
+    for (int i = 0; i < toPacket - fromPacket; i++) {
       packetbuffer = udpRecv(packetsize);
       if (packetbuffer == null)
         continue;
@@ -107,7 +105,7 @@ public class Server {
       logger(String.format("packetNum = %d\n", packetNum));
       packetsReceived[packetNum - fromPacket] = true;
       packetsNotReceived--;
-      System.out.printf("Received packet %d\n", packetNum);
+      logger(String.format("Received packet %d\n", packetNum));
       System.arraycopy(packetbuffer, 1, fileBytes, packetNum*payloadsize, payloadsize);
     }
 
@@ -125,7 +123,7 @@ public class Server {
     
     byte[] packetbuffer = new byte[packetsize];
     while (packetsNotReceived > 0) {
-      String requestPackets = resendPackets(fromPacket, blastlength, packetsReceived);
+      String requestPackets = packetsToResend(fromPacket, blastlength, packetsReceived);
       requestPackets += "\n";
       tcpSend(requestPackets);
 
@@ -145,10 +143,10 @@ public class Server {
   }
 
   /*
-   * @param from - Starting range on packets in blast
-   * @param to - End range on packets in blast
-   * @param packetsReceived - String of all packets that have been received. 
-   * Must be space seperated.
+   * @param fromPacket - Starting range on packets in blast
+   * @param toPacket - End range on packets in blast
+   * @param packetsReceived - boolean array of all packets that 
+   * have been received.
    * 
    * 
    * Used to create a string to send to the client for packets to be resent.
@@ -159,11 +157,11 @@ public class Server {
    * Packet numbers to resend. Not number of packet in loop but number of
    * actual packet number i.e. packet #192 not packet 2
    */
-  public String resendPackets(int from, int blastLength, boolean[] packetsReceived) {
+  public String packetsToResend(int fromPacket, int toPacket, boolean[] packetsReceived) {
     String resend = "";
-    for (int i = 0; i < blastLength; i++) {
+    for (int i = 0; i < toPacket - fromPacket; i++) {
       if (packetsReceived[i] == false) {
-        resend += from + i + " ";
+        resend += fromPacket + i + " ";
       }
     }
     return resend;
