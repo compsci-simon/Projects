@@ -1,9 +1,11 @@
 package cust;
 
 import java.io.*;
+import java.lang.System.Logger;
 import java.net.*;
 import java.nio.file.*;
 import java.util.ArrayList;
+import cust.Utils.*;
 
 /*
  * The server or receiver of the file. Maintains a tcp connection with
@@ -20,97 +22,107 @@ public class Server {
   int tcpPort;
   int packetsize;
   int payloadsize;
+  int packetIDSize;
   int blastlength;
   byte[] fileBytes;
   int fileSize;
-  static final boolean log = true;
+  int udpTimeout = 50;
 
   public Server(int udpPort, int tcpPort) throws Exception {
     this.udpPort = udpPort;
     this.tcpPort = tcpPort;
     udpSock = new DatagramSocket(udpPort);
-    udpSock.setSoTimeout(100);
+    udpSock.setSoTimeout(udpTimeout);
   }
 
+  // **************************************************************************
+  // ------------------------------ Main method -------------------------------
+  // **************************************************************************
   public static void main (String[] args) throws Exception {
     Server s = new Server(5555, 5556);
-    logger("Waiting for tcp connection");
+    Utils.logger("Waiting for tcp connection");
     s.acceptTcpConnection();
-    logger("Received connection");
+    Utils.logger("Received connection");
     s.rbudpRecv();
     s.closeTcp();
+
+    // byte[] packetBytes = s.udpRecv(64000);
+    // if (packetBytes == null)
+    //   System.err.println("Weird");
+    // Packet p = deserializePacket(packetBytes);
+    // System.out.println(p.getBlastNum());
+
   }
+
+  // **************************************************************************
+  // -------------------------- Networking methods ----------------------------
+  // **************************************************************************
 
   /*
    * Used to send files quickly with udp but is also reliable
    */
   public void rbudpRecv () throws Exception {
     if (tcpSock == null) {
-      logger(String.format("You first need to establish a tcp connection to use this function."));
+      Utils.logger(String.format("You first need to establish a tcp connection to use this function."));
       return;
     }
     String metadata = tcpReceive();
     fileSize = Integer.parseInt(metadata.split(" ")[0]);
-    fileBytes = new byte[fileSize];
     packetsize = Integer.parseInt(metadata.split(" ")[1]);
     blastlength = Integer.parseInt(metadata.split(" ")[2]);
-    logger(String.format("fileSize = %d, packetSize = %d, blastlength = %d%n", fileSize, packetsize, blastlength));
+    payloadsize = packetsize - packetIDSize;
+    fileBytes = new byte[fileSize];
+    Utils.logger(String.format("fileSize = %d, packetSize = %d, blastlength = %d%n", fileSize, packetsize, blastlength));
 
     syn();
 
-    String fromTo;
-    int fromPacket;
-    int toPacket;
+    int numBlasts = fileSize / (blastlength * payloadsize);
+    Utils.logger(numBlasts*blastlength);
 
-    fromTo = tcpReceive();
-    fromPacket = Integer.parseInt(fromTo.split(" ")[0]);
-    toPacket = Integer.parseInt(fromTo.split(" ")[1]);
-    receiveBlast(fromPacket, toPacket);
-    logProgress(blastlength, fileSize);
+    String fromTo;
+    int startPacket;
+    int endPacket;
+
+    for (int i = 0; i < numBlasts; i++) {
+      fromTo = tcpReceive();
+      startPacket = Integer.parseInt(fromTo.split(" ")[0]);
+      endPacket = Integer.parseInt(fromTo.split(" ")[1]);
+      receiveBlast(startPacket, endPacket);
+      Utils.logProgress(endPacket, fileSize, payloadsize);
+    }
 
     syn();
     
-  }
-
-  public void logProgress(int packetNum, int fileSize) {
-    System.out.printf("%f \n", (100.0 * packetNum)*payloadsize/fileSize);
-    // logger(String.format("%f%n", (100.0 * packetNum)*payloadsize/fileSize));
-  }
-
-  /*
-   * Logger to print select statements which can easily be turned on and off.
-   */
-  public static void logger(String s) {
-    if (log) {
-      System.out.println(s);
-    }
   }
 
   /*
    * Used to receive a blast of udp packets during the rbudp receive method.
    */
-  public void receiveBlast(int fromPacket, int toPacket) {
+  public void receiveBlast(int startPacket, int endPacket) {
+
+    Utils.logger(String.format("startpack = %d, endpack = %d", startPacket, endPacket));
     
-    payloadsize = packetsize - 1;
-    byte[] packetbuffer = new byte[packetsize];
-    boolean[] packetsReceived = new boolean[toPacket - fromPacket];
-    int packetsNotReceived = toPacket - fromPacket;
+    byte[] packetBytes = new byte[packetsize];
+    int totalPackets = endPacket - startPacket + 1;
+    PacketReceiver packetReceiver = new PacketReceiver(totalPackets, startPacket);
 
     
-    for (int i = 0; i < toPacket - fromPacket; i++) {
-      packetbuffer = udpRecv(packetsize);
-      if (packetbuffer == null)
+    for (int i = startPacket; i <= endPacket; i++) {
+      packetBytes = udpRecv(packetsize);
+      if (packetBytes == null)
         continue;
-      int packetNum = packetbuffer[0];
-      logger(String.format("packetNum = %d\n", packetNum));
-      packetsReceived[packetNum - fromPacket] = true;
-      packetsNotReceived--;
-      logger(String.format("Received packet %d\n", packetNum));
-      System.arraycopy(packetbuffer, 1, fileBytes, packetNum*payloadsize, payloadsize);
+      Packet packet = deserializePacket(packetBytes);
+      if (packet == null)
+        continue;
+      packetReceiver.receivePacket(packet);
+      Utils.logger(String.format("Received packet %d", packet.getPacketID()));
     }
+    Utils.logger(String.format("Num packets received = %d", packetReceiver.numPacketsReceived()));
+    Utils.logger(String.format("packets missing = %b", packetReceiver.missingPackets()));
+    
 
-    if (packetsNotReceived > 0) {
-      blastRequestPackets(packetsNotReceived, fromPacket, packetsReceived);
+    if (packetReceiver.missingPackets()) {
+      blastRequestPackets(packetReceiver);
     } else {
       tcpSend("\n");
     }
@@ -119,23 +131,28 @@ public class Server {
   /*
    * Used when a blast is received but some packets are missing.
    */
-  public void blastRequestPackets(int packetsNotReceived, int fromPacket, boolean[] packetsReceived) {
+  public void blastRequestPackets(PacketReceiver packetReceiver) {
     
-    byte[] packetbuffer = new byte[packetsize];
-    while (packetsNotReceived > 0) {
-      String requestPackets = packetsToResend(fromPacket, blastlength, packetsReceived);
+    String packetsNotReceived = packetReceiver.failedPackets();
+    Utils.logger(String.format("packets not received = %s", packetsNotReceived));
+    byte[] packetBytes = new byte[packetsize];
+    
+    while (packetReceiver.missingPackets()) {
+      String requestPackets = packetReceiver.failedPackets();
       requestPackets += "\n";
       tcpSend(requestPackets);
 
-      for (int i = 0; i < packetsNotReceived; i++) {
-        packetbuffer = udpRecv(packetsize);
-        if (packetbuffer == null)
+      int numMissingPackets = packetReceiver.numMissingPackets();
+
+      for (int i = 0; i < numMissingPackets; i++) {
+        packetBytes = udpRecv(packetsize);
+        if (packetBytes == null)
           continue;
-        int packetNum = packetbuffer[0];
-        packetsReceived[packetNum - fromPacket] = true;
-        packetsNotReceived--;
-        logger(String.format("Received packet %d\n", packetNum));
-        System.arraycopy(packetbuffer, 1, fileBytes, packetNum*payloadsize, payloadsize);
+        Packet packet = deserializePacket(packetBytes);
+        if (packet == null)
+          continue;
+        packetReceiver.receivePacket(packet);
+        Utils.logger(String.format("Received packet %d", packet.getPacketID()));
       }
     }
     tcpSend("\n");
@@ -157,9 +174,9 @@ public class Server {
    * Packet numbers to resend. Not number of packet in loop but number of
    * actual packet number i.e. packet #192 not packet 2
    */
-  public String packetsToResend(int fromPacket, int toPacket, boolean[] packetsReceived) {
+  public String packetsToRequest(int fromPacket, boolean[] packetsReceived) {
     String resend = "";
-    for (int i = 0; i < toPacket - fromPacket; i++) {
+    for (int i = 0; i < packetsReceived.length; i++) {
       if (packetsReceived[i] == false) {
         resend += fromPacket + i + " ";
       }
@@ -177,6 +194,11 @@ public class Server {
   public void tcpSend(String message) {
     try {
       tcpOut.write(message.getBytes());
+    } catch (java.net.SocketException e) {
+      if (e.getMessage().equals("Broken pipe (Write failed)")) {
+        System.err.println("Client has closed the connection");
+      }
+      System.exit(0);
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -237,6 +259,25 @@ public class Server {
     return message;
   }
 
+  // **************************************************************************
+  // ------------------------ Object related methods --------------------------
+  // **************************************************************************
+
+  /*
+   * Used to deserialize a bytestream into a packet. Packets
+   * contain metadata that is critical to the success or rbudp
+   */
+  public static Packet deserializePacket(byte[] stream) {
+    try {
+      ByteArrayInputStream bis = new ByteArrayInputStream(stream);
+      ObjectInputStream in = new ObjectInputStream(bis);
+      return (Packet) in.readObject();
+    } catch (Exception e) {
+      e.printStackTrace();
+      return null;
+    }
+  }
+
   /*
    * Used when the file has been received by rbudpRecv to write the file to the servers
    * filesystem.
@@ -244,5 +285,64 @@ public class Server {
   public void writeFile(byte[] fileBytes, String path) throws Exception {
     Path newPath = Paths.get(path);
     Files.write(newPath, fileBytes);
+  }
+}
+
+/**
+ * This packet receiver object helps with the reliability of the RBUDP.
+ * It provides an API for recording received packets as well as producing 
+ * the necessary output to request packets be resent from the client.
+ */
+
+class PacketReceiver {
+  int totalPackets;
+  int packZeroID;
+  Packet[] packets;
+
+  public PacketReceiver(int totalPackets, int packZeroID) {
+    this.totalPackets = totalPackets;
+    this.packZeroID = packZeroID;
+    packets = new Packet[totalPackets];
+  }
+
+  public String failedPackets() {
+    String res = "";
+    for (int i = 0; i < totalPackets; i++) {
+      if (packets[i] == null) {
+        res += packZeroID + i + " ";
+      }
+    }
+    return res;
+  }
+
+  public void receivePacket(Packet p) {
+    packets[p.getBlastNum()] = p;
+  }
+
+  public boolean missingPackets() {
+    for (int i = 0; i < totalPackets; i++) {
+      if (packets[i] == null) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public int numMissingPackets() {
+    int count = 0;
+    for (int i = 0; i < totalPackets; i++) {
+      if (packets[i] == null)
+        count++;
+    }
+    return count;
+  }
+
+  public int numPacketsReceived() {
+    int count = 0;
+    for (Packet p: packets) {
+      if (p != null)
+        count++;
+    }
+    return count;
   }
 }
