@@ -23,6 +23,7 @@ public class Server {
   int blastlength;
   byte[] fileBytes;
   int fileSize;
+  static final boolean log = true;
 
   public Server(int udpPort, int tcpPort) throws Exception {
     this.udpPort = udpPort;
@@ -33,9 +34,9 @@ public class Server {
 
   public static void main (String[] args) throws Exception {
     Server s = new Server(5555, 5556);
-    System.out.println("Waiting for tcp connection");
+    logger("Waiting for tcp connection");
     s.acceptTcpConnection();
-    System.out.println("Received connection");
+    logger("Received connection");
     s.rbudpRecv();
     s.closeTcp();
   }
@@ -45,7 +46,7 @@ public class Server {
    */
   public void rbudpRecv () throws Exception {
     if (tcpSock == null) {
-      System.err.println("You first need to establish a tcp connection to use this function.");
+      logger(String.format("You first need to establish a tcp connection to use this function."));
       return;
     }
     String metadata = tcpReceive();
@@ -53,7 +54,7 @@ public class Server {
     fileBytes = new byte[fileSize];
     packetsize = Integer.parseInt(metadata.split(" ")[1]);
     blastlength = Integer.parseInt(metadata.split(" ")[2]);
-    System.out.printf("fileSize = %d, packetSize = %d, blastlength = %d%n", fileSize, packetsize, blastlength);
+    logger(String.format("fileSize = %d, packetSize = %d, blastlength = %d%n", fileSize, packetsize, blastlength));
 
     syn();
 
@@ -62,21 +63,29 @@ public class Server {
 
     from = tcpReceive();
     fromPacket = Integer.parseInt(from);
-    System.out.println(fromPacket);
     receiveBlast(fromPacket);
-    System.out.println("Received all packets");
+    logProgress(blastlength, fileSize);
 
     syn();
 
     from = tcpReceive();
     fromPacket = Integer.parseInt(from);
-    System.out.println(fromPacket);
     receiveBlast(fromPacket);
-    System.out.println("Received all packets");
+    logProgress(blastlength, fileSize);
+    
+  }
 
-    
-    // syn();
-    
+  public void logProgress(int packetNum, int fileSize) {
+    logger(String.format("%f%n", (100.0 * packetNum)*payloadsize/fileSize));
+  }
+
+  /*
+   * Logger to print select statements which can easily be turned on and off.
+   */
+  public static void logger(String s) {
+    if (log) {
+      System.out.println(s);
+    }
   }
 
   /*
@@ -95,6 +104,7 @@ public class Server {
       if (packetbuffer == null)
         continue;
       int packetNum = packetbuffer[0];
+      logger(String.format("packetNum = %d\n", packetNum));
       packetsReceived[packetNum - fromPacket] = true;
       packetsNotReceived--;
       System.out.printf("Received packet %d\n", packetNum);
@@ -126,7 +136,7 @@ public class Server {
         int packetNum = packetbuffer[0];
         packetsReceived[packetNum - fromPacket] = true;
         packetsNotReceived--;
-        System.out.printf("Received packet %d\n", packetNum);
+        logger(String.format("Received packet %d\n", packetNum));
         System.arraycopy(packetbuffer, 1, fileBytes, packetNum*payloadsize, payloadsize);
       }
     }

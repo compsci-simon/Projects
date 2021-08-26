@@ -22,6 +22,7 @@ public class Client {
   int packetsize = 55001;
   int payloadsize = packetsize - 1;
   int blastLength = 10;
+  static final boolean log = true;
 
   public Client(int udpPort, int tcpPort, String hostAddress) throws Exception {
     this.hostAddress = InetAddress.getByName(hostAddress);
@@ -35,13 +36,13 @@ public class Client {
    */
   public static void main(String[] args) {
     try {
-      System.out.println("".isEmpty());
       Client c = new Client(5555, 5556, "localhost");
       if (!c.tcpConnect()) {
-        System.out.println("Failed to connect");
+        logger("Failed to connect");
         return;
       }
       System.out.println("Successfully connected");
+      logger("Successfully connected");
       byte[] file = c.readFileToBytes("/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file.mov");
       c.rbudpSend(file);
     } catch (Exception e) {
@@ -50,11 +51,20 @@ public class Client {
   }
 
   /*
+   * Logger to print select statements which can easily be turned on and off.
+   */
+  public static void logger(String s) {
+    if (log) {
+      System.out.println(s);
+    }
+  }
+
+  /*
    * For implementing the entire RBUDP protocol to send the file.
    */
   public void rbudpSend (byte[] message) throws Exception {
     if (!tcpSock.isConnected() || tcpSock.isClosed()) {
-      System.out.println("You must first connect the tcp socket.");
+      logger("You must first connect the tcp socket.");
       return;
     }
 
@@ -66,24 +76,15 @@ public class Client {
     parameters = ("0\n").getBytes();
     tcpSend(parameters);
     blast(0, message);
-    System.out.println();
-    System.out.println("Sent all packets for a blast.");
-    System.out.println();
 
     recvSyn();
 
     parameters = (blastLength+"\n").getBytes();
     tcpSend(parameters);
-    blast(0, message);
-    System.out.println();
-    System.out.println("Sent all packets for a blast.");
-    System.out.println();
+    blast(blastLength, message);
 
-    
-    
-    System.out.println("Done");
+    logger("Done");
 
-    // recvSyn();
   }
 
   /*
