@@ -28,7 +28,7 @@ public class Client {
   private int packetsize = 64000; // Must be bigger than 121
   private int payloadsize = packetsize - Packet.packetBaseSize;
   private int blastlength = 10;
-  int byteSendCount;
+  private int byteSendCount;
   private static final boolean log = true;
 
   public Client(int udpPort, int tcpPort, int tcpFilePort, String hostAddress) throws Exception {
@@ -43,7 +43,7 @@ public class Client {
   // ------------------------------ Main method -------------------------------
   // **************************************************************************
   public static void main(String[] args) {
-    String filePath = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file.mov";
+    String filePath = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/book.pdf";
     try {
       Client c = new Client(5555, 5556, 5557, "localhost");
       if (!c.tcpConnect()) {
@@ -236,7 +236,7 @@ public class Client {
    * Used to send all metadata and synchronization data to the server because UDP
    * is not realiable or in order of when it was sent.
    */
-  private void tcpSend(byte[] message) throws IOException {
+  public void tcpSend(byte[] message) throws IOException {
     tcpOutClient.write(message);
   }
   

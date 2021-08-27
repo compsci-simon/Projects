@@ -46,7 +46,7 @@ public class Server {
     s.acceptTcpConnection();
     Utils.logger("Received connection");
     byte[] fileByte = s.rbudpRecv();
-    writeFile(fileByte, "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file2.mov");
+    writeFile(fileByte, "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/book2.pdf");
     s.closeTcp();
 
     // byte[] packetBytes = s.udpRecv(64000);
