@@ -28,6 +28,7 @@ public class Client {
   private int packetsize = 64000; // Must be bigger than 121
   private int payloadsize = packetsize - Packet.packetBaseSize;
   private int blastlength = 10;
+  int byteSendCount;
   private static final boolean log = true;
 
   public Client(int udpPort, int tcpPort, int tcpFilePort, String hostAddress) throws Exception {
@@ -87,7 +88,7 @@ public class Client {
       tcpSend(parameters);
       blast(i*blastlength, (i+1)*blastlength - 1, message);
       
-      Utils.logProgress(i, payloadsize, message.length, 0);
+      Utils.logProgress(byteSendCount, message.length);
     }
 
     // Partial blast
@@ -101,7 +102,7 @@ public class Client {
       int initialPayloadSize = payloadsize;
       blast(startPacket, endPacket, message);
       int bytesSent = (numBlasts + numPacketsLeft - 1)*blastlength*initialPayloadSize + payloadsize;
-      Utils.logProgress(numBlasts + numPacketsLeft, initialPayloadSize, message.length, payloadsize);
+      Utils.logProgress(byteSendCount, message.length);
     }
 
     Utils.logger("Done");
@@ -149,6 +150,12 @@ public class Client {
       System.out.println("Resend packets "+resendPackets);
       udpResendPackets(resendPackets, message, sentPackets);
       System.out.println("Packets were resent");
+    }
+    int sentBytes = sentPackets.sentBytes();
+    byteSendCount += sentBytes;
+    if (sentBytes == -1) {
+      Utils.logger("You cannot add send bytes unless all packets have been sent");
+      System.exit(0);
     }
   }
 
@@ -310,6 +317,18 @@ class SentPackets {
       }
     }
     return null;
+  }
+
+  public int sentBytes() {
+    int count = 0;
+    for (Packet p: packets) {
+      if (p == null) {
+        return -1;
+      } else {
+        count += p.getPayload().length;
+      }
+    }
+    return count;
   }
 
 }

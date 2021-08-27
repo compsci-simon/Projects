@@ -14,28 +14,23 @@ import cust.Packet;
  * meta data.
  */
 public class Server {
-  DatagramSocket udpSock;
-  ServerSocket serverSock;
-  ServerSocket serverFileSock;
-  Socket tcpSock;
-  Socket tcpFileSock;
-  OutputStream tcpOut;
-  BufferedReader tcpIn;
-  DataOutputStream tcpFileOut;
-  DataInputStream tcpFileIn;
-  int udpPort;
-  int tcpPort;
-  int tcpFilePort;
-  int packetsize;
-  int payloadsize;
-  int packetIDSize;
-  int blastlength;
-  int fileSize;
-  int udpTimeout = 50;
-  int bytesReceived = 0;
+  private DatagramSocket udpSock;
+  private ServerSocket serverSock;
+  private ServerSocket serverFileSock;
+  private Socket tcpSock;
+  private Socket tcpFileSock;
+  private OutputStream tcpOut;
+  private BufferedReader tcpIn;
+  private DataOutputStream tcpFileOut;
+  private DataInputStream tcpFileIn;
+  private int tcpPort;
+  private int tcpFilePort;
+  private int packetsize;
+  private int payloadsize;
+  private int udpTimeout = 50;
+  private int byteRecvcount = 0;
 
   public Server(int udpPort, int tcpPort, int tcpFilePort) throws Exception {
-    this.udpPort = udpPort;
     this.tcpPort = tcpPort;
     this.tcpFilePort = tcpFilePort;
     udpSock = new DatagramSocket(udpPort);
@@ -74,22 +69,27 @@ public class Server {
       Utils.logger(String.format("You first need to establish a tcp connection to use this function."));
       return null;
     }
+    int fileSize;
+    int blastlength;
+    byte[] file;
+    int numBlasts;
+    int startPacket;
+    int endPacket;
+
     String metadata = tcpReceive();
     fileSize = Integer.parseInt(metadata.split(" ")[0]);
     packetsize = Integer.parseInt(metadata.split(" ")[1]);
     blastlength = Integer.parseInt(metadata.split(" ")[2]);
     payloadsize = packetsize - Packet.packetBaseSize;
-    byte[] file = new byte[fileSize];
+    file = new byte[fileSize];
     Utils.logger(String.format("fileSize = %d, packetSize = %d, blastlength = %d%n", fileSize, packetsize, blastlength));
 
     syn();
 
-    int numBlasts = fileSize / (blastlength * payloadsize);
+    numBlasts = fileSize / (blastlength * payloadsize);
     Utils.logger(numBlasts*blastlength);
 
     String fromTo;
-    int startPacket;
-    int endPacket;
 
     // Main blast
     for (int i = 0; i < numBlasts; i++) {
@@ -98,7 +98,7 @@ public class Server {
       startPacket = Integer.parseInt(fromTo.split(" ")[0]);
       endPacket = Integer.parseInt(fromTo.split(" ")[1]);
       receiveBlast(startPacket, endPacket, file);
-      Utils.logProgress(i, payloadsize, fileSize, 0);
+      Utils.logProgress(byteRecvcount, fileSize);
     }
 
     // Partial blast
@@ -111,17 +111,15 @@ public class Server {
       startPacket = Integer.parseInt(fromTo.split(" ")[0]);
       endPacket = Integer.parseInt(fromTo.split(" ")[1]);
       receiveBlast(startPacket, endPacket, file);
-      Utils.logProgress(endPacket, payloadsize, fileSize, 0);
+      Utils.logProgress(byteRecvcount, fileSize);
     }
-
     return file;
-    
   }
 
   /*
    * Used to receive a blast of udp packets during the rbudp receive method.
    */
-  public void receiveBlast(int startPacket, int endPacket, byte[] file) {
+  private void receiveBlast(int startPacket, int endPacket, byte[] file) {
     
     byte[] packetBytes = new byte[packetsize];
     int totalPackets = endPacket - startPacket + 1;
@@ -145,10 +143,12 @@ public class Server {
     } else {
       tcpSend("\n");
     }
-    if (!packetReceiver.writePayloadsToFile()) {
+    int bytesAddedToFile = packetReceiver.writePayloadsToFile();
+    if (bytesAddedToFile == -1) {
       Utils.logger("Write to file failed");
       System.exit(0);
     }
+    byteRecvcount += bytesAddedToFile;
   }
 
   /*
@@ -278,7 +278,7 @@ public class Server {
   /*
    * Closes the tcp connection with the client.
    */
-  public void closeTcp() throws Exception {
+  private void closeTcp() throws Exception {
     tcpSock.close();
   }
   
@@ -326,7 +326,7 @@ public class Server {
    * Used to deserialize a bytestream into a packet. Packets
    * contain metadata that is critical to the success or rbudp
    */
-  public static Packet deserializePacket(byte[] stream) {
+  private static Packet deserializePacket(byte[] stream) {
     try {
       ByteArrayInputStream bis = new ByteArrayInputStream(stream);
       ObjectInputStream in = new ObjectInputStream(bis);
@@ -341,7 +341,7 @@ public class Server {
    * Used when the file has been received by rbudpRecv to write the file to the servers
    * filesystem.
    */
-  public static void writeFile(byte[] fileBytes, String path) throws Exception {
+  private static void writeFile(byte[] fileBytes, String path) throws Exception {
     Path newPath = Paths.get(path);
     Files.write(newPath, fileBytes);
   }
@@ -413,20 +413,22 @@ class PacketReceiver {
     return packets[totalPackets-1].getPayload().length;
   }
 
-  public boolean writePayloadsToFile() {
+  public int writePayloadsToFile() {
+    int byteRecvCount = 0;
     for (Packet p: packets) {
       if (p == null) {
         System.err.println("We should not be getting a null packet when writing to file.");
-        return false;
+        return -1;
       } else {
         try {
           System.arraycopy(p.getPayload(), 0, file, p.getPacketID()*normalPayloadSize, p.getPayload().length);
+          byteRecvCount += p.getPayload().length;
         } catch (Exception e) {
           e.printStackTrace();
-          return false;
+          return -1;
         }
       }
     }
-    return true;
+    return byteRecvCount;
   }
 }
