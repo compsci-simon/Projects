@@ -22,24 +22,35 @@ public class ReceiverInterface {
 	static JFrame sender_frame = new JFrame("File Receiver");
 	static JPanel main_panel = new JPanel();
 	
-	static Server s;
+	static Server receiver;
 	
 	public static void main(String[] args) throws Exception {
-		Server s = new Server(5555, 5556, 5557);
-	    InitInterface();
-	    s.acceptTcpConnection();
-	    Utils.logger("Received connection");
-	    s.acceptFileTcpConnection();
-	    Utils.logger("Received connection again");
-	    while (true) {
-	    	byte[] tcp_file_contents = s.tcpReceiveFile();
-	    	if (tcp_file_contents == null) {
-	    		break;
-	    	}
-	    	String print = new String(tcp_file_contents);
-	    	//System.out.println(print);
-	    	String path_tcp = "/home/jaco/tcp_receive.txt";
-	    	s.writeFile(tcp_file_contents, path_tcp);
+		receiver = new Server(5555, 5556, 5557);
+	    receiver.acceptTcpConnection();
+	    Utils.logger("Received tcp connection");
+	    
+	    String protocol = receiver.tcpReceive();
+	    if (protocol.compareTo("TCP") == 0) {
+	    	receiver.acceptFileTcpConnection();
+		    Utils.logger("Received tcp file connection");
+		    while (true) {
+		    	byte[] tcp_file_contents = receiver.tcpReceiveFile();
+		    	if (tcp_file_contents == null) {
+		    		break;
+		    	}
+		    	String print = new String(tcp_file_contents);
+		    	System.out.println(print);
+		    	String path_tcp = "/home/jaco/tcp_receive.txt";
+		    	//s.writeFile(tcp_file_contents, path_tcp);
+		    }
+	    } else if (protocol.compareTo("RBUDP") == 0){
+	    	InitInterface();
+	    	byte[] fileByte = receiver.rbudpRecv();
+	    	System.out.println("Received file");
+	    	String print = new String(fileByte);
+	    	System.out.println(print);
+	        //writeFile(fileByte, "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/testfile2.txt");
+	        //s.closeTcp();
 	    }
 	}
 	
