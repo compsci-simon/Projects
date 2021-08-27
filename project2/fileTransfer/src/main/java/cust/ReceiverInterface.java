@@ -44,10 +44,14 @@ public class ReceiverInterface {
 		    	//s.writeFile(tcp_file_contents, path_tcp);
 		    }
 	    } else if (protocol.compareTo("RBUDP") == 0){
-	    	
+	    	InitInterface();
+	    	byte[] fileByte = receiver.rbudpRecv();
+	    	System.out.println("Received file");
+	    	String print = new String(fileByte);
+	    	System.out.println(print);
+	        //writeFile(fileByte, "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/testfile2.txt");
+	        //s.closeTcp();
 	    }
-	    
-	    InitInterface();
 	}
 	
 	public static void InitInterface() {	

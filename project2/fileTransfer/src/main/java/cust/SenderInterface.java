@@ -71,13 +71,16 @@ public class SenderInterface extends JFrame {
 				Utils.logger("Failed to connect");
 				return;
 			}
+			System.out.println("tcp connected");
 			sender.tcpSend("TCP\n".getBytes());
 			try {
 				sender.tcpFileConnect();
-			}	catch (Exception ex) {
-			    ex.printStackTrace();
-		}
-			InitInterfaceSelect();
+				System.out.println("tcp file connected");
+				InitInterfaceSelect();
+			}	catch (Exception e) {
+				System.out.println("ERROR");
+				e.printStackTrace(System.out);
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -164,7 +167,6 @@ public class SenderInterface extends JFrame {
 	public static void SendFile(String path) throws Exception {
 		System.out.println("Sending file");
 		byte[] file = sender.readFileToBytes(path);
-		
 		if (protocol.compareTo("TCP") == 0) {
 			sender.tcpFileSend(file);
 		} else if (protocol.compareTo("RBUDP") == 0) {
