@@ -5,7 +5,8 @@ import java.lang.System.Logger;
 import java.net.*;
 import java.nio.file.*;
 import java.util.ArrayList;
-import cust.Utils.*;
+import cust.Utils;
+import cust.Packet;
 
 /*
  * The server or receiver of the file. Maintains a tcp connection with
@@ -32,6 +33,7 @@ public class Server {
   byte[] fileBytes;
   int fileSize;
   int udpTimeout = 50;
+  int bytesReceived = 0;
 
   public Server(int udpPort, int tcpPort, int tcpFilePort) throws Exception {
     this.udpPort = udpPort;
@@ -76,7 +78,7 @@ public class Server {
     fileSize = Integer.parseInt(metadata.split(" ")[0]);
     packetsize = Integer.parseInt(metadata.split(" ")[1]);
     blastlength = Integer.parseInt(metadata.split(" ")[2]);
-    payloadsize = packetsize - packetIDSize;
+    payloadsize = packetsize - Packet.packetBaseSize;
     fileBytes = new byte[fileSize];
     Utils.logger(String.format("fileSize = %d, packetSize = %d, blastlength = %d%n", fileSize, packetsize, blastlength));
 
@@ -89,13 +91,32 @@ public class Server {
     int startPacket;
     int endPacket;
 
+    // Main blast
     for (int i = 0; i < numBlasts; i++) {
       fromTo = tcpReceive();
+      Utils.logger(String.format("FromTo = %s", fromTo));
       startPacket = Integer.parseInt(fromTo.split(" ")[0]);
       endPacket = Integer.parseInt(fromTo.split(" ")[1]);
       receiveBlast(startPacket, endPacket);
-      Utils.logProgress(endPacket, fileSize, payloadsize);
+      Utils.logProgress(i, payloadsize, fileSize, 0);
     }
+
+    // Partial blast
+    fromTo = tcpReceive();
+    if (fromTo == null) {
+      Utils.logger("Nothings else to receive");
+    } else if (fromTo.isEmpty()) {
+      Utils.logger("Nothings else to receive");
+    } else {
+      Utils.logger(String.format("FromTo = %s", fromTo));
+      startPacket = Integer.parseInt(fromTo.split(" ")[0]);
+      endPacket = Integer.parseInt(fromTo.split(" ")[1]);
+      receiveBlast(startPacket, endPacket);
+      Utils.logger(String.format("endPacket=%d, fileSize=%d, payloadsize=%d", endPacket, fileSize, payloadsize));
+      Utils.logProgress(endPacket, payloadsize, fileSize, 0);
+    }
+
+    writeFile(fileBytes, "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file2.mov");
 
     syn();
     
@@ -110,7 +131,7 @@ public class Server {
     
     byte[] packetBytes = new byte[packetsize];
     int totalPackets = endPacket - startPacket + 1;
-    PacketReceiver packetReceiver = new PacketReceiver(totalPackets, startPacket);
+    PacketReceiver packetReceiver = new PacketReceiver(totalPackets, startPacket, fileBytes, payloadsize);
 
     
     for (int i = startPacket; i <= endPacket; i++) {
@@ -132,6 +153,7 @@ public class Server {
     } else {
       tcpSend("\n");
     }
+    packetReceiver.writePayloadsToFile();
   }
 
   /*
@@ -340,11 +362,15 @@ class PacketReceiver {
   int totalPackets;
   int packZeroID;
   Packet[] packets;
+  byte[] file;
+  int normalPayloadSize;
 
-  public PacketReceiver(int totalPackets, int packZeroID) {
+  public PacketReceiver(int totalPackets, int packZeroID, byte[] file, int normalPayloadSize) {
     this.totalPackets = totalPackets;
     this.packZeroID = packZeroID;
     packets = new Packet[totalPackets];
+    this.file = file;
+    this.normalPayloadSize = normalPayloadSize;
   }
 
   public String failedPackets() {
@@ -386,5 +412,21 @@ class PacketReceiver {
         count++;
     }
     return count;
+  }
+
+  public int lastPacketSize() {
+    return packets[totalPackets-1].getPayload().length;
+  }
+
+  public boolean writePayloadsToFile() {
+    for (Packet p: packets) {
+      if (p == null) {
+        System.err.println("We should not be getting a null packet when writing to file.");
+        return false;
+      } else {
+        System.arraycopy(p.getPayload(), 0, file, p.getPacketID()*normalPayloadSize, p.getPayload().length);
+      }
+    }
+    return true;
   }
 }

@@ -3,6 +3,7 @@ package cust;
 import java.io.Serializable;
 
 public class Packet implements Serializable {
+  static final int packetBaseSize = 121;
   private int packetID;
   private int blastNum;
   private int packetStartLoc;

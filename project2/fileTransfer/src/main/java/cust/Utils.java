@@ -37,7 +37,7 @@ public class Utils {
   /*
    * Used to log the progress of the file transfer
    */
-  public static void logProgress(int packetNum, int fileSize, int payloadsize) {
+  public static void logProgress(int packetNum, int payloadsize, int fileSize, int finalPacketSize) {
     System.out.printf("%f/100\n", (100.0 * packetNum)*payloadsize/fileSize);
     // Utils.logger(String.format("%f%n", (100.0 * packetNum)*payloadsize/fileSize));
   }

@@ -5,6 +5,7 @@ import java.nio.file.*;
 import java.util.Arrays;
 import java.io.*;
 import cust.Utils.*;
+import cust.Packet;
 
 /* 
  *
@@ -25,8 +26,8 @@ public class Client {
   private int tcpPort;
   private int tcpFilePort;
   private int packetsize = 64000; // Must be bigger than 121
-  private int payloadsize = packetsize - 121;
-  private int blastlength = 40;
+  private int payloadsize = packetsize - Packet.packetBaseSize;
+  private int blastlength = 10;
   private static final boolean log = true;
 
   public Client(int udpPort, int tcpPort, int tcpFilePort, String hostAddress) throws Exception {
@@ -41,6 +42,7 @@ public class Client {
   // ------------------------------ Main method -------------------------------
   // **************************************************************************
   public static void main(String[] args) {
+    String filePath = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file.mov";
     try {
       Client c = new Client(5555, 5556, 5557, "localhost");
       if (!c.tcpConnect()) {
@@ -49,7 +51,7 @@ public class Client {
       }
       Utils.logger("Successfully connected");
       //byte[] file = c.readFileToBytes("/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file.mov");
-      byte[] file = c.readFileToBytes("/home/jaco/Desktop/CS354/Projects/project2/fileTransfer/assets/file.mov");
+      byte[] file = c.readFileToBytes(filePath);
       final long startTime = System.currentTimeMillis();
       c.rbudpSend(file);
       final long endTime = System.currentTimeMillis();
@@ -91,7 +93,24 @@ public class Client {
       parameters = (i*blastlength + " " + ((i+1)*blastlength - 1) + "\n").getBytes();
       tcpSend(parameters);
       blast(i*blastlength, (i+1)*blastlength - 1, message);
-      Utils.logProgress((i+1)*blastlength, message.length, payloadsize);
+      
+      Utils.logProgress(i, payloadsize, message.length, 0);
+    }
+
+    // Partial blast
+    if (numBlasts*blastlength*payloadsize < message.length) {
+      double doublePacketsLeft = (message.length - numBlasts*blastlength*payloadsize)*1.0/payloadsize;
+      int numPacketsLeft = (int) Math.ceil(doublePacketsLeft);
+      int startPacket = (numBlasts)*blastlength + 1;
+      int endPacket = (numBlasts)*blastlength + numPacketsLeft;
+      Utils.logger(String.format("startPacket=%d, endPacket=%d", startPacket, endPacket));
+      parameters = (startPacket + " " + endPacket + "\n").getBytes();
+      tcpSend(parameters);
+      int initialPayloadSize = payloadsize;
+      blast(startPacket, endPacket, message);
+      Utils.logger(String.format("endPacket=%d, message.length=%d, initialPayloadSize=%d", endPacket, message.length, initialPayloadSize));
+      int bytesSent = (numBlasts + numPacketsLeft - 1)*blastlength*initialPayloadSize + payloadsize;
+      Utils.logProgress(numBlasts + numPacketsLeft, initialPayloadSize, message.length, payloadsize);
     }
 
     Utils.logger("Done");
