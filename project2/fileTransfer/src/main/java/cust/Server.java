@@ -46,7 +46,7 @@ public class Server {
     s.acceptTcpConnection();
     Utils.logger("Received connection");
     byte[] fileByte = s.rbudpRecv();
-    writeFile(fileByte, "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/book2.pdf");
+    writeFile(fileByte, "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/testfile2.txt");
     s.closeTcp();
 
     // byte[] packetBytes = s.udpRecv(64000);
@@ -75,6 +75,7 @@ public class Server {
     int numBlasts;
     int startPacket;
     int endPacket;
+    int totalPackets;
 
     String metadata = tcpReceive();
     fileSize = Integer.parseInt(metadata.split(" ")[0]);
@@ -82,6 +83,8 @@ public class Server {
     blastlength = Integer.parseInt(metadata.split(" ")[2]);
     payloadsize = packetsize - Packet.packetBaseSize;
     file = new byte[fileSize];
+    totalPackets = (int) Math.ceil(fileSize*1.0/payloadsize);
+    Utils.logger(String.format("totalPackets = %d\n", 85/2));
     Utils.logger(String.format("fileSize = %d, packetSize = %d, blastlength = %d%n", fileSize, packetsize, blastlength));
 
     syn();
@@ -90,6 +93,7 @@ public class Server {
     Utils.logger(numBlasts*blastlength);
 
     String fromTo;
+    PacketReceiver mainPacketReceiver = new PacketReceiver(totalPackets, 0, file, payloadsize);
 
     // Main blast
     for (int i = 0; i < numBlasts; i++) {

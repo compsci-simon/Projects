@@ -25,7 +25,7 @@ public class Client {
   private int udpPort;
   private int tcpPort;
   private int tcpFilePort;
-  private int packetsize = 64000; // Must be bigger than 121
+  private int packetsize = 2; // Must be bigger than 121
   private int payloadsize = packetsize - Packet.packetBaseSize;
   private int blastlength = 10;
   private int byteSendCount;
@@ -43,7 +43,7 @@ public class Client {
   // ------------------------------ Main method -------------------------------
   // **************************************************************************
   public static void main(String[] args) {
-    String filePath = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/book.pdf";
+    String filePath = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/testfile.txt";
     try {
       Client c = new Client(5555, 5556, 5557, "localhost");
       if (!c.tcpConnect()) {
