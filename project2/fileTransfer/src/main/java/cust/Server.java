@@ -22,7 +22,7 @@ public class Server {
   private OutputStream tcpOut;
   private BufferedReader tcpIn;
   private DataOutputStream tcpFileOut;
-  private DataInputStream tcpFileIn;
+  private DataInputStream tcpDataIn;
   private int tcpPort;
   private int tcpFilePort;
   private int packetsize;
@@ -46,9 +46,11 @@ public class Server {
     Utils.logger("Waiting for tcp connection");
     s.acceptTcpConnection();
     Utils.logger("Received connection");
-    byte[] fileByte = s.rbudpRecv();
-    writeFile(fileByte, filename);
-    s.closeTcp();
+    // byte[] fileByte = s.rbudpRecv();
+    // if (fileByte == null)
+    //   return;
+    // writeFile(fileByte, filename);
+    // s.closeTcp();
 
     // byte[] file = s.tcpReceiveFile();
     // if (file == null)
@@ -76,57 +78,21 @@ public class Server {
       return null;
     }
     int fileSize;
-    int blastlength;
-    byte[] file;
-    int numBlasts;
-    int startPacket;
-    int endPacket;
+    int packetSize;
+    int payloadSize;
     int totalPackets;
 
-    String metadata = tcpReceive();
-    fileSize = Integer.parseInt(metadata.split(" ")[0]);
-    packetsize = Integer.parseInt(metadata.split(" ")[1]);
-    blastlength = Integer.parseInt(metadata.split(" ")[2]);
-    payloadsize = packetsize - Packet.packetBaseSize;
-    file = new byte[fileSize];
-    totalPackets = (int) Math.ceil(fileSize*1.0/payloadsize);
-    Utils.logger(String.format("totalPackets = %d\n", totalPackets));
-    Utils.logger(String.format("fileSize = %d, packetSize = %d, blastlength = %d%n", fileSize, packetsize, blastlength));
+    fileSize = tcpDataIn.readInt();
+    packetSize = tcpDataIn.readInt();
+    payloadSize = packetSize - Packet.packetBaseSize;
+    totalPackets = (int) Math.ceil(fileSize*1.0/payloadSize);
+    System.out.println(fileSize);
+    System.out.println(packetSize);
+    System.out.println(totalPackets);
 
-    syn();
+    
 
-    numBlasts = fileSize / (blastlength * payloadsize);
-    Utils.logger(numBlasts*blastlength);
-
-    String fromTo;
-    PacketReceiver mainPacketReceiver = new PacketReceiver(totalPackets, 0, file, payloadsize);
-
-    // Main blast
-    for (int i = 0; i < numBlasts; i++) {
-      fromTo = tcpReceive();
-      Utils.logger(String.format("FromTo = %s", fromTo));
-      startPacket = Integer.parseInt(fromTo.split(" ")[0]);
-      endPacket = Integer.parseInt(fromTo.split(" ")[1]);
-      receiveBlast(startPacket, endPacket, file, mainPacketReceiver);
-      Utils.logProgress(byteRecvcount, fileSize);
-    }
-
-    // Partial blast
-    fromTo = tcpReceive();
-    if (fromTo == null) {
-      Utils.logger("Nothings else to receive");
-    } else if (fromTo.isEmpty()) {
-      Utils.logger("Nothings else to receive");
-    } else {
-      startPacket = Integer.parseInt(fromTo.split(" ")[0]);
-      endPacket = Integer.parseInt(fromTo.split(" ")[1]);
-      receiveBlast(startPacket, endPacket, file, mainPacketReceiver);
-      Utils.logProgress(byteRecvcount, fileSize);
-    }
-    System.out.printf("mainPacketReceiver.missing = %b\n", mainPacketReceiver.missingPackets());
-    System.out.printf("mainPacketReceiver.missing = %d\n", mainPacketReceiver.numMissingPackets());
-    System.out.printf("Num packets received = %d\n", mainPacketReceiver.getTotalPackets());
-    return file;
+    return null;
   }
 
   /*
@@ -271,7 +237,7 @@ public class Server {
       tcpOut = tcpSock.getOutputStream();
       tcpIn = new BufferedReader(new InputStreamReader(tcpSock.getInputStream()));
       tcpFileOut = new DataOutputStream(tcpSock.getOutputStream());
-      tcpFileIn = new DataInputStream(tcpSock.getInputStream());
+      tcpDataIn = new DataInputStream(tcpSock.getInputStream());
     } catch (Exception e) {
       System.exit(0);
     }
@@ -285,7 +251,7 @@ public class Server {
 	      serverFileSock = new ServerSocket(tcpFilePort);
 	      tcpFileSock = serverFileSock.accept();
 	      tcpFileOut = new DataOutputStream(tcpFileSock.getOutputStream());
-	      tcpFileIn = new DataInputStream(tcpFileSock.getInputStream());
+	      tcpDataIn = new DataInputStream(tcpFileSock.getInputStream());
 	    } catch (Exception e) {
 	      System.exit(0);
 	    }
@@ -324,7 +290,7 @@ public class Server {
    */
   public byte[] tcpReceiveFile() throws IOException {
 	  try {
-      int filesize = tcpFileIn.readInt();
+      int filesize = tcpDataIn.readInt();
       System.out.println(filesize);
       byte [] mybytearray  = new byte [filesize];
       InputStream is = tcpSock.getInputStream();
@@ -406,8 +372,6 @@ class PacketReceiver {
   public void receivePacket(Packet p) {
     if (p.getPacketID() < totalPackets) {
       packets[p.getPacketID()] = p;
-    } else {
-      packets[p.getBlastNum()] = p;
     }
   }
 

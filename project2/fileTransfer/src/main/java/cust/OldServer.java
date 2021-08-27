@@ -41,25 +41,6 @@ public class OldServer {
   // ------------------------------ Main method -------------------------------
   // **************************************************************************
   public static void main (String[] args) throws Exception {
-    String filename = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/book2.pdf";
-    Server s = new Server(5555, 5556);
-    Utils.logger("Waiting for tcp connection");
-    s.acceptTcpConnection();
-    Utils.logger("Received connection");
-    byte[] fileByte = s.rbudpRecv();
-    writeFile(fileByte, filename);
-    s.closeTcp();
-
-    // byte[] file = s.tcpReceiveFile();
-    // if (file == null)
-    //   return;
-    // writeFile(file, filename);
-
-    // byte[] packetBytes = s.udpRecv(64000);
-    // if (packetBytes == null)
-    //   System.err.println("Weird");
-    // Packet p = deserializePacket(packetBytes);
-    // System.out.println(p.getBlastNum());
 
   }
 
@@ -378,90 +359,90 @@ public class OldServer {
  * the necessary output to request packets be resent from the client.
  */
 
-class PacketReceiver {
-  private int totalPackets;
-  private int packZeroID;
-  private Packet[] packets;
-  private byte[] file;
-  private int normalPayloadSize;
+// class PacketReceiver {
+//   private int totalPackets;
+//   private int packZeroID;
+//   private Packet[] packets;
+//   private byte[] file;
+//   private int normalPayloadSize;
 
-  public PacketReceiver(int totalPackets, int packZeroID, byte[] file, int normalPayloadSize) {
-    this.totalPackets = totalPackets;
-    this.packZeroID = packZeroID;
-    packets = new Packet[totalPackets];
-    this.file = file;
-    this.normalPayloadSize = normalPayloadSize;
-  }
+//   public PacketReceiver(int totalPackets, int packZeroID, byte[] file, int normalPayloadSize) {
+//     this.totalPackets = totalPackets;
+//     this.packZeroID = packZeroID;
+//     packets = new Packet[totalPackets];
+//     this.file = file;
+//     this.normalPayloadSize = normalPayloadSize;
+//   }
 
-  public String failedPackets() {
-    String res = "";
-    for (int i = 0; i < totalPackets; i++) {
-      if (packets[i] == null) {
-        res += packZeroID + i + " ";
-      }
-    }
-    return res;
-  }
+//   public String failedPackets() {
+//     String res = "";
+//     for (int i = 0; i < totalPackets; i++) {
+//       if (packets[i] == null) {
+//         res += packZeroID + i + " ";
+//       }
+//     }
+//     return res;
+//   }
 
-  public void receivePacket(Packet p) {
-    if (p.getPacketID() < totalPackets) {
-      packets[p.getPacketID()] = p;
-    } else {
-      packets[p.getBlastNum()] = p;
-    }
-  }
+//   public void receivePacket(Packet p) {
+//     if (p.getPacketID() < totalPackets) {
+//       packets[p.getPacketID()] = p;
+//     } else {
+//       packets[p.getBlastNum()] = p;
+//     }
+//   }
 
-  public boolean missingPackets() {
-    for (int i = 0; i < totalPackets; i++) {
-      if (packets[i] == null) {
-        return true;
-      }
-    }
-    return false;
-  }
+//   public boolean missingPackets() {
+//     for (int i = 0; i < totalPackets; i++) {
+//       if (packets[i] == null) {
+//         return true;
+//       }
+//     }
+//     return false;
+//   }
 
-  public int numMissingPackets() {
-    int count = 0;
-    for (int i = 0; i < totalPackets; i++) {
-      if (packets[i] == null)
-        count++;
-    }
-    return count;
-  }
+//   public int numMissingPackets() {
+//     int count = 0;
+//     for (int i = 0; i < totalPackets; i++) {
+//       if (packets[i] == null)
+//         count++;
+//     }
+//     return count;
+//   }
 
-  public int numPacketsReceived() {
-    int count = 0;
-    for (Packet p: packets) {
-      if (p != null)
-        count++;
-    }
-    return count;
-  }
+//   public int numPacketsReceived() {
+//     int count = 0;
+//     for (Packet p: packets) {
+//       if (p != null)
+//         count++;
+//     }
+//     return count;
+//   }
 
-  public int lastPacketSize() {
-    return packets[totalPackets-1].getPayload().length;
-  }
+//   public int lastPacketSize() {
+//     return packets[totalPackets-1].getPayload().length;
+//   }
 
-  public int writePayloadsToFile() {
-    int byteRecvCount = 0;
-    for (Packet p: packets) {
-      if (p == null) {
-        System.err.println("We should not be getting a null packet when writing to file.");
-        return -1;
-      } else {
-        try {
-          System.arraycopy(p.getPayload(), 0, file, p.getPacketID()*normalPayloadSize, p.getPayload().length);
-          byteRecvCount += p.getPayload().length;
-        } catch (Exception e) {
-          e.printStackTrace();
-          return -1;
-        }
-      }
-    }
-    return byteRecvCount;
-  }
+//   public int writePayloadsToFile() {
+//     int byteRecvCount = 0;
+//     for (Packet p: packets) {
+//       if (p == null) {
+//         System.err.println("We should not be getting a null packet when writing to file.");
+//         return -1;
+//       } else {
+//         try {
+//           System.arraycopy(p.getPayload(), 0, file, p.getPacketID()*normalPayloadSize, p.getPayload().length);
+//           byteRecvCount += p.getPayload().length;
+//         } catch (Exception e) {
+//           e.printStackTrace();
+//           return -1;
+//         }
+//       }
+//     }
+//     return byteRecvCount;
+//   }
 
-  public int getTotalPackets () {
-    return totalPackets;
-  }
-}
+//   public int getTotalPackets () {
+//     return totalPackets;
+//   }
+// }

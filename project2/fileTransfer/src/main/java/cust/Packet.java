@@ -3,28 +3,17 @@ package cust;
 import java.io.Serializable;
 
 public class Packet implements Serializable {
-  static final int packetBaseSize = 121;
+  static final int packetBaseSize = 93;
   private int packetID;
-  private int blastNum;
-  private int packetStartLoc;
+  private boolean sent = false;
   private byte[] payload;
 
-  public Packet(int packetID, int blastNum, int packetStartLoc) {
+  public Packet(int packetID) {
     this.packetID = packetID;
-    this.packetStartLoc = packetStartLoc;
-    this.blastNum = blastNum;
   }
 
   public int getPacketID() {
     return packetID;
-  }
-
-  public int getBlastNum() {
-    return blastNum;
-  }
-
-  public int getPacketStartLoc() {
-    return packetStartLoc;
   }
 
   public byte[] getPayload() {
@@ -35,15 +24,15 @@ public class Packet implements Serializable {
     this.packetID = packetID;
   }
 
-  public void setBlastNum(int blastNum) {
-    this.blastNum = blastNum;
-  }
-
-  public void setPacketStartLoc(int packetStartLoc) {
-    this.packetStartLoc = packetStartLoc;
-  }
-
   public void setPayload(byte[] payload) {
     this.payload = payload;
+  }
+
+  public boolean isSent() {
+    return sent;
+  }
+
+  public void send() {
+    sent = true;
   }
 }

@@ -44,28 +44,6 @@ public class OldClient {
   // ------------------------------ Main method -------------------------------
   // **************************************************************************
   public static void main(String[] args) {
-    String filePath = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/book.pdf";
-    try {
-      Client c = new Client(5555, 5556, "localhost");
-      if (!c.tcpConnect()) {
-        Utils.logger("Failed to connect");
-        return;
-      }
-      
-      Utils.logger("Successfully connected");
-      byte[] file;
-      file = c.readFileToBytes(filePath);
-      final long startTime = System.currentTimeMillis();
-      c.rbudpSend(file);
-      final long endTime = System.currentTimeMillis();
-      System.out.println("Total execution time: " + (endTime - startTime)/1000.0 + " seconds");
-
-      // byte[] fileBytes = c.readFileToBytes(filePath);
-      // c.tcpFileSend(fileBytes);
-
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
   }
   
   // **************************************************************************
@@ -298,41 +276,41 @@ public class OldClient {
  * This class is useful to handle the packets that have been sent and also
  * for resending of packets that failed to get to the server.
  */
-class SentPackets {
-  private Packet[] packets;
+// class SentPackets {
+//   private Packet[] packets;
 
-  public SentPackets(int totalpackets) {
-    packets = new Packet[totalpackets];
-  }
+//   public SentPackets(int totalpackets) {
+//     packets = new Packet[totalpackets];
+//   }
 
-  public void addPacket(Packet p, int position) {
-    if (position >= packets.length || position < 0) {
-      System.err.println("Invalid packet position given");
-      return;
-    } else {
-      packets[position] = p;
-    }
-  }
+//   public void addPacket(Packet p, int position) {
+//     if (position >= packets.length || position < 0) {
+//       System.err.println("Invalid packet position given");
+//       return;
+//     } else {
+//       packets[position] = p;
+//     }
+//   }
 
-  public Packet getPacket(int packetID) {
-    for (Packet p: packets) {
-      if (p != null) {
-        if (p.getPacketID() == packetID) {
-          return p;
-        }
-      }
-    }
-    return null;
-  }
+//   public Packet getPacket(int packetID) {
+//     for (Packet p: packets) {
+//       if (p != null) {
+//         if (p.getPacketID() == packetID) {
+//           return p;
+//         }
+//       }
+//     }
+//     return null;
+//   }
 
-  public int sentBytes() {
-    int count = 0;
-    for (Packet p: packets) {
-      if (p != null) {
-        count += p.getPayload().length;
-      }
-    }
-    return count;
-  }
+//   public int sentBytes() {
+//     int count = 0;
+//     for (Packet p: packets) {
+//       if (p != null) {
+//         count += p.getPayload().length;
+//       }
+//     }
+//     return count;
+//   }
 
-}
+// }

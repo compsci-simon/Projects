@@ -19,18 +19,12 @@ public class Client {
   private Socket tcpFileSock;
   private OutputStream tcpOutClient;
   private BufferedReader tcpInClient;
-  private DataOutputStream tcpFileOutClient;
+  private DataOutputStream tcpDataOutClient;
   private DataInputStream tcpFileInClient;
   private InetAddress hostAddress;
   private int udpPort;
   private int tcpPort;
   private int tcpFilePort;
-  private int packetsize = 10000; // Must be bigger than 121
-  private int payloadsize = packetsize - Packet.packetBaseSize;
-  private int blastlength = 10;
-  private int byteSendCount;
-  private final int tcpMaxSize = 500000;
-  private static final boolean log = true;
 
   public Client(int udpPort, int tcpPort, String hostAddress) throws Exception {
     this.hostAddress = InetAddress.getByName(hostAddress);
@@ -54,11 +48,14 @@ public class Client {
       
       Utils.logger("Successfully connected");
       byte[] file;
-      file = c.readFileToBytes(filePath);
-      final long startTime = System.currentTimeMillis();
-      c.rbudpSend(file);
-      final long endTime = System.currentTimeMillis();
-      System.out.println("Total execution time: " + (endTime - startTime)/1000.0 + " seconds");
+      Packet p = new Packet(0);
+      p.setPayload(new byte[10]);
+      System.out.println(serializePacket(p).length);
+      // file = c.readFileToBytes(filePath);
+      // final long startTime = System.currentTimeMillis();
+      // c.rbudpSend(file);
+      // final long endTime = System.currentTimeMillis();
+      // System.out.println("Total execution time: " + (endTime - startTime)/1000.0 + " seconds");
 
       // byte[] fileBytes = c.readFileToBytes(filePath);
       // c.tcpFileSend(fileBytes);
@@ -75,119 +72,57 @@ public class Client {
   /*
    * For implementing the entire RBUDP protocol to send the file.
    */
-  public void rbudpSend (byte[] message) throws Exception {
+  public void rbudpSend (byte[] message, int packetSize) throws Exception {
     if (!tcpSock.isConnected() || tcpSock.isClosed()) {
       Utils.logger("You must first connect the tcp socket.");
       return;
     }
+    int payloadSize = packetSize - Packet.packetBaseSize;
+    int totalPackets = (int) Math.ceil(message.length*1.0/payloadSize);
+    String packetsToSend;
 
-    byte[] parameters = (message.length + " " + packetsize + " " + blastlength + "\n").getBytes();
-    tcpSend(parameters);
+    SentPackets allPackets = new SentPackets(totalPackets);
+
+    for (int i = 0; i < totalPackets; i++) {
+      Packet p = new Packet(i);
+      byte[] payload;
+      if (i < totalPackets - 1) {
+        payload = new byte[payloadSize];
+        System.arraycopy(message, i*payloadSize, payload, 0, payloadSize);
+      } else {
+        // Different packet size for last packet
+        int lastPayloadSize = message.length - i*payloadSize;
+        payload = new byte[lastPayloadSize];
+        System.arraycopy(message, i*payloadSize, payload, 0, lastPayloadSize);
+      }
+      p.setPayload(payload);
+      allPackets.addPacket(p);
+    }
+
+    tcpDataOutClient.writeInt(message.length);
+    tcpDataOutClient.writeInt(packetSize);
+    Packet p = new Packet(0);
+    p.setPayload(new byte[10]);
+    System.out.println(serializePacket(p).length);
     
-    recvSyn();
-
-    int numBlasts = message.length / (blastlength * payloadsize);
-    int totalPackets = (int) Math.ceil(message.length*1.0/payloadsize);
-    Utils.logger(numBlasts*blastlength);
-    SentPackets sentPackets = new SentPackets(totalPackets);
-
-    for (int i = 0; i < numBlasts; i++) {
-      parameters = (i*blastlength + " " + ((i+1)*blastlength - 1) + "\n").getBytes();
-      tcpSend(parameters);
-      blast(i*blastlength, (i+1)*blastlength - 1, message, sentPackets);
-      
-      Utils.logProgress(byteSendCount, message.length);
+    while (!(packetsToSend = tcpRecv()).isEmpty()) {
+      blast(packetsToSend, allPackets);
     }
 
-    // Partial blast
-    if (numBlasts*blastlength*payloadsize < message.length) {
-      double doublePacketsLeft = (message.length - numBlasts*blastlength*payloadsize)*1.0/payloadsize;
-      int numPacketsLeft = (int) Math.ceil(doublePacketsLeft);
-      int startPacket = (numBlasts)*blastlength;
-      int endPacket = (numBlasts)*blastlength + numPacketsLeft - 1;
-      parameters = (startPacket + " " + endPacket + "\n").getBytes();
-      tcpSend(parameters);
-      int initialPayloadSize = payloadsize;
-      blast(startPacket, endPacket, message, sentPackets);
-      int bytesSent = (numBlasts + numPacketsLeft - 1)*blastlength*initialPayloadSize + payloadsize;
-      Utils.logProgress(byteSendCount, message.length);
-    }
-    System.out.println("Number of packets sent = "+totalPackets);
     Utils.logger("Done");
 
   }
 
-  /*
-   * Completes one blast which is used in rbudpSend. This
-   * method will reliable complete the blast.
-   * 
-   * @param startPacket - The packet to start the blast at.
-   * 
-   */
-  private void blast(int startPacket, int endPacket, byte[] message, SentPackets sentPackets) throws Exception {
-    int frombyte = startPacket*payloadsize;
-  
-    for (int packetID = startPacket; packetID <= endPacket; packetID++) {
-      int blastNum = packetID - startPacket;
-      Packet packetObj = new Packet(packetID, blastNum, frombyte);
-      if ((packetID+1)*payloadsize > message.length) {
-        payloadsize = message.length - packetID*payloadsize;
+  public void blast(String packetsToSendString, SentPackets allPackets) {
+    Packet[] packetsToSend = allPackets.getPackets(packetsToSendString);
+    for (Packet p: packetsToSend) {
+      byte[] packetBytes = serializePacket(p);
+      try {
+        udpSend(packetBytes);
+      } catch (Exception e) {
+        e.printStackTrace();
+        System.exit(0);
       }
-      byte[] payload = new byte[payloadsize];
-      System.arraycopy(message, packetID*payloadsize, payload, 0, payloadsize);
-      packetObj.setPayload(payload);
-      byte[] packetBytes = serializePacket(packetObj);
-      if (packetBytes == null)
-      {
-        System.err.println("PacketBytes was null");
-        continue;
-      }
-      if (packetBytes.length > packetsize) {
-        System.err.printf("packetBytes length = %d which is > packetsize %n", packetBytes.length);
-        continue;
-      }
-      udpSend(packetBytes);
-      sentPackets.addPacket(packetObj, packetID);
-    }
-
-    String resendPackets;
-
-    while ((resendPackets = tcpRecv().trim()) != null && !resendPackets.isEmpty()) {
-      System.out.println("Resend packets "+resendPackets);
-      udpResendPackets(resendPackets, message, sentPackets);
-      System.out.println("Packets were resent");
-    }
-    byteSendCount = sentPackets.sentBytes();
-  }
-
-  /*
-   * Used to resend packets that were not received by the server
-   * during an rbudp blast
-   */
-  private void udpResendPackets(String packets, byte[] message, SentPackets sentPackets) throws Exception {
-
-    String[] resendPackets = packets.split(" ");
-    for (int i = 0; i < resendPackets.length; i++) {
-      if (resendPackets[i].isEmpty())
-        continue;
-      int packetID = Integer.parseInt(resendPackets[i]);
-      byte[] packetBytes = serializePacket(sentPackets.getPacket(packetID));
-      udpSend(packetBytes);
-    }
-  }
-
-  /*
-   * Used to receive an Ack message from the server
-   */
-  private void recvSyn() {
-    String res = null;
-    try {
-      res = tcpInClient.readLine();
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-    if (Integer.parseInt(res) != 1) {
-      System.err.println("Ack did not equal 1");
     }
   }
 
@@ -211,7 +146,7 @@ public class Client {
       tcpSock.setSoTimeout(5000);
       tcpOutClient = tcpSock.getOutputStream();
       tcpInClient = new BufferedReader(new InputStreamReader(tcpSock.getInputStream()));
-      tcpFileOutClient = new DataOutputStream(tcpSock.getOutputStream());
+      tcpDataOutClient = new DataOutputStream(tcpSock.getOutputStream());
       tcpFileInClient = new DataInputStream(tcpSock.getInputStream());
       return true;
     } catch (Exception e) {
@@ -226,7 +161,7 @@ public class Client {
   public boolean tcpFileConnect() {
 	    try {
 	      tcpFileSock = new Socket(hostAddress, tcpFilePort);
-	      tcpFileOutClient = new DataOutputStream(tcpFileSock.getOutputStream());
+	      tcpDataOutClient = new DataOutputStream(tcpFileSock.getOutputStream());
 	      tcpFileInClient = new DataInputStream(tcpFileSock.getInputStream());
 	      return true;
 	    } catch (Exception e) {
@@ -241,10 +176,14 @@ public class Client {
   public void tcpSend(byte[] message) throws IOException {
     tcpOutClient.write(message);
   }
+
+  public void tcpSend(String message) throws IOException {
+    tcpOutClient.write(message.getBytes());
+  }
   
   /* Used to send length of file and file with tcp */
   public void tcpFileSend(byte[] file) throws IOException {
-    tcpFileOutClient.writeInt(file.length);
+    tcpDataOutClient.writeInt(file.length);
     
     OutputStream os = tcpSock.getOutputStream();
     os.write(file,0,file.length);
@@ -305,13 +244,8 @@ class SentPackets {
     packets = new Packet[totalpackets];
   }
 
-  public void addPacket(Packet p, int position) {
-    if (position >= packets.length || position < 0) {
-      System.err.println("Invalid packet position given");
-      return;
-    } else {
-      packets[position] = p;
-    }
+  public void addPacket(Packet p) {
+    packets[p.getPacketID()] = p;
   }
 
   public Packet getPacket(int packetID) {
@@ -333,6 +267,15 @@ class SentPackets {
       }
     }
     return count;
+  }
+
+  public Packet[] getPackets(String packetString) {
+    String[] sPackets = packetString.trim().split(" ");
+    Packet[] packetsToSend = new Packet[sPackets.length];
+    for (int i = 0; i < sPackets.length; i++) {
+      packetsToSend[i] = packets[Integer.parseInt(sPackets[i])];
+    }
+    return packetsToSend;
   }
 
 }
