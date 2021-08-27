@@ -101,14 +101,15 @@ public class Client {
     if (numBlasts*blastlength*payloadsize < message.length) {
       double doublePacketsLeft = (message.length - numBlasts*blastlength*payloadsize)*1.0/payloadsize;
       int numPacketsLeft = (int) Math.ceil(doublePacketsLeft);
-      int startPacket = (numBlasts)*blastlength + 1;
-      int endPacket = (numBlasts)*blastlength + numPacketsLeft;
+      int startPacket = (numBlasts)*blastlength;
+      int endPacket = (numBlasts)*blastlength + numPacketsLeft - 1;
       Utils.logger(String.format("startPacket=%d, endPacket=%d", startPacket, endPacket));
       parameters = (startPacket + " " + endPacket + "\n").getBytes();
       tcpSend(parameters);
       int initialPayloadSize = payloadsize;
       blast(startPacket, endPacket, message);
       Utils.logger(String.format("endPacket=%d, message.length=%d, initialPayloadSize=%d", endPacket, message.length, initialPayloadSize));
+      Utils.logger(String.format("Last packet payload size = %d", payloadsize));
       int bytesSent = (numBlasts + numPacketsLeft - 1)*blastlength*initialPayloadSize + payloadsize;
       Utils.logProgress(numBlasts + numPacketsLeft, initialPayloadSize, message.length, payloadsize);
     }
@@ -132,10 +133,10 @@ public class Client {
     for (int packetID = startPacket; packetID <= endPacket; packetID++) {
       int blastNum = packetID - startPacket;
       Packet packetObj = new Packet(packetID, blastNum, frombyte);
-      byte[] payload = new byte[payloadsize];
       if ((packetID+1)*payloadsize > message.length) {
         payloadsize = message.length - packetID*payloadsize;
       }
+      byte[] payload = new byte[payloadsize];
       System.arraycopy(message, packetID*payloadsize, payload, 0, payloadsize);
       packetObj.setPayload(payload);
       byte[] packetBytes = serializePacket(packetObj);

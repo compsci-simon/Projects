@@ -153,7 +153,12 @@ public class Server {
     } else {
       tcpSend("\n");
     }
-    packetReceiver.writePayloadsToFile();
+    if (!packetReceiver.writePayloadsToFile()) {
+      Utils.logger("Write to file failed");
+    } else {
+      Utils.logger("We have success");
+    }
+    
   }
 
   /*
@@ -424,7 +429,12 @@ class PacketReceiver {
         System.err.println("We should not be getting a null packet when writing to file.");
         return false;
       } else {
-        System.arraycopy(p.getPayload(), 0, file, p.getPacketID()*normalPayloadSize, p.getPayload().length);
+        try {
+          System.arraycopy(p.getPayload(), 0, file, p.getPacketID()*normalPayloadSize, p.getPayload().length);
+        } catch (Exception e) {
+          e.printStackTrace();
+          return false;
+        }
       }
     }
     return true;
