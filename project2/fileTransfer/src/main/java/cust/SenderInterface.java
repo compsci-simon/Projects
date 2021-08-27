@@ -20,6 +20,7 @@ public class SenderInterface extends JFrame {
 	static JFrame protocol_frame = new JFrame("Protocol Frame");
 	static JPanel main_panel = new JPanel();
 	static Client sender;
+	static String protocol;
 
 	public static void main(String[] args) throws Exception {
 		InitInterfaceProtocol();
@@ -63,6 +64,7 @@ public class SenderInterface extends JFrame {
 		protocol_frame.setVisible(true);
 	}
 	public static void tcpSetup() {
+		protocol = "TCP";
 		try {
 			sender = new Client(5555, 5556, 5557, "localhost");
 			if (!sender.tcpConnect()) {
@@ -81,6 +83,7 @@ public class SenderInterface extends JFrame {
 		}
 	}
 	public static void rbudpSetup() {
+		protocol = "RBUDP";
 		try {
 			sender = new Client(5555, 5556, 5557, "localhost");
 			if (!sender.tcpConnect()) {
@@ -161,10 +164,12 @@ public class SenderInterface extends JFrame {
 	public static void SendFile(String path) throws Exception {
 		System.out.println("Sending file");
 		byte[] file = sender.readFileToBytes(path);
-		sender.tcpFileSend(file);
-   
-		//sender.rbudpSend(file);
-   
+		
+		if (protocol.compareTo("TCP") == 0) {
+			sender.tcpFileSend(file);
+		} else if (protocol.compareTo("RBUDP") == 0) {
+			sender.rbudpSend(file);
+		}
 		/* refresh interface */
 		InitInterfaceSelect();
 	}

@@ -29,9 +29,8 @@ public class ReceiverInterface {
 	    receiver.acceptTcpConnection();
 	    Utils.logger("Received tcp connection");
 	    
-	    String chosen_protocol = receiver.tcpReceive();
-	    if (chosen_protocol.compareTo("TCP") == 0) {
-	    	System.out.println();
+	    String protocol = receiver.tcpReceive();
+	    if (protocol.compareTo("TCP") == 0) {
 	    	receiver.acceptFileTcpConnection();
 		    Utils.logger("Received tcp file connection");
 		    while (true) {
@@ -44,8 +43,11 @@ public class ReceiverInterface {
 		    	String path_tcp = "/home/jaco/tcp_receive.txt";
 		    	//s.writeFile(tcp_file_contents, path_tcp);
 		    }
-		    InitInterface();
+	    } else if (protocol.compareTo("RBUDP") == 0){
+	    	
 	    }
+	    
+	    InitInterface();
 	}
 	
 	public static void InitInterface() {	
