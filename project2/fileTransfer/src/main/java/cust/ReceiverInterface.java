@@ -27,8 +27,10 @@ public class ReceiverInterface {
 	public static void main(String[] args) throws Exception {
 		Server s = new Server(5555, 5556, 5557);
 	    InitInterface();
-	    s.acceptFileTcpConnection();
 	    s.acceptTcpConnection();
+	    Utils.logger("Received connection");
+	    s.acceptFileTcpConnection();
+	    Utils.logger("Received connection again");
 	    while (true) {
 	    	byte[] tcp_file_contents = s.tcpReceiveFile();
 	    	if (tcp_file_contents == null) {
