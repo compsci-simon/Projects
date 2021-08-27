@@ -50,18 +50,11 @@ public class Client {
         return;
       }
       Utils.logger("Successfully connected");
-      //byte[] file = c.readFileToBytes("/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file.mov");
       byte[] file = c.readFileToBytes(filePath);
       final long startTime = System.currentTimeMillis();
       c.rbudpSend(file);
       final long endTime = System.currentTimeMillis();
       System.out.println("Total execution time: " + (endTime - startTime)/1000.0 + " seconds");
-
-      Utils.logToFile(String.format("Total execution time: " 
-                      + (endTime - startTime)/1000.0 
-                      + " seconds.\n"
-                      + "blastlength = "+c.blastlength
-                      + "\npacketsize = "+c.packetsize), "trials.log");
 
     } catch (Exception e) {
       e.printStackTrace();
@@ -103,13 +96,10 @@ public class Client {
       int numPacketsLeft = (int) Math.ceil(doublePacketsLeft);
       int startPacket = (numBlasts)*blastlength;
       int endPacket = (numBlasts)*blastlength + numPacketsLeft - 1;
-      Utils.logger(String.format("startPacket=%d, endPacket=%d", startPacket, endPacket));
       parameters = (startPacket + " " + endPacket + "\n").getBytes();
       tcpSend(parameters);
       int initialPayloadSize = payloadsize;
       blast(startPacket, endPacket, message);
-      Utils.logger(String.format("endPacket=%d, message.length=%d, initialPayloadSize=%d", endPacket, message.length, initialPayloadSize));
-      Utils.logger(String.format("Last packet payload size = %d", payloadsize));
       int bytesSent = (numBlasts + numPacketsLeft - 1)*blastlength*initialPayloadSize + payloadsize;
       Utils.logProgress(numBlasts + numPacketsLeft, initialPayloadSize, message.length, payloadsize);
     }

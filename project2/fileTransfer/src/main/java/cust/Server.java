@@ -30,7 +30,6 @@ public class Server {
   int payloadsize;
   int packetIDSize;
   int blastlength;
-  byte[] fileBytes;
   int fileSize;
   int udpTimeout = 50;
   int bytesReceived = 0;
@@ -51,7 +50,8 @@ public class Server {
     Utils.logger("Waiting for tcp connection");
     s.acceptTcpConnection();
     Utils.logger("Received connection");
-    s.rbudpRecv();
+    byte[] fileByte = s.rbudpRecv();
+    writeFile(fileByte, "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file2.mov");
     s.closeTcp();
 
     // byte[] packetBytes = s.udpRecv(64000);
@@ -69,17 +69,17 @@ public class Server {
   /*
    * Used to send files quickly with udp but is also reliable
    */
-  public void rbudpRecv () throws Exception {
+  public byte[] rbudpRecv () throws Exception {
     if (tcpSock == null) {
       Utils.logger(String.format("You first need to establish a tcp connection to use this function."));
-      return;
+      return null;
     }
     String metadata = tcpReceive();
     fileSize = Integer.parseInt(metadata.split(" ")[0]);
     packetsize = Integer.parseInt(metadata.split(" ")[1]);
     blastlength = Integer.parseInt(metadata.split(" ")[2]);
     payloadsize = packetsize - Packet.packetBaseSize;
-    fileBytes = new byte[fileSize];
+    byte[] file = new byte[fileSize];
     Utils.logger(String.format("fileSize = %d, packetSize = %d, blastlength = %d%n", fileSize, packetsize, blastlength));
 
     syn();
@@ -97,7 +97,7 @@ public class Server {
       Utils.logger(String.format("FromTo = %s", fromTo));
       startPacket = Integer.parseInt(fromTo.split(" ")[0]);
       endPacket = Integer.parseInt(fromTo.split(" ")[1]);
-      receiveBlast(startPacket, endPacket);
+      receiveBlast(startPacket, endPacket, file);
       Utils.logProgress(i, payloadsize, fileSize, 0);
     }
 
@@ -108,30 +108,24 @@ public class Server {
     } else if (fromTo.isEmpty()) {
       Utils.logger("Nothings else to receive");
     } else {
-      Utils.logger(String.format("FromTo = %s", fromTo));
       startPacket = Integer.parseInt(fromTo.split(" ")[0]);
       endPacket = Integer.parseInt(fromTo.split(" ")[1]);
-      receiveBlast(startPacket, endPacket);
-      Utils.logger(String.format("endPacket=%d, fileSize=%d, payloadsize=%d", endPacket, fileSize, payloadsize));
+      receiveBlast(startPacket, endPacket, file);
       Utils.logProgress(endPacket, payloadsize, fileSize, 0);
     }
 
-    writeFile(fileBytes, "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file2.mov");
-
-    syn();
+    return file;
     
   }
 
   /*
    * Used to receive a blast of udp packets during the rbudp receive method.
    */
-  public void receiveBlast(int startPacket, int endPacket) {
-
-    Utils.logger(String.format("startpack = %d, endpack = %d", startPacket, endPacket));
+  public void receiveBlast(int startPacket, int endPacket, byte[] file) {
     
     byte[] packetBytes = new byte[packetsize];
     int totalPackets = endPacket - startPacket + 1;
-    PacketReceiver packetReceiver = new PacketReceiver(totalPackets, startPacket, fileBytes, payloadsize);
+    PacketReceiver packetReceiver = new PacketReceiver(totalPackets, startPacket, file, payloadsize);
 
     
     for (int i = startPacket; i <= endPacket; i++) {
@@ -144,8 +138,6 @@ public class Server {
       packetReceiver.receivePacket(packet);
       Utils.logger(String.format("Received packet %d", packet.getPacketID()));
     }
-    Utils.logger(String.format("Num packets received = %d", packetReceiver.numPacketsReceived()));
-    Utils.logger(String.format("packets missing = %b", packetReceiver.missingPackets()));
     
 
     if (packetReceiver.missingPackets()) {
@@ -155,10 +147,8 @@ public class Server {
     }
     if (!packetReceiver.writePayloadsToFile()) {
       Utils.logger("Write to file failed");
-    } else {
-      Utils.logger("We have success");
+      System.exit(0);
     }
-    
   }
 
   /*
@@ -351,7 +341,7 @@ public class Server {
    * Used when the file has been received by rbudpRecv to write the file to the servers
    * filesystem.
    */
-  public void writeFile(byte[] fileBytes, String path) throws Exception {
+  public static void writeFile(byte[] fileBytes, String path) throws Exception {
     Path newPath = Paths.get(path);
     Files.write(newPath, fileBytes);
   }
