@@ -15,20 +15,25 @@ import cust.Utils.*;
 public class Client {
   private DatagramSocket udpSock;
   private Socket tcpSock;
+  private Socket tcpFileSock;
   private OutputStream tcpOutClient;
   private BufferedReader tcpInClient;
+  private DataOutputStream tcpFileOutClient;
+  private DataInputStream tcpFileInClient;
   private InetAddress hostAddress;
   private int udpPort;
   private int tcpPort;
+  private int tcpFilePort;
   private int packetsize = 64000; // Must be bigger than 121
   private int payloadsize = packetsize - 121;
   private int blastlength = 40;
   private static final boolean log = true;
 
-  public Client(int udpPort, int tcpPort, String hostAddress) throws Exception {
+  public Client(int udpPort, int tcpPort, int tcpFilePort, String hostAddress) throws Exception {
     this.hostAddress = InetAddress.getByName(hostAddress);
     this.udpPort = udpPort;
     this.tcpPort = tcpPort;
+    this.tcpFilePort = tcpFilePort;
     udpSock = new DatagramSocket();
   }
 
@@ -37,13 +42,14 @@ public class Client {
   // **************************************************************************
   public static void main(String[] args) {
     try {
-      Client c = new Client(5555, 5556, "localhost");
+      Client c = new Client(5555, 5556, 5557, "localhost");
       if (!c.tcpConnect()) {
         Utils.logger("Failed to connect");
         return;
       }
       Utils.logger("Successfully connected");
-      byte[] file = c.readFileToBytes("/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file.mov");
+      //byte[] file = c.readFileToBytes("/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file.mov");
+      byte[] file = c.readFileToBytes("/home/jaco/Desktop/CS354/Projects/project2/fileTransfer/assets/file.mov");
       final long startTime = System.currentTimeMillis();
       c.rbudpSend(file);
       final long endTime = System.currentTimeMillis();
@@ -67,7 +73,7 @@ public class Client {
   /*
    * For implementing the entire RBUDP protocol to send the file.
    */
-  private void rbudpSend (byte[] message) throws Exception {
+  public void rbudpSend (byte[] message) throws Exception {
     if (!tcpSock.isConnected() || tcpSock.isClosed()) {
       Utils.logger("You must first connect the tcp socket.");
       return;
@@ -181,7 +187,7 @@ public class Client {
    * Is used for establishing a tcp connection with the server. The server needs the tcp 
    * connection to send metadata such as the total file size and all synchronization data.
    */
-  private boolean tcpConnect() {
+  public boolean tcpConnect() {
     try {
       tcpSock = new Socket(hostAddress, tcpPort);
       tcpSock.setSoTimeout(5000);
@@ -192,6 +198,22 @@ public class Client {
       return false;
     }
   }
+  
+  /*
+   * Is used for establishing a tcp connection for the purposes of transferring a file with 
+   * tcp.
+   */
+  public boolean tcpFileConnect() {
+	    try {
+	      tcpFileSock = new Socket(hostAddress, tcpFilePort);
+	      tcpFileSock.setSoTimeout(5000);
+	      tcpFileOutClient = new DataOutputStream(tcpFileSock.getOutputStream());
+	      tcpFileInClient = new DataInputStream(tcpFileSock.getInputStream());
+	      return true;
+	    } catch (Exception e) {
+	      return false;
+	    }
+	  }
 
   /*
    * Used to send all metadata and synchronization data to the server because UDP
@@ -199,6 +221,12 @@ public class Client {
    */
   private void tcpSend(byte[] message) throws IOException {
     tcpOutClient.write(message);
+  }
+  
+  /* Used to send length of file and file with tcp */
+  public void tcpFileSend(byte[] message) throws IOException {
+	  tcpFileOutClient.writeInt(message.length);
+	  tcpFileOutClient.write(message);
   }
 
   private String tcpRecv() {
@@ -237,7 +265,7 @@ public class Client {
    * Convert a file to bytes because the rbudpSend needs a message
    * in the bytes format in order to send it.
    */
-  private byte[] readFileToBytes(String filePath) throws Exception{
+  public byte[] readFileToBytes(String filePath) throws Exception{
     return Files.readAllBytes(Paths.get(filePath));
   }
 

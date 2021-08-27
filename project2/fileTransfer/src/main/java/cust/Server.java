@@ -15,11 +15,16 @@ import cust.Utils.*;
 public class Server {
   DatagramSocket udpSock;
   ServerSocket serverSock;
+  ServerSocket serverFileSock;
   Socket tcpSock;
+  Socket tcpFileSock;
   OutputStream tcpOut;
   BufferedReader tcpIn;
+  DataOutputStream tcpFileOut;
+  DataInputStream tcpFileIn;
   int udpPort;
   int tcpPort;
+  int tcpFilePort;
   int packetsize;
   int payloadsize;
   int packetIDSize;
@@ -28,9 +33,10 @@ public class Server {
   int fileSize;
   int udpTimeout = 50;
 
-  public Server(int udpPort, int tcpPort) throws Exception {
+  public Server(int udpPort, int tcpPort, int tcpFilePort) throws Exception {
     this.udpPort = udpPort;
     this.tcpPort = tcpPort;
+    this.tcpFilePort = tcpFilePort;
     udpSock = new DatagramSocket(udpPort);
     udpSock.setSoTimeout(udpTimeout);
   }
@@ -39,7 +45,7 @@ public class Server {
   // ------------------------------ Main method -------------------------------
   // **************************************************************************
   public static void main (String[] args) throws Exception {
-    Server s = new Server(5555, 5556);
+    Server s = new Server(5555, 5556, 5557);
     Utils.logger("Waiting for tcp connection");
     s.acceptTcpConnection();
     Utils.logger("Received connection");
@@ -237,6 +243,17 @@ public class Server {
       System.exit(0);
     }
   }
+  
+  public void acceptFileTcpConnection() {
+	    try {
+	      serverFileSock = new ServerSocket(tcpFilePort);
+	      tcpFileSock = serverFileSock.accept();
+	      tcpFileOut = new DataOutputStream(tcpFileSock.getOutputStream());
+	      tcpFileIn = new DataInputStream(tcpFileSock.getInputStream());
+	    } catch (Exception e) {
+	      System.exit(0);
+	    }
+	  }
 
   /*
    * Closes the tcp connection with the client.
@@ -257,6 +274,18 @@ public class Server {
       e.printStackTrace();
     }
     return message;
+  }
+  
+  public byte[] tcpReceiveFile() throws IOException {
+	  try {
+		  int file_length = tcpFileIn.readInt();
+		  System.out.println(file_length);
+		  byte[] file_contents = new byte[file_length];
+		  tcpFileIn.read(file_contents, 0, file_length);
+		  return file_contents;
+	  } catch(Exception e) {
+		  return null;
+	  }
   }
 
   // **************************************************************************
