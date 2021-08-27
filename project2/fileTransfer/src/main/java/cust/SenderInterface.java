@@ -25,9 +25,12 @@ public class SenderInterface extends JFrame {
 		try {
 			sender = new Client(5555, 5556, 5557, "localhost");
 			System.out.println("Trying to establish TCP connection");
-		      if (!sender.tcpFileConnect() || !sender.tcpConnect()) {
+		      if (!sender.tcpFileConnect()) {
 		        System.out.println("Failed to connect");
 		        return;
+		      } else if (!sender.tcpConnect()) {
+		    	  System.out.println("Failed to connect");
+			       return;
 		      }
 		      System.out.println("Successfully connected");
 		      InitInterface();

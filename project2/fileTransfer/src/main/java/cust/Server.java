@@ -244,6 +244,9 @@ public class Server {
     }
   }
   
+  /*
+   * accepts tcp connection used for transferring files with tcp
+   */
   public void acceptFileTcpConnection() {
 	    try {
 	      serverFileSock = new ServerSocket(tcpFilePort);
@@ -261,6 +264,13 @@ public class Server {
   public void closeTcp() throws Exception {
     tcpSock.close();
   }
+  
+  /*
+   * Closes the tcpFile connection with the client.
+   */
+  public void closeTcpFile() throws Exception {
+    tcpFileSock.close();
+  }
 
   /*
    * Receives metadata and synchronization data to ensure reliability of
@@ -276,6 +286,9 @@ public class Server {
     return message;
   }
   
+  /*
+   * Receives file using tcp.
+   */
   public byte[] tcpReceiveFile() throws IOException {
 	  try {
 		  int file_length = tcpFileIn.readInt();
