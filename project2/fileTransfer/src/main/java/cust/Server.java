@@ -30,7 +30,7 @@ public class Server {
   private int udpTimeout = 50;
   private int byteRecvcount = 0;
 
-  public Server(int udpPort, int tcpPort, int tcpFilePort) throws Exception {
+  public Server(int udpPort, int tcpPort) throws Exception {
     this.tcpPort = tcpPort;
     this.tcpFilePort = tcpFilePort;
     udpSock = new DatagramSocket(udpPort);
@@ -41,13 +41,19 @@ public class Server {
   // ------------------------------ Main method -------------------------------
   // **************************************************************************
   public static void main (String[] args) throws Exception {
-    Server s = new Server(5555, 5556, 5557);
+    String filename = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/book2.pdf";
+    Server s = new Server(5555, 5556);
     Utils.logger("Waiting for tcp connection");
     s.acceptTcpConnection();
     Utils.logger("Received connection");
     byte[] fileByte = s.rbudpRecv();
-    writeFile(fileByte, "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/testfile2.txt");
+    writeFile(fileByte, filename);
     s.closeTcp();
+
+    // byte[] file = s.tcpReceiveFile();
+    // if (file == null)
+    //   return;
+    // writeFile(file, filename);
 
     // byte[] packetBytes = s.udpRecv(64000);
     // if (packetBytes == null)
@@ -84,7 +90,7 @@ public class Server {
     payloadsize = packetsize - Packet.packetBaseSize;
     file = new byte[fileSize];
     totalPackets = (int) Math.ceil(fileSize*1.0/payloadsize);
-    Utils.logger(String.format("totalPackets = %d\n", 85/2));
+    Utils.logger(String.format("totalPackets = %d\n", totalPackets));
     Utils.logger(String.format("fileSize = %d, packetSize = %d, blastlength = %d%n", fileSize, packetsize, blastlength));
 
     syn();
@@ -101,7 +107,7 @@ public class Server {
       Utils.logger(String.format("FromTo = %s", fromTo));
       startPacket = Integer.parseInt(fromTo.split(" ")[0]);
       endPacket = Integer.parseInt(fromTo.split(" ")[1]);
-      receiveBlast(startPacket, endPacket, file);
+      receiveBlast(startPacket, endPacket, file, mainPacketReceiver);
       Utils.logProgress(byteRecvcount, fileSize);
     }
 
@@ -114,16 +120,19 @@ public class Server {
     } else {
       startPacket = Integer.parseInt(fromTo.split(" ")[0]);
       endPacket = Integer.parseInt(fromTo.split(" ")[1]);
-      receiveBlast(startPacket, endPacket, file);
+      receiveBlast(startPacket, endPacket, file, mainPacketReceiver);
       Utils.logProgress(byteRecvcount, fileSize);
     }
+    System.out.printf("mainPacketReceiver.missing = %b\n", mainPacketReceiver.missingPackets());
+    System.out.printf("mainPacketReceiver.missing = %d\n", mainPacketReceiver.numMissingPackets());
+    System.out.printf("Num packets received = %d\n", mainPacketReceiver.getTotalPackets());
     return file;
   }
 
   /*
    * Used to receive a blast of udp packets during the rbudp receive method.
    */
-  private void receiveBlast(int startPacket, int endPacket, byte[] file) {
+  private void receiveBlast(int startPacket, int endPacket, byte[] file, PacketReceiver mainPacketReceiver) {
     
     byte[] packetBytes = new byte[packetsize];
     int totalPackets = endPacket - startPacket + 1;
@@ -138,6 +147,7 @@ public class Server {
       if (packet == null)
         continue;
       packetReceiver.receivePacket(packet);
+      mainPacketReceiver.receivePacket(packet);
       Utils.logger(String.format("Received packet %d", packet.getPacketID()));
     }
     
@@ -260,6 +270,8 @@ public class Server {
       tcpSock = serverSock.accept();
       tcpOut = tcpSock.getOutputStream();
       tcpIn = new BufferedReader(new InputStreamReader(tcpSock.getInputStream()));
+      tcpFileOut = new DataOutputStream(tcpSock.getOutputStream());
+      tcpFileIn = new DataInputStream(tcpSock.getInputStream());
     } catch (Exception e) {
       System.exit(0);
     }
@@ -312,12 +324,21 @@ public class Server {
    */
   public byte[] tcpReceiveFile() throws IOException {
 	  try {
-		  int file_length = tcpFileIn.readInt();
-		  System.out.println(file_length);
-		  byte[] file_contents = new byte[file_length];
-		  tcpFileIn.read(file_contents, 0, file_length);
-		  return file_contents;
+      int filesize = tcpFileIn.readInt();
+      System.out.println(filesize);
+      byte [] mybytearray  = new byte [filesize];
+      InputStream is = tcpSock.getInputStream();
+      int bytesRead = is.read(mybytearray,0,mybytearray.length);
+      int current = bytesRead;
+      do {
+         bytesRead =
+            is.read(mybytearray, current, (mybytearray.length-current));
+         if(bytesRead >= 0) current += bytesRead;
+         System.out.println("Current = "+current);
+      } while(bytesRead > 0);
+		  return mybytearray;
 	  } catch(Exception e) {
+      e.printStackTrace();
 		  return null;
 	  }
   }
@@ -358,11 +379,11 @@ public class Server {
  */
 
 class PacketReceiver {
-  int totalPackets;
-  int packZeroID;
-  Packet[] packets;
-  byte[] file;
-  int normalPayloadSize;
+  private int totalPackets;
+  private int packZeroID;
+  private Packet[] packets;
+  private byte[] file;
+  private int normalPayloadSize;
 
   public PacketReceiver(int totalPackets, int packZeroID, byte[] file, int normalPayloadSize) {
     this.totalPackets = totalPackets;
@@ -383,7 +404,11 @@ class PacketReceiver {
   }
 
   public void receivePacket(Packet p) {
-    packets[p.getBlastNum()] = p;
+    if (p.getPacketID() < totalPackets) {
+      packets[p.getPacketID()] = p;
+    } else {
+      packets[p.getBlastNum()] = p;
+    }
   }
 
   public boolean missingPackets() {
@@ -434,5 +459,9 @@ class PacketReceiver {
       }
     }
     return byteRecvCount;
+  }
+
+  public int getTotalPackets () {
+    return totalPackets;
   }
 }
