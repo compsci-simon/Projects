@@ -31,6 +31,7 @@ public class ReceiverInterface {
 	    Utils.logger("Received connection");
 	    s.acceptFileTcpConnection();
 	    Utils.logger("Received connection again");
+	    /*
 	    while (true) {
 	    	byte[] tcp_file_contents = s.tcpReceiveFile();
 	    	if (tcp_file_contents == null) {
@@ -41,6 +42,7 @@ public class ReceiverInterface {
 	    	String path_tcp = "/home/jaco/tcp_receive.txt";
 	    	s.writeFile(tcp_file_contents, path_tcp);
 	    }
+	    */
 	}
 	
 	public static void InitInterface() {	
