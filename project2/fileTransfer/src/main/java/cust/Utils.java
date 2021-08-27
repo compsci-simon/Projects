@@ -6,6 +6,10 @@ import java.io.*;
  * This class contains some static utility methods that are useful
  */
 public class Utils {
+
+  public static void main(String[] args) {
+    
+  }
   
   /*
    * Logger to print select statements which can easily be turned on and off.
