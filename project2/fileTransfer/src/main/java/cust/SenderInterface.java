@@ -64,17 +64,18 @@ public class SenderInterface extends JFrame {
 	}
 	public static void tcpSetup() {
 		try {
-		sender = new Client(5555, 5556, 5557, "localhost");
-		if (!sender.tcpConnect()) {
-			Utils.logger("Failed to connect");
-			return;
+			sender = new Client(5555, 5556, 5557, "localhost");
+			if (!sender.tcpConnect()) {
+				Utils.logger("Failed to connect");
+				return;
+			}
+			sender.tcpSend("TCP\n".getBytes());
+			try {
+				sender.tcpFileConnect();
+			}	catch (Exception ex) {
+			    ex.printStackTrace();
 		}
-        if (!sender.tcpFileConnect()) {
-           Utils.logger("Failed to connect");
-           return;
-        }
-       sender.tcpSend("TCP\n".getBytes());
-       InitInterfaceSelect();
+			InitInterfaceSelect();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -82,12 +83,12 @@ public class SenderInterface extends JFrame {
 	public static void rbudpSetup() {
 		try {
 			sender = new Client(5555, 5556, 5557, "localhost");
-       	if (!sender.tcpConnect()) {
-           Utils.logger("Failed to connect");
-           return;
-        }
-       sender.tcpSend("RBUDP\n".getBytes());
-       InitInterfaceSelect();
+			if (!sender.tcpConnect()) {
+				Utils.logger("Failed to connect");
+				return;
+			}
+			sender.tcpSend("RBUDP\n".getBytes());
+			InitInterfaceSelect();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
