@@ -99,14 +99,14 @@ public class ReceiverInterface {
 				int previous_progress = 0;
 				int current_progress = (int) (receiver.ProgressRecv() * 100);
 				while (current_progress < 100) {
-					previous_progress = current_progress;
 					if (previous_progress != current_progress) {
 						System.out.println("hey");
 						progress_bar.setValue(current_progress);
 						receiver_frame.setVisible(true);
 					}
+					previous_progress = current_progress;
 					current_progress = (int) (receiver.ProgressRecv() * 100);
-					//System.out.println(current_progress);
+					Utils.logger(current_progress);
 				}
 				progress_bar.setValue(100);
 				receiver_frame.setVisible(true);
