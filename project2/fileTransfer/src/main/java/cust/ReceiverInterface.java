@@ -19,7 +19,7 @@ import javax.swing.JProgressBar;
 public class ReceiverInterface {
 	
 	static JLabel chosen_file = new JLabel("");
-	static JFrame sender_frame = new JFrame("File Receiver");
+	static JFrame receiver_frame = new JFrame("File Receiver");
 	static JPanel main_panel = new JPanel();
 	static String protocol;
 	
@@ -30,7 +30,6 @@ public class ReceiverInterface {
 	    receiver.acceptTcpConnection();
 	    Utils.logger("Received tcp connection");
 	    while (true) {
-	    	
 	    	if ((protocol = receiver.tcpReceive()) == null) {
 	    		System.exit(1);
 	    	}
@@ -44,7 +43,12 @@ public class ReceiverInterface {
 		    	String path_tcp = "/home/jaco/tcp_receive.txt";
 		    	receiver.writeFile(tcp_file_contents, path_tcp);
 	    	} else if (protocol.compareTo("RBUDP") == 0) {
-		    	InitInterface();
+	    		Thread x = new Thread() {
+	    	    	public void run() {
+	    	        	InitInterface();
+	    	    	}
+	    	    };
+	    		x.start();
 		    	byte[] rbudp_file_contents = receiver.rbudpRecv();
 		    	if (rbudp_file_contents == null) {
 		    		break;
@@ -70,7 +74,8 @@ public class ReceiverInterface {
 		//main_panel.add(Box.createRigidArea(new Dimension(300,60)));
 		final JProgressBar progress_bar = new JProgressBar();
 		//progress_bar.setBounds(40, 40, 40, 40);
-		progress_bar.setValue(12);
+		progress_bar.setValue(0);
+		receiver_frame.setVisible(true);
 		progress_bar.setStringPainted(true);
 		JButton exit_button = new JButton("Exit");
 		exit_button.addActionListener(new ActionListener() {
@@ -85,30 +90,28 @@ public class ReceiverInterface {
 		main_panel.add(Box.createVerticalStrut(20));
 		main_panel.add(exit_button, BorderLayout.SOUTH);
 		main_panel.repaint();
-		sender_frame.setContentPane(main_panel);
+		receiver_frame.setContentPane(main_panel);
 		//sender_frame.add(main_panel, BorderLayout.CENTER);
-		sender_frame.setSize(400, 400);
-		sender_frame.setLocationRelativeTo(null);
-		sender_frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		Thread t = new Thread() {
-			public void run() {
+		receiver_frame.setSize(400, 400);
+		receiver_frame.setLocationRelativeTo(null);
+		receiver_frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		if (protocol.compareTo("RBUDP") == 0) {
 				int previous_progress = 0;
-				int current_progress = (int) receiver.ProgressRecv() * 100;
+				int current_progress = (int) (receiver.ProgressRecv() * 100);
 				while (current_progress < 100) {
 					previous_progress = current_progress;
 					if (previous_progress != current_progress) {
-						progress_bar.setValue((int) receiver.ProgressRecv());
-						sender_frame.setVisible(true);
+						System.out.println("hey");
+						progress_bar.setValue(current_progress);
+						receiver_frame.setVisible(true);
 					}
-					current_progress = (int) receiver.ProgressRecv() * 100;
-					System.out.println(current_progress);
+					current_progress = (int) (receiver.ProgressRecv() * 100);
+					//System.out.println(current_progress);
 				}
 				progress_bar.setValue(100);
-				sender_frame.setVisible(true);
-			}
-		};
-		t.start();
-		sender_frame.setVisible(true);
+				receiver_frame.setVisible(true);
+		}
+		receiver_frame.setVisible(true);
 	}
 	
 	public static void Exit() {
