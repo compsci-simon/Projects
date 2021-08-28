@@ -25,15 +25,14 @@ public class ReceiverInterface {
 	static Server receiver;
 	
 	public static void main(String[] args) throws Exception {
-		receiver = new Server(5555, 5556, 5557);
+		receiver = new Server(5555, 5556);
 	    receiver.acceptTcpConnection();
 	    Utils.logger("Received tcp connection");
 	    
 	    String protocol = receiver.tcpReceive();
 	    if (protocol.compareTo("TCP") == 0) {
-	    	receiver.acceptFileTcpConnection();
-		    Utils.logger("Received tcp file connection");
 		    while (true) {
+		    	InitInterface();
 		    	byte[] tcp_file_contents = receiver.tcpReceiveFile();
 		    	if (tcp_file_contents == null) {
 		    		break;
@@ -44,13 +43,17 @@ public class ReceiverInterface {
 		    	//s.writeFile(tcp_file_contents, path_tcp);
 		    }
 	    } else if (protocol.compareTo("RBUDP") == 0){
-	    	InitInterface();
-	    	byte[] fileByte = receiver.rbudpRecv();
-	    	System.out.println("Received file");
-	    	String print = new String(fileByte);
-	    	System.out.println(print);
-	        //writeFile(fileByte, "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/testfile2.txt");
-	        //s.closeTcp();
+	    	while (true) {
+		    	InitInterface();
+		    	byte[] rbudp_file_contents = receiver.rbudpRecv();
+		    	if (rbudp_file_contents == null) {
+		    		break;
+		    	}
+		    	String print = new String(rbudp_file_contents);
+		    	System.out.println(print);
+		    	String path_tcp = "/home/jaco/tcp_receive.txt";
+		    	//s.writeFile(tcp_file_contents, path_tcp);
+	    	}
 	    }
 	}
 	

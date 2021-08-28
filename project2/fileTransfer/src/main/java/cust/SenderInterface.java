@@ -6,6 +6,7 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 
 import javax.swing.Box;
 import javax.swing.JButton;
@@ -23,6 +24,12 @@ public class SenderInterface extends JFrame {
 	static String protocol;
 
 	public static void main(String[] args) throws Exception {
+		sender = new Client(5555, 5556, "localhost");
+		if (!sender.tcpConnect()) {
+			Utils.logger("Failed to connect");
+			return;
+		}
+		System.out.println("tcp connected");
 		InitInterfaceProtocol();
 	}
 
@@ -36,7 +43,12 @@ public class SenderInterface extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				protocol_frame.setVisible(false);
-				tcpSetup();
+				try {
+					tcpSetup();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 			}
 		});
 		JButton rbudp_button = new JButton("RBUDP");
@@ -44,7 +56,12 @@ public class SenderInterface extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				protocol_frame.setVisible(false);
-				rbudpSetup();
+				try {
+					rbudpSetup();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 			}
 		});
 		protocol_panel.add(tcp_button);
@@ -63,41 +80,16 @@ public class SenderInterface extends JFrame {
 		protocol_frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		protocol_frame.setVisible(true);
 	}
-	public static void tcpSetup() {
+	public static void tcpSetup() throws IOException {
 		protocol = "TCP";
-		try {
-			sender = new Client(5555, 5556, 5557, "localhost");
-			if (!sender.tcpConnect()) {
-				Utils.logger("Failed to connect");
-				return;
-			}
-			System.out.println("tcp connected");
-			sender.tcpSend("TCP\n".getBytes());
-			try {
-				sender.tcpFileConnect();
-				System.out.println("tcp file connected");
-				InitInterfaceSelect();
-			}	catch (Exception e) {
-				System.out.println("ERROR");
-				e.printStackTrace(System.out);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		sender.tcpSend("TCP\n".getBytes());
+		InitInterfaceSelect();
+		
 	}
-	public static void rbudpSetup() {
+	public static void rbudpSetup() throws IOException {
 		protocol = "RBUDP";
-		try {
-			sender = new Client(5555, 5556, 5557, "localhost");
-			if (!sender.tcpConnect()) {
-				Utils.logger("Failed to connect");
-				return;
-			}
-			sender.tcpSend("RBUDP\n".getBytes());
-			InitInterfaceSelect();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		sender.tcpSend("RBUDP\n".getBytes());
+		InitInterfaceSelect();
 	}
 	public static void InitInterfaceSelect() {
 		main_panel.removeAll();
@@ -170,10 +162,14 @@ public class SenderInterface extends JFrame {
 		if (protocol.compareTo("TCP") == 0) {
 			sender.tcpFileSend(file);
 		} else if (protocol.compareTo("RBUDP") == 0) {
-			sender.rbudpSend(file);
+			int packetsize = 10000;
+			int blastlength = 30;
+			sender.rbudpSend(file, packetsize, blastlength);
 		}
+		System.out.println("File sent");
 		/* refresh interface */
-		InitInterfaceSelect();
+		sender_frame.setVisible(false);
+		InitInterfaceProtocol();
 	}
 	public static void Exit() {
 		String message = "Sender disconnected";
