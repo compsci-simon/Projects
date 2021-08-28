@@ -19,10 +19,9 @@ import javax.swing.JProgressBar;
 public class ReceiverInterface {
 	
 	static JLabel chosen_file = new JLabel("");
+	static String protocol;
 	static JFrame receiver_frame = new JFrame("File Receiver");
 	static JPanel main_panel = new JPanel();
-	static String protocol;
-	
 	static Server receiver;
 	
 	public static void main(String[] args) throws Exception {
@@ -42,6 +41,7 @@ public class ReceiverInterface {
 		    	String print = new String(tcp_file_contents);
 		    	String path_tcp = "/home/jaco/tcp_receive.txt";
 		    	receiver.writeFile(tcp_file_contents, path_tcp);
+		    	
 	    	} else if (protocol.compareTo("RBUDP") == 0) {
 	    		Thread x = new Thread() {
 	    	    	public void run() {
@@ -61,6 +61,8 @@ public class ReceiverInterface {
 	}
 	
 	public static void InitInterface() {	
+		receiver_frame.getContentPane().removeAll();
+		receiver_frame.repaint();
 		main_panel.removeAll();
 		JFrame.setDefaultLookAndFeelDecorated(true);
 		main_panel.setLayout(new BoxLayout(main_panel, BoxLayout.Y_AXIS));
