@@ -181,8 +181,8 @@ public class Client {
     try {
       return tcpInClient.readLine();
     } catch (Exception e) {
-      e.printStackTrace();
-      return null;
+    	Utils.logger("Nothing left to read");
+    	return null;
     }
   }
 

@@ -269,7 +269,7 @@ public class Server {
    * Used when the file has been received by rbudpRecv to write the file to the servers
    * filesystem.
    */
-  private static void writeFile(byte[] fileBytes, String path) throws Exception {
+  public static void writeFile(byte[] fileBytes, String path) throws Exception {
     Path newPath = Paths.get(path);
     Files.write(newPath, fileBytes);
   }
