@@ -21,14 +21,12 @@ public class Server {
   private Socket tcpFileSock;
   private OutputStream tcpOut;
   private BufferedReader tcpIn;
-  private DataOutputStream tcpFileOut;
+  private DataOutputStream tcpDataOut;
   private DataInputStream tcpDataIn;
   private int tcpPort;
   private int tcpFilePort;
-  private int packetsize;
-  private int payloadsize;
   private int udpTimeout = 50;
-  private int byteRecvcount = 0;
+  private int totalLoops = 0;
 
   public Server(int udpPort, int tcpPort) throws Exception {
     this.tcpPort = tcpPort;
@@ -41,16 +39,16 @@ public class Server {
   // ------------------------------ Main method -------------------------------
   // **************************************************************************
   public static void main (String[] args) throws Exception {
-    String filename = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/book2.pdf";
+    String filename = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file2.mov";
     Server s = new Server(5555, 5556);
     Utils.logger("Waiting for tcp connection");
     s.acceptTcpConnection();
     Utils.logger("Received connection");
-    // byte[] fileByte = s.rbudpRecv();
-    // if (fileByte == null)
-    //   return;
-    // writeFile(fileByte, filename);
-    // s.closeTcp();
+    byte[] fileByte = s.rbudpRecv();
+    if (fileByte == null)
+      return;
+    writeFile(fileByte, filename);
+    s.closeTcp();
 
     // byte[] file = s.tcpReceiveFile();
     // if (file == null)
@@ -77,114 +75,55 @@ public class Server {
       Utils.logger(String.format("You first need to establish a tcp connection to use this function."));
       return null;
     }
+    PacketReceiver packetsReceived;
+    byte[] file;
     int fileSize;
     int packetSize;
     int payloadSize;
     int totalPackets;
+    int blastLength;
+    String sendMePackets;
 
     fileSize = tcpDataIn.readInt();
     packetSize = tcpDataIn.readInt();
+    blastLength = tcpDataIn.readInt();
     payloadSize = packetSize - Packet.packetBaseSize;
     totalPackets = (int) Math.ceil(fileSize*1.0/payloadSize);
-    System.out.println(fileSize);
-    System.out.println(packetSize);
-    System.out.println(totalPackets);
+    file = new byte[fileSize];
+    packetsReceived = new PacketReceiver(totalPackets, 0, file, payloadSize);
 
-    
+    while (packetsReceived.missingPackets()) {
+      sendMePackets = packetsReceived.getPackets(blastLength).trim() + "\n";
+      Utils.logger(String.format("Send me packets %s", sendMePackets));
+      tcpSend(sendMePackets);
+      receiveBlast(packetsReceived, blastLength);
+      tcpDataOut.writeDouble(packetsReceived.progress());
+      Utils.logger(String.format("Progress = %f", packetsReceived.progress()));
+    }
 
-    return null;
+    packetsReceived.writePayloadsToFile();
+    Utils.logger(String.format("Packet success rate = %f", totalPackets*1.0/totalLoops));
+    return file;
   }
 
   /*
    * Used to receive a blast of udp packets during the rbudp receive method.
    */
-  private void receiveBlast(int startPacket, int endPacket, byte[] file, PacketReceiver mainPacketReceiver) {
+  private void receiveBlast(PacketReceiver mainPacketReceiver, int blastLength) {
     
-    byte[] packetBytes = new byte[packetsize];
-    int totalPackets = endPacket - startPacket + 1;
-    PacketReceiver packetReceiver = new PacketReceiver(totalPackets, startPacket, file, payloadsize);
-
-    
-    for (int i = startPacket; i <= endPacket; i++) {
-      packetBytes = udpRecv(packetsize);
+    int packetSize = mainPacketReceiver.getPayloadSize() + Packet.packetBaseSize;
+    byte[] packetBytes = new byte[packetSize];
+    for (int i = 0; i < blastLength; i++) {
+      totalLoops++;
+      packetBytes = udpRecv(packetSize);
       if (packetBytes == null)
         continue;
       Packet packet = deserializePacket(packetBytes);
       if (packet == null)
         continue;
-      packetReceiver.receivePacket(packet);
       mainPacketReceiver.receivePacket(packet);
       Utils.logger(String.format("Received packet %d", packet.getPacketID()));
     }
-    
-
-    if (packetReceiver.missingPackets()) {
-      blastRequestPackets(packetReceiver);
-    } else {
-      tcpSend("\n");
-    }
-    int bytesAddedToFile = packetReceiver.writePayloadsToFile();
-    if (bytesAddedToFile == -1) {
-      Utils.logger("Write to file failed");
-      System.exit(0);
-    }
-    byteRecvcount += bytesAddedToFile;
-  }
-
-  /*
-   * Used when a blast is received but some packets are missing.
-   */
-  public void blastRequestPackets(PacketReceiver packetReceiver) {
-    
-    String packetsNotReceived = packetReceiver.failedPackets();
-    Utils.logger(String.format("packets not received = %s", packetsNotReceived));
-    byte[] packetBytes = new byte[packetsize];
-    
-    while (packetReceiver.missingPackets()) {
-      String requestPackets = packetReceiver.failedPackets();
-      requestPackets += "\n";
-      tcpSend(requestPackets);
-
-      int numMissingPackets = packetReceiver.numMissingPackets();
-
-      for (int i = 0; i < numMissingPackets; i++) {
-        packetBytes = udpRecv(packetsize);
-        if (packetBytes == null)
-          continue;
-        Packet packet = deserializePacket(packetBytes);
-        if (packet == null)
-          continue;
-        packetReceiver.receivePacket(packet);
-        Utils.logger(String.format("Received packet %d", packet.getPacketID()));
-      }
-    }
-    tcpSend("\n");
-
-  }
-
-  /*
-   * @param fromPacket - Starting range on packets in blast
-   * @param toPacket - End range on packets in blast
-   * @param packetsReceived - boolean array of all packets that 
-   * have been received.
-   * 
-   * 
-   * Used to create a string to send to the client for packets to be resent.
-   * During rbudp the udp packets may not arrive and the server needs to let 
-   * the client know which packets have not arrived. This method creates a 
-   * string of all packets not yet received.
-   * 
-   * Packet numbers to resend. Not number of packet in loop but number of
-   * actual packet number i.e. packet #192 not packet 2
-   */
-  public String packetsToRequest(int fromPacket, boolean[] packetsReceived) {
-    String resend = "";
-    for (int i = 0; i < packetsReceived.length; i++) {
-      if (packetsReceived[i] == false) {
-        resend += fromPacket + i + " ";
-      }
-    }
-    return resend;
   }
 
   /*
@@ -236,7 +175,7 @@ public class Server {
       tcpSock = serverSock.accept();
       tcpOut = tcpSock.getOutputStream();
       tcpIn = new BufferedReader(new InputStreamReader(tcpSock.getInputStream()));
-      tcpFileOut = new DataOutputStream(tcpSock.getOutputStream());
+      tcpDataOut = new DataOutputStream(tcpSock.getOutputStream());
       tcpDataIn = new DataInputStream(tcpSock.getInputStream());
     } catch (Exception e) {
       System.exit(0);
@@ -250,7 +189,7 @@ public class Server {
 	    try {
 	      serverFileSock = new ServerSocket(tcpFilePort);
 	      tcpFileSock = serverFileSock.accept();
-	      tcpFileOut = new DataOutputStream(tcpFileSock.getOutputStream());
+	      tcpDataOut = new DataOutputStream(tcpFileSock.getOutputStream());
 	      tcpDataIn = new DataInputStream(tcpFileSock.getInputStream());
 	    } catch (Exception e) {
 	      System.exit(0);
@@ -291,7 +230,6 @@ public class Server {
   public byte[] tcpReceiveFile() throws IOException {
 	  try {
       int filesize = tcpDataIn.readInt();
-      System.out.println(filesize);
       byte [] mybytearray  = new byte [filesize];
       InputStream is = tcpSock.getInputStream();
       int bytesRead = is.read(mybytearray,0,mybytearray.length);
@@ -300,7 +238,6 @@ public class Server {
          bytesRead =
             is.read(mybytearray, current, (mybytearray.length-current));
          if(bytesRead >= 0) current += bytesRead;
-         System.out.println("Current = "+current);
       } while(bytesRead > 0);
 		  return mybytearray;
 	  } catch(Exception e) {
@@ -406,26 +343,47 @@ class PacketReceiver {
     return packets[totalPackets-1].getPayload().length;
   }
 
-  public int writePayloadsToFile() {
-    int byteRecvCount = 0;
+  public void writePayloadsToFile() {
     for (Packet p: packets) {
       if (p == null) {
         System.err.println("We should not be getting a null packet when writing to file.");
-        return -1;
       } else {
         try {
           System.arraycopy(p.getPayload(), 0, file, p.getPacketID()*normalPayloadSize, p.getPayload().length);
-          byteRecvCount += p.getPayload().length;
         } catch (Exception e) {
           e.printStackTrace();
-          return -1;
         }
       }
     }
-    return byteRecvCount;
   }
 
   public int getTotalPackets () {
     return totalPackets;
+  }
+
+  public int getPayloadSize() {
+    return normalPayloadSize;
+  }
+
+  public String getPackets(int n) {
+    String packetsString = "";
+    int count = 0;
+    for (int i = 0; i < totalPackets && count <= n; i++) {
+      if (packets[i] == null) {
+        packetsString += i + " ";
+        count++;
+      }
+    }
+    return packetsString;
+  }
+
+  public double progress() {
+    int totalBytesReceived = 0;
+    for (Packet p: packets) {
+      if (p != null) {
+        totalBytesReceived += p.getPayload().length;
+      }
+    }
+    return totalBytesReceived*1.0/file.length;
   }
 }

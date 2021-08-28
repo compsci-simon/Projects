@@ -20,11 +20,12 @@ public class Client {
   private OutputStream tcpOutClient;
   private BufferedReader tcpInClient;
   private DataOutputStream tcpDataOutClient;
-  private DataInputStream tcpFileInClient;
+  private DataInputStream tcpDataInClient;
   private InetAddress hostAddress;
   private int udpPort;
   private int tcpPort;
   private int tcpFilePort;
+  private static int packetSize = 10000;
 
   public Client(int udpPort, int tcpPort, String hostAddress) throws Exception {
     this.hostAddress = InetAddress.getByName(hostAddress);
@@ -38,7 +39,7 @@ public class Client {
   // ------------------------------ Main method -------------------------------
   // **************************************************************************
   public static void main(String[] args) {
-    String filePath = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/book.pdf";
+    String filePath = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file.mov";
     try {
       Client c = new Client(5555, 5556, "localhost");
       if (!c.tcpConnect()) {
@@ -48,14 +49,11 @@ public class Client {
       
       Utils.logger("Successfully connected");
       byte[] file;
-      Packet p = new Packet(0);
-      p.setPayload(new byte[10]);
-      System.out.println(serializePacket(p).length);
-      // file = c.readFileToBytes(filePath);
-      // final long startTime = System.currentTimeMillis();
-      // c.rbudpSend(file);
-      // final long endTime = System.currentTimeMillis();
-      // System.out.println("Total execution time: " + (endTime - startTime)/1000.0 + " seconds");
+      file = c.readFileToBytes(filePath);
+      final long startTime = System.currentTimeMillis();
+      c.rbudpSend(file, packetSize, 30);
+      final long endTime = System.currentTimeMillis();
+      System.out.println("Total execution time: " + (endTime - startTime)/1000.0 + " seconds");
 
       // byte[] fileBytes = c.readFileToBytes(filePath);
       // c.tcpFileSend(fileBytes);
@@ -72,7 +70,7 @@ public class Client {
   /*
    * For implementing the entire RBUDP protocol to send the file.
    */
-  public void rbudpSend (byte[] message, int packetSize) throws Exception {
+  public void rbudpSend (byte[] message, int packetSize, int blastLength) throws Exception {
     if (!tcpSock.isConnected() || tcpSock.isClosed()) {
       Utils.logger("You must first connect the tcp socket.");
       return;
@@ -83,6 +81,7 @@ public class Client {
 
     SentPackets allPackets = new SentPackets(totalPackets);
 
+    // Populating all packet objects
     for (int i = 0; i < totalPackets; i++) {
       Packet p = new Packet(i);
       byte[] payload;
@@ -101,12 +100,14 @@ public class Client {
 
     tcpDataOutClient.writeInt(message.length);
     tcpDataOutClient.writeInt(packetSize);
+    tcpDataOutClient.writeInt(blastLength);
     Packet p = new Packet(0);
     p.setPayload(new byte[10]);
     System.out.println(serializePacket(p).length);
     
-    while (!(packetsToSend = tcpRecv()).isEmpty()) {
+    while ((packetsToSend = tcpRecv())!= null && !packetsToSend.isEmpty()) {
       blast(packetsToSend, allPackets);
+      Utils.logger(String.format("Progress = %f", tcpDataInClient.readDouble()));
     }
 
     Utils.logger("Done");
@@ -147,27 +148,12 @@ public class Client {
       tcpOutClient = tcpSock.getOutputStream();
       tcpInClient = new BufferedReader(new InputStreamReader(tcpSock.getInputStream()));
       tcpDataOutClient = new DataOutputStream(tcpSock.getOutputStream());
-      tcpFileInClient = new DataInputStream(tcpSock.getInputStream());
+      tcpDataInClient = new DataInputStream(tcpSock.getInputStream());
       return true;
     } catch (Exception e) {
       return false;
     }
   }
-  
-  /*
-   * Is used for establishing a tcp connection for the purposes of transferring a file with 
-   * tcp.
-   */
-  public boolean tcpFileConnect() {
-	    try {
-	      tcpFileSock = new Socket(hostAddress, tcpFilePort);
-	      tcpDataOutClient = new DataOutputStream(tcpFileSock.getOutputStream());
-	      tcpFileInClient = new DataInputStream(tcpFileSock.getInputStream());
-	      return true;
-	    } catch (Exception e) {
-	      return false;
-	    }
-	  }
 
   /*
    * Used to send all metadata and synchronization data to the server because UDP
@@ -192,13 +178,12 @@ public class Client {
   }
 
   private String tcpRecv() {
-    String res = null;
     try {
-      res = tcpInClient.readLine();
+      return tcpInClient.readLine();
     } catch (Exception e) {
       e.printStackTrace();
+      return null;
     }
-    return res;
   }
 
   // **************************************************************************
