@@ -27,6 +27,7 @@ public class Server {
   private int tcpFilePort;
   private int udpTimeout = 50;
   private int totalLoops = 0;
+  private double Progress = 0;
 
   public Server(int udpPort, int tcpPort) throws Exception {
     this.tcpPort = tcpPort;
@@ -97,8 +98,9 @@ public class Server {
       Utils.logger(String.format("Send me packets %s", sendMePackets));
       tcpSend(sendMePackets);
       receiveBlast(packetsReceived, blastLength);
-      tcpDataOut.writeDouble(packetsReceived.progress());
-      Utils.logger(String.format("Progress = %f", packetsReceived.progress()));
+      Progress = packetsReceived.progress();
+      tcpDataOut.writeDouble(Progress);
+      Utils.logger(String.format("Progress = %f", Progress));
     }
 
     packetsReceived.writePayloadsToFile();
@@ -244,6 +246,10 @@ public class Server {
       e.printStackTrace();
 		  return null;
 	  }
+  }
+  
+  public double ProgressRecv() {
+	  return Progress;
   }
 
   // **************************************************************************

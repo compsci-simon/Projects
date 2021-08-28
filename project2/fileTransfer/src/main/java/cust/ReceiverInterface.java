@@ -21,6 +21,7 @@ public class ReceiverInterface {
 	static JLabel chosen_file = new JLabel("");
 	static JFrame sender_frame = new JFrame("File Receiver");
 	static JPanel main_panel = new JPanel();
+	static String protocol;
 	
 	static Server receiver;
 	
@@ -28,31 +29,29 @@ public class ReceiverInterface {
 		receiver = new Server(5555, 5556);
 	    receiver.acceptTcpConnection();
 	    Utils.logger("Received tcp connection");
-	    
-	    String protocol = receiver.tcpReceive();
-	    if (protocol.compareTo("TCP") == 0) {
-		    while (true) {
+	    while (true) {
+	    	
+	    	if ((protocol = receiver.tcpReceive()) == null) {
+	    		System.exit(1);
+	    	}
+	    	if (protocol.compareTo("TCP") == 0) {
 		    	InitInterface();
 		    	byte[] tcp_file_contents = receiver.tcpReceiveFile();
 		    	if (tcp_file_contents == null) {
 		    		break;
 		    	}
 		    	String print = new String(tcp_file_contents);
-		    	System.out.println(print);
 		    	String path_tcp = "/home/jaco/tcp_receive.txt";
-		    	//s.writeFile(tcp_file_contents, path_tcp);
-		    }
-	    } else if (protocol.compareTo("RBUDP") == 0){
-	    	while (true) {
+		    	receiver.writeFile(tcp_file_contents, path_tcp);
+	    	} else if (protocol.compareTo("RBUDP") == 0) {
 		    	InitInterface();
 		    	byte[] rbudp_file_contents = receiver.rbudpRecv();
 		    	if (rbudp_file_contents == null) {
 		    		break;
 		    	}
 		    	String print = new String(rbudp_file_contents);
-		    	System.out.println(print);
-		    	String path_tcp = "/home/jaco/tcp_receive.txt";
-		    	//s.writeFile(tcp_file_contents, path_tcp);
+		    	String path_tcp = "/home/jaco/rbudp_receive.txt";
+		    	receiver.writeFile(rbudp_file_contents, path_tcp);
 	    	}
 	    }
 	}
@@ -69,9 +68,9 @@ public class ReceiverInterface {
 		main_panel.add(heading, BorderLayout.CENTER);
 		main_panel.add(Box.createVerticalStrut(20));
 		//main_panel.add(Box.createRigidArea(new Dimension(300,60)));
-		JProgressBar progress_bar = new JProgressBar();
+		final JProgressBar progress_bar = new JProgressBar();
 		//progress_bar.setBounds(40, 40, 40, 40);
-		progress_bar.setValue(15);
+		progress_bar.setValue(12);
 		progress_bar.setStringPainted(true);
 		JButton exit_button = new JButton("Exit");
 		exit_button.addActionListener(new ActionListener() {
@@ -80,7 +79,9 @@ public class ReceiverInterface {
 				Exit();
 			}
 		});
-		main_panel.add(progress_bar);
+		if (protocol.compareTo("RBUDP") == 0) {
+			main_panel.add(progress_bar);
+		}
 		main_panel.add(Box.createVerticalStrut(20));
 		main_panel.add(exit_button, BorderLayout.SOUTH);
 		main_panel.repaint();
@@ -89,6 +90,24 @@ public class ReceiverInterface {
 		sender_frame.setSize(400, 400);
 		sender_frame.setLocationRelativeTo(null);
 		sender_frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		Thread t = new Thread() {
+			public void run() {
+				int previous_progress = 0;
+				int current_progress = (int) receiver.ProgressRecv() * 100;
+				while (current_progress < 100) {
+					previous_progress = current_progress;
+					if (previous_progress != current_progress) {
+						progress_bar.setValue((int) receiver.ProgressRecv());
+						sender_frame.setVisible(true);
+					}
+					current_progress = (int) receiver.ProgressRecv() * 100;
+					System.out.println(current_progress);
+				}
+				progress_bar.setValue(100);
+				sender_frame.setVisible(true);
+			}
+		};
+		t.start();
 		sender_frame.setVisible(true);
 	}
 	
