@@ -29,21 +29,13 @@ public class ReceiverInterface {
 		receiver = new Server(5555, 5556);
 	    receiver.acceptTcpConnection();
 	    Utils.logger("Received tcp connection");
+	    
 	    while (true) {
 	    	if ((protocol = receiver.tcpReceive()) == null) {
 	    		System.exit(1);
 	    	}
 	    	if (protocol.compareTo("TCP") == 0) {
-	    		InitInterface();
-		    	byte[] tcp_file_contents = receiver.tcpReceiveFile();
-		    	if (tcp_file_contents == null) {
-		    		break;
-		    	}
-		    	String print = new String(tcp_file_contents);
-		    	String path_tcp = "/home/jaco/tcp_receive.txt";
-		    	receiver.writeFile(tcp_file_contents, path_tcp);
-		    	
-	    	} else if (protocol.compareTo("RBUDP") == 0) {
+	    		/* Thread used for interface while main thread receives file */
 	    		Thread x = new Thread() {
 		    		public void run() {
 		    			try {
@@ -56,15 +48,34 @@ public class ReceiverInterface {
 		    		}
 		    	};
 		    	x.start();
-	    		//UpdateInterface();
+		    	byte[] tcp_file_contents = receiver.tcpReceiveFile();
+		    	if (tcp_file_contents == null) {
+		    		break;
+		    	}
+		    	String path_tcp = "/home/jaco/tcp_receive.txt";
+		    	receiver.writeFile(tcp_file_contents, path_tcp);
+		    	
+	    	} else if (protocol.compareTo("RBUDP") == 0) {
+	    		/* Thread used for interface while main thread receives file */
+	    		Thread x = new Thread() {
+		    		public void run() {
+		    			try {
+							InitInterfaceImproved();
+							UpdateInterface();
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+		    		}
+		    	};
+		    	x.start();
 	    		Utils.logger("Incoming RBUDP file");
 	    		byte[] rbudp_file_contents = receiver.rbudpRecv();
 		    	if (rbudp_file_contents == null) {
-		    		Exit();
+		    		break;
 		    	}
-		    	String print = new String(rbudp_file_contents);
-		    	String path_tcp = "/home/jaco/rbudp_receive.txt";
-		    	receiver.writeFile(rbudp_file_contents, path_tcp);
+		    	String path_rbudp = "/home/jaco/rbudp_receive.txt";
+		    	receiver.writeFile(rbudp_file_contents, path_rbudp);
 	    	}
 	    }
 	}
@@ -88,6 +99,7 @@ public class ReceiverInterface {
 				Exit();
 			}
 		});
+		
 		receiver_frame.setSize(400, 400);
 		receiver_frame.setLocationRelativeTo(null);
 		receiver_frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -98,37 +110,30 @@ public class ReceiverInterface {
 	
 	public static void UpdateInterface() throws InterruptedException {
 		main_panel.removeAll();
+		
 		JLabel heading = new JLabel("Progress of receiving files");
 		heading.setFont(new Font("Arial", Font.BOLD, 15));
 		heading.setHorizontalAlignment(JLabel.CENTER);
 		main_panel.add(heading, BorderLayout.CENTER);
+		
 		progress_bar.setValue(0);
 		main_panel.add(progress_bar);
 		main_panel.repaint();
 		receiver_frame.setVisible(true);
-		
-		/*
-		progress_bar.setValue(0);
-		progress_bar.repaint();
-		receiver_frame.setVisible(true);
-		Thread.sleep(1000);
-		progress_bar.setValue(55);
-		receiver_frame.setVisible(true);
-		Thread.sleep(1000);
-		progress_bar.setValue(100);
-		receiver_frame.setVisible(true);
-		*/
+
 		if (protocol.compareTo("RBUDP") == 0) {
 			int previous_progress = 0;
 			int current_progress = 0;
 			while (current_progress < 100) {
-				//System.out.println(current_progress);
 				previous_progress = current_progress;
 				current_progress = (int) (receiver.ProgressRecv() * 100);
 				if (previous_progress != current_progress) {
 					progress_bar.setValue(current_progress);
 					receiver_frame.setVisible(true);
 				}
+				/* TODO for some obscure reason the progress bar does not show without a print statement,
+				 * still need to fix this
+				 */
 				System.out.print("");
 			}
 			progress_bar.setValue(100);
@@ -136,65 +141,9 @@ public class ReceiverInterface {
 		}
 	}
 	
-	public static void InitInterface() {	
-		//JFrame receiver_frame = new JFrame("File Receiver");
-		//JPanel main_panel = new JPanel();
-		main_panel.removeAll();
-		JFrame.setDefaultLookAndFeelDecorated(true);
-		main_panel.setLayout(new BoxLayout(main_panel, BoxLayout.Y_AXIS));
-		//main_panel.setLayout(new FlowLayout());
-		JLabel heading = new JLabel("Progress of receiving files");
-		heading.setFont(new Font("Arial", Font.BOLD, 15));
-		heading.setHorizontalAlignment(JLabel.CENTER);
-	
-		main_panel.add(heading, BorderLayout.CENTER);
-		main_panel.add(Box.createVerticalStrut(20));
-		//main_panel.add(Box.createRigidArea(new Dimension(300,60)));
-		JProgressBar progress_bar = new JProgressBar();
-		//progress_bar.setBounds(40, 40, 40, 40);
-		progress_bar.setValue(0);
-		receiver_frame.setVisible(true);
-		progress_bar.setStringPainted(true);
-		JButton exit_button = new JButton("Exit");
-		exit_button.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				Exit();
-			}
-		});
-		if (protocol.compareTo("RBUDP") == 0) {
-			main_panel.add(progress_bar);
-		}
-		main_panel.add(Box.createVerticalStrut(20));
-		main_panel.add(exit_button, BorderLayout.SOUTH);
-		main_panel.repaint();
-		receiver_frame.setContentPane(main_panel);
-		//sender_frame.add(main_panel, BorderLayout.CENTER);
-		receiver_frame.setSize(400, 400);
-		receiver_frame.setLocationRelativeTo(null);
-		receiver_frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		if (protocol.compareTo("RBUDP") == 0) {
-				int previous_progress = 0;
-				int current_progress = 0;
-				while (current_progress < 100) {
-					previous_progress = current_progress;
-					current_progress = (int) (receiver.ProgressRecv() * 100);
-					if (previous_progress != current_progress) {
-						progress_bar.setValue(current_progress);
-						receiver_frame.setVisible(true);
-					}
-					System.out.print("");
-				}
-				progress_bar.setValue(100);
-				receiver_frame.setVisible(true);
-		}
-		receiver_frame.setVisible(true);
-		receiver_frame.dispose();
-	}
-	
 	public static void Exit() {
 		String message = "Sender disconnected";
-		/* have to send something to server to note that client disconnected */
+		/* TODO have to send something to server to note that client disconnected */
 		System.exit(1);
 	}
 }
