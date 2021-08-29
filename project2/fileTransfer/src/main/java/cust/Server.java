@@ -105,6 +105,7 @@ public class Server {
 
     packetsReceived.writePayloadsToFile();
     Utils.logger(String.format("Packet success rate = %f", totalPackets*1.0/totalLoops));
+    Progress = 0;
     return file;
   }
 

@@ -19,9 +19,10 @@ import javax.swing.JProgressBar;
 public class ReceiverInterface {
 	
 	static JLabel chosen_file = new JLabel("");
-	static String protocol;
 	static JFrame receiver_frame = new JFrame("File Receiver");
 	static JPanel main_panel = new JPanel();
+	static JProgressBar progress_bar = new JProgressBar(0, 100);
+	static String protocol;
 	static Server receiver;
 	
 	public static void main(String[] args) throws Exception {
@@ -33,7 +34,7 @@ public class ReceiverInterface {
 	    		System.exit(1);
 	    	}
 	    	if (protocol.compareTo("TCP") == 0) {
-		    	InitInterface();
+	    		InitInterface();
 		    	byte[] tcp_file_contents = receiver.tcpReceiveFile();
 		    	if (tcp_file_contents == null) {
 		    		break;
@@ -44,14 +45,22 @@ public class ReceiverInterface {
 		    	
 	    	} else if (protocol.compareTo("RBUDP") == 0) {
 	    		Thread x = new Thread() {
-	    	    	public void run() {
-	    	        	InitInterface();
-	    	    	}
-	    	    };
-	    		x.start();
-		    	byte[] rbudp_file_contents = receiver.rbudpRecv();
+		    		public void run() {
+		    			try {
+							InitInterfaceImproved();
+							UpdateInterface();
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+		    		}
+		    	};
+		    	x.start();
+	    		//UpdateInterface();
+	    		Utils.logger("Incoming RBUDP file");
+	    		byte[] rbudp_file_contents = receiver.rbudpRecv();
 		    	if (rbudp_file_contents == null) {
-		    		break;
+		    		Exit();
 		    	}
 		    	String print = new String(rbudp_file_contents);
 		    	String path_tcp = "/home/jaco/rbudp_receive.txt";
@@ -60,9 +69,76 @@ public class ReceiverInterface {
 	    }
 	}
 	
+	public static void InitInterfaceImproved() throws InterruptedException {
+		JLabel heading = new JLabel("Progress of receiving files");
+		heading.setFont(new Font("Arial", Font.BOLD, 15));
+		heading.setHorizontalAlignment(JLabel.CENTER);
+		
+		main_panel.setLayout(new BoxLayout(main_panel, BoxLayout.Y_AXIS));
+		main_panel.add(heading, BorderLayout.CENTER);
+		
+		progress_bar.setStringPainted(true);
+		progress_bar.setValue(0);
+		main_panel.add(progress_bar);
+		
+		JButton exit_button = new JButton("Exit");
+		exit_button.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				Exit();
+			}
+		});
+		receiver_frame.setSize(400, 400);
+		receiver_frame.setLocationRelativeTo(null);
+		receiver_frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		receiver_frame.add(main_panel);
+		receiver_frame.add(exit_button, BorderLayout.SOUTH);
+		receiver_frame.setVisible(true);
+	}
+	
+	public static void UpdateInterface() throws InterruptedException {
+		main_panel.removeAll();
+		JLabel heading = new JLabel("Progress of receiving files");
+		heading.setFont(new Font("Arial", Font.BOLD, 15));
+		heading.setHorizontalAlignment(JLabel.CENTER);
+		main_panel.add(heading, BorderLayout.CENTER);
+		progress_bar.setValue(0);
+		main_panel.add(progress_bar);
+		main_panel.repaint();
+		receiver_frame.setVisible(true);
+		
+		/*
+		progress_bar.setValue(0);
+		progress_bar.repaint();
+		receiver_frame.setVisible(true);
+		Thread.sleep(1000);
+		progress_bar.setValue(55);
+		receiver_frame.setVisible(true);
+		Thread.sleep(1000);
+		progress_bar.setValue(100);
+		receiver_frame.setVisible(true);
+		*/
+		if (protocol.compareTo("RBUDP") == 0) {
+			int previous_progress = 0;
+			int current_progress = 0;
+			while (current_progress < 100) {
+				//System.out.println(current_progress);
+				previous_progress = current_progress;
+				current_progress = (int) (receiver.ProgressRecv() * 100);
+				if (previous_progress != current_progress) {
+					progress_bar.setValue(current_progress);
+					receiver_frame.setVisible(true);
+				}
+				System.out.print("");
+			}
+			progress_bar.setValue(100);
+			receiver_frame.setVisible(true);
+		}
+	}
+	
 	public static void InitInterface() {	
-		receiver_frame.getContentPane().removeAll();
-		receiver_frame.repaint();
+		//JFrame receiver_frame = new JFrame("File Receiver");
+		//JPanel main_panel = new JPanel();
 		main_panel.removeAll();
 		JFrame.setDefaultLookAndFeelDecorated(true);
 		main_panel.setLayout(new BoxLayout(main_panel, BoxLayout.Y_AXIS));
@@ -74,7 +150,7 @@ public class ReceiverInterface {
 		main_panel.add(heading, BorderLayout.CENTER);
 		main_panel.add(Box.createVerticalStrut(20));
 		//main_panel.add(Box.createRigidArea(new Dimension(300,60)));
-		final JProgressBar progress_bar = new JProgressBar();
+		JProgressBar progress_bar = new JProgressBar();
 		//progress_bar.setBounds(40, 40, 40, 40);
 		progress_bar.setValue(0);
 		receiver_frame.setVisible(true);
@@ -99,19 +175,21 @@ public class ReceiverInterface {
 		receiver_frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		if (protocol.compareTo("RBUDP") == 0) {
 				int previous_progress = 0;
-				int current_progress = (int) (receiver.ProgressRecv() * 100);
+				int current_progress = 0;
 				while (current_progress < 100) {
+					previous_progress = current_progress;
+					current_progress = (int) (receiver.ProgressRecv() * 100);
 					if (previous_progress != current_progress) {
 						progress_bar.setValue(current_progress);
 						receiver_frame.setVisible(true);
 					}
-					previous_progress = current_progress;
-					current_progress = (int) (receiver.ProgressRecv() * 100);
+					System.out.print("");
 				}
 				progress_bar.setValue(100);
 				receiver_frame.setVisible(true);
 		}
 		receiver_frame.setVisible(true);
+		receiver_frame.dispose();
 	}
 	
 	public static void Exit() {
