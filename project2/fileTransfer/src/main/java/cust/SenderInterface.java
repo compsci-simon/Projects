@@ -37,7 +37,9 @@ public class SenderInterface {
 		JLabel heading = new JLabel("Select your protocol");
 		heading.setFont(new Font("Arial", Font.BOLD, 15));
 		heading.setHorizontalAlignment(JLabel.CENTER);
+		
 		JPanel protocol_panel = new JPanel();
+		
 		JButton tcp_button = new JButton("TCP");
 		tcp_button.addActionListener(new ActionListener() {
 			@Override
@@ -51,6 +53,7 @@ public class SenderInterface {
 				}
 			}
 		});
+		
 		JButton rbudp_button = new JButton("RBUDP");
 		rbudp_button.addActionListener(new ActionListener() {
 			@Override
@@ -64,8 +67,10 @@ public class SenderInterface {
 				}
 			}
 		});
+		
 		protocol_panel.add(tcp_button);
 		protocol_panel.add(rbudp_button);
+		
 		JButton exit_button = new JButton("Exit");
 		exit_button.addActionListener(new ActionListener() {
 			@Override
@@ -73,6 +78,7 @@ public class SenderInterface {
 				Exit();
 			}
 		});
+		
 		protocol_frame.add(protocol_panel);
 		protocol_frame.add(exit_button, BorderLayout.SOUTH);
 		protocol_frame.setSize(400, 400);
@@ -80,25 +86,30 @@ public class SenderInterface {
 		protocol_frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		protocol_frame.setVisible(true);
 	}
+	
 	public static void tcpSetup() throws IOException {
 		protocol = "TCP";
 		sender.tcpSend("TCP\n".getBytes());
-		InitInterfaceSelect();
-		
+		InitInterfaceSelect();	
 	}
+	
 	public static void rbudpSetup() throws IOException {
 		protocol = "RBUDP";
 		sender.tcpSend("RBUDP\n".getBytes());
 		InitInterfaceSelect();
 	}
+	
 	public static void InitInterfaceSelect() {
+		
 		main_panel.removeAll();
 		JFrame.setDefaultLookAndFeelDecorated(true);
 		//main_panel.setLayout(new BoxLayout(main_panel, BoxLayout.Y_AXIS));
 		main_panel.setLayout(new FlowLayout());
+		
 		JLabel heading = new JLabel("Select your file");
 		heading.setFont(new Font("Arial", Font.BOLD, 15));
 		heading.setHorizontalAlignment(JLabel.CENTER);
+		
 		JButton select_button = new JButton("Select file");
 		select_button.setFont(new java.awt.Font("Arial", Font.BOLD, 15));
 		//select_button.setPreferredSize(new Dimension(50,50));
@@ -108,14 +119,12 @@ public class SenderInterface {
 				ChooseFile();
 			}
 		});
+		
 		main_panel.add(heading);
 		main_panel.add(Box.createRigidArea(new Dimension(300,60)));
 		main_panel.add(select_button);
 		main_panel.repaint();
-		sender_frame.add(main_panel, BorderLayout.CENTER);
-		sender_frame.setSize(400, 400);
-		sender_frame.setLocationRelativeTo(null);
-		sender_frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		
 		JButton exit_button = new JButton("Exit");
 		exit_button.addActionListener(new ActionListener() {
 			@Override
@@ -123,33 +132,45 @@ public class SenderInterface {
 				Exit();
 			}
 		});
+		
+		sender_frame.add(main_panel, BorderLayout.CENTER);
+		sender_frame.setSize(400, 400);
+		sender_frame.setLocationRelativeTo(null);
+		sender_frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		sender_frame.add(exit_button, BorderLayout.SOUTH);
 		sender_frame.setVisible(true);
 	}
 	public static void ChooseFile() {
 		JFileChooser fileChooser = new JFileChooser();
 		int result = fileChooser.showOpenDialog(null);
+		final String file_path;
 		if (result == JFileChooser.APPROVE_OPTION) {
             /* set the label to the path of the selected file */
-            chosen_file.setText(fileChooser.getSelectedFile().getAbsolutePath());
-        } else {
+            //chosen_file.setText(fileChooser.getSelectedFile().getAbsolutePath());
+			file_path = fileChooser.getSelectedFile().getAbsolutePath();
+		} else {
             chosen_file.setText("Cancelled");
+            file_path = "";
             InitInterfaceSelect();
             return;
         }
+		String[] path = file_path.split("/");
+		String file_name = path[path.length-1];
+		chosen_file.setText(file_name);
 		JButton send_button = new JButton("Send");
 		send_button.setFont(new java.awt.Font("Arial", Font.BOLD, 15));
 		send_button.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				try {
-					SendFile(chosen_file.getText());
+					SendFile(file_path);
 				} catch (Exception e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
 			}
 		});
+		
 		main_panel.add(Box.createRigidArea(new Dimension(350,60)));
 		main_panel.add(chosen_file);
 		main_panel.add(Box.createRigidArea(new Dimension(350,60)));

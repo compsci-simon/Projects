@@ -72,6 +72,7 @@ public class Server {
    * Used to send files quickly with udp but is also reliable
    */
   public byte[] rbudpRecv () throws Exception {
+	Progress = 0;
     if (tcpSock == null) {
       Utils.logger(String.format("You first need to establish a tcp connection to use this function."));
       return null;
@@ -102,7 +103,7 @@ public class Server {
       tcpDataOut.writeDouble(Progress);
       Utils.logger(String.format("Progress = %f", Progress));
     }
-
+    tcpSend("Done\n");
     packetsReceived.writePayloadsToFile();
     Utils.logger(String.format("Packet success rate = %f", totalPackets*1.0/totalLoops));
     return file;
@@ -230,6 +231,7 @@ public class Server {
    * Receives file using tcp.
    */
   public byte[] tcpReceiveFile() throws IOException {
+	  Progress = 0;
 	  try {
       int filesize = tcpDataIn.readInt();
       byte [] mybytearray  = new byte [filesize];
@@ -237,6 +239,8 @@ public class Server {
       int bytesRead = is.read(mybytearray,0,mybytearray.length);
       int current = bytesRead;
       do {
+          Progress = ((double) current/ (double) mybytearray.length);
+          System.out.println(Progress);
          bytesRead =
             is.read(mybytearray, current, (mybytearray.length-current));
          if(bytesRead >= 0) current += bytesRead;
