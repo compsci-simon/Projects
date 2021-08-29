@@ -279,6 +279,10 @@ public class Server {
     Path newPath = Paths.get(path);
     Files.write(newPath, fileBytes);
   }
+  
+  public void exit() {
+	  
+  }
 }
 
 /**

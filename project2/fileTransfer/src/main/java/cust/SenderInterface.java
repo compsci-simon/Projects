@@ -15,7 +15,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
-public class SenderInterface extends JFrame {
+public class SenderInterface {
 	static JLabel chosen_file = new JLabel("");
 	static JFrame sender_frame = new JFrame("File Sender");
 	static JFrame protocol_frame = new JFrame("Protocol Frame");
