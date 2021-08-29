@@ -105,7 +105,7 @@ public class Client {
     p.setPayload(new byte[10]);
     System.out.println(serializePacket(p).length);
     
-    while ((packetsToSend = tcpRecv())!= null && !packetsToSend.isEmpty()) {
+    while ((packetsToSend = tcpRecv())!= null && !packetsToSend.isEmpty() && !(packetsToSend.compareTo("Done") == 0)) {
       blast(packetsToSend, allPackets);
       Utils.logger(String.format("Progress = %f", tcpDataInClient.readDouble()));
     }

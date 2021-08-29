@@ -103,7 +103,7 @@ public class Server {
       tcpDataOut.writeDouble(Progress);
       Utils.logger(String.format("Progress = %f", Progress));
     }
-
+    tcpSend("Done\n");
     packetsReceived.writePayloadsToFile();
     Utils.logger(String.format("Packet success rate = %f", totalPackets*1.0/totalLoops));
     return file;

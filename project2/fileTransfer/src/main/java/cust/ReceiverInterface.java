@@ -123,7 +123,6 @@ public class ReceiverInterface {
 			int previous_progress = 0;
 			int current_progress = 0;
 			while (current_progress < 100) {
-				System.out.println(current_progress);
 				previous_progress = current_progress;
 				current_progress = (int) (receiver.ProgressRecv() * 100);
 				if (previous_progress != current_progress) {
