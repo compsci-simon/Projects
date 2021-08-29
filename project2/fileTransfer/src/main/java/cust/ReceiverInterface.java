@@ -6,6 +6,9 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -53,7 +56,7 @@ public class ReceiverInterface {
 		    		break;
 		    	}
 		    	String path_tcp = "/home/jaco/tcp_receive.txt";
-		    	receiver.writeFile(tcp_file_contents, path_tcp);
+		    	writeFile(tcp_file_contents, path_tcp);
 		    	
 	    	} else if (protocol.compareTo("RBUDP") == 0) {
 	    		/* Thread used for interface while main thread receives file */
@@ -75,7 +78,7 @@ public class ReceiverInterface {
 		    		break;
 		    	}
 		    	String path_rbudp = "/home/jaco/rbudp_receive.txt";
-		    	receiver.writeFile(rbudp_file_contents, path_rbudp);
+		    	writeFile(rbudp_file_contents, path_rbudp);
 	    	}
 	    }
 	}
@@ -137,6 +140,15 @@ public class ReceiverInterface {
 			progress_bar.setValue(100);
 			receiver_frame.setVisible(true);
 	}
+	
+	/*
+	   * Used when the file has been received by rbudpRecv to write the file to the servers
+	   * filesystem.
+	   */
+	public static void writeFile(byte[] fileBytes, String path) throws Exception {
+	    Path newPath = Paths.get(path);
+	    Files.write(newPath, fileBytes);
+	 }
 	
 	public static void Exit() {
 		String message = "Sender disconnected";

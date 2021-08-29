@@ -143,22 +143,27 @@ public class SenderInterface extends JFrame {
 	public static void ChooseFile() {
 		JFileChooser fileChooser = new JFileChooser();
 		int result = fileChooser.showOpenDialog(null);
+		final String file_path;
 		if (result == JFileChooser.APPROVE_OPTION) {
             /* set the label to the path of the selected file */
-            chosen_file.setText(fileChooser.getSelectedFile().getAbsolutePath());
-        } else {
+            //chosen_file.setText(fileChooser.getSelectedFile().getAbsolutePath());
+			file_path = fileChooser.getSelectedFile().getAbsolutePath();
+		} else {
             chosen_file.setText("Cancelled");
+            file_path = "";
             InitInterfaceSelect();
             return;
         }
-		
+		String[] path = file_path.split("/");
+		String file_name = path[path.length-1];
+		chosen_file.setText(file_name);
 		JButton send_button = new JButton("Send");
 		send_button.setFont(new java.awt.Font("Arial", Font.BOLD, 15));
 		send_button.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				try {
-					SendFile(chosen_file.getText());
+					SendFile(file_path);
 				} catch (Exception e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
