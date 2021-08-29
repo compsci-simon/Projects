@@ -120,11 +120,10 @@ public class ReceiverInterface {
 		main_panel.add(progress_bar);
 		main_panel.repaint();
 		receiver_frame.setVisible(true);
-
-		if (protocol.compareTo("RBUDP") == 0) {
 			int previous_progress = 0;
 			int current_progress = 0;
 			while (current_progress < 100) {
+				System.out.println(current_progress);
 				previous_progress = current_progress;
 				current_progress = (int) (receiver.ProgressRecv() * 100);
 				if (previous_progress != current_progress) {
@@ -138,7 +137,6 @@ public class ReceiverInterface {
 			}
 			progress_bar.setValue(100);
 			receiver_frame.setVisible(true);
-		}
 	}
 	
 	public static void Exit() {
