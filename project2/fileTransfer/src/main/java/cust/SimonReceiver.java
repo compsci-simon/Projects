@@ -1,0 +1,184 @@
+package cust;
+
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+import javax.swing.*;
+
+public class SimonReceiver extends JFrame {
+	private Server server;
+	private JPanel p1, p2;
+	private Container c;
+	private CardLayout card;
+	private JLabel l11, l12, l13, l14, l15, l21, l22, l23;
+	private JTextField tf11, tf12;
+	private JButton b11, b12, b21;
+	JProgressBar progressBar;
+	Thread t;
+	String outDir;
+	
+	public SimonReceiver() {
+		
+		c = getContentPane();
+		card = new CardLayout(40, 40);
+		c.setLayout(card);
+		setTitle("Server");
+		
+		p1 = new JPanel(new GridLayout(10, 1));
+		l11 = new JLabel("UDP Port");
+		tf11 = new JTextField();
+		l12 = new JLabel("TCP Port");
+		tf12 = new JTextField();
+		l14 = new JLabel("Select out dir");
+		b12 = new JButton("Select dir");
+		l15 = new JLabel("No dir selected");
+		b11 = new JButton("Start server");
+		l13 = new JLabel("");
+		
+		b11.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// TODO Auto-generated method stub
+				try {
+					if (outDir == null) {
+						l13.setText("You must select an out dir");
+						return;
+					}
+					l13.setText("");
+					int udpPort = Integer.parseInt(tf11.getText());
+					int tcpPort = Integer.parseInt(tf12.getText());
+					server = new Server(udpPort, tcpPort);
+					card.show(c, "running");
+
+					transmissionHandler();
+			
+				} catch (Exception e1) {
+					l13.setText("Unable to create server");
+				}
+			}
+			
+		});
+		b12.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// TODO Auto-generated method stub
+				JFileChooser chooser = new JFileChooser(".");
+				chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+				int res = chooser.showOpenDialog(c);
+				if (res == JFileChooser.APPROVE_OPTION) {
+					outDir = chooser.getSelectedFile().getAbsolutePath()+"/";
+					l15.setText(outDir);
+				} else {
+					outDir = null;
+					l15.setText("");
+				}
+			}
+			
+		});
+		
+		p1.add(l11);
+		p1.add(tf11);
+		p1.add(l12);
+		p1.add(tf12);
+		p1.add(l14);
+		p1.add(b12);
+		p1.add(l15);
+		p1.add(b11);
+		p1.add(l13);
+		
+		p2 = new JPanel(new GridLayout(10, 1));
+		l21 = new JLabel("Server running...");
+		l22 = new JLabel("");
+		progressBar = new JProgressBar(0, 100);
+		b21 = new JButton("Close server");
+		l23 = new JLabel("");
+		
+		
+		b21.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// TODO Auto-generated method stub
+				try {
+					l23.setText("");
+					server.exit();
+					server = null;
+					card.show(c, "start");
+					l22.setText("");
+				} catch (Exception e1) {
+					e1.printStackTrace();
+					l23.setText("Error closing server");
+				}
+			}
+			
+		});
+		
+		p2.add(l21);
+		p2.add(l22);
+		p2.add(b21);
+		p2.add(progressBar);
+		p2.add(b21);
+		p2.add(l23);
+		
+		
+		c.add(p1, "start");
+		c.add(p2, "running");
+	}
+	
+	public void transmissionHandler() {
+		new Thread() {
+			@Override
+			public void run() {
+				System.out.println("Waiting for tcp connection");
+				server.acceptTcpConnection();
+				l22.setText(server.tcpSock.getInetAddress() + " connected");
+				while (true) {
+					String msg = null;
+					try {
+						msg = server.tcpReceive();
+					} catch (Exception except) {
+						except.printStackTrace();
+					}
+					if (msg.equals("quit"))
+						break;
+					if (msg != null) {
+						l22.setText(msg);
+						if (msg.split(" ")[0].equals("rbudp")) {
+							try {
+								byte[] file = server.rbudpRecv();
+								Server.writeFile(file, outDir+msg.split(" ")[1]);
+							} catch (Exception e3) {
+								e3.printStackTrace();
+							}
+						} else if (msg.split(" ")[0].equals("tcp")) {
+							try {
+								byte[] file = server.tcpReceiveFile();
+								Server.writeFile(file, outDir+msg.split(" ")[1]);
+							} catch (Exception e3) {
+								e3.printStackTrace();
+							}
+						}
+					}
+				}
+			}
+		}.start();
+	}
+	
+	public void acceptConneciton() {
+		System.out.println("Here");
+		server.acceptTcpConnection();
+		l23.setText("Accepted tcp connection");
+		System.out.println("not Here");
+	}
+	
+	public static void main(String[] args) {
+		final SimonReceiver receiver = new SimonReceiver();
+		receiver.setSize(400, 400);
+		receiver.setDefaultCloseOperation(EXIT_ON_CLOSE);
+		receiver.setResizable(false);
+		receiver.setVisible(true);
+	}
+}

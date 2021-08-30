@@ -1,12 +1,10 @@
 package cust;
 
+import cust.Packet;
+import cust.Utils;
 import java.io.*;
-import java.lang.System.Logger;
 import java.net.*;
 import java.nio.file.*;
-import java.util.ArrayList;
-import cust.Utils;
-import cust.Packet;
 
 /*
  * The server or receiver of the file. Maintains a tcp connection with
@@ -39,7 +37,7 @@ public class Server {
   // ------------------------------ Main method -------------------------------
   // **************************************************************************
   public static void main (String[] args) throws Exception {
-    String filename = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file2.mov";
+    String filename = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/serverFiles/file2.mov";
     Server s = new Server(5555, 5556);
     Utils.logger("Waiting for tcp connection");
     s.acceptTcpConnection();
