@@ -28,6 +28,7 @@ public class Client {
   private static int packetSize = 10000;
 
   public Client(int udpPort, int tcpPort, String hostAddress) throws Exception {
+	  hostAddress = "localhost";
     this.hostAddress = InetAddress.getByName(hostAddress);
     this.udpPort = udpPort;
     this.tcpPort = tcpPort;
@@ -106,6 +107,7 @@ public class Client {
     System.out.println(serializePacket(p).length);
     
     while ((packetsToSend = tcpRecv())!= null && !packetsToSend.isEmpty()) {
+      Utils.logger(String.format("Resending packets %s", packetsToSend));
       blast(packetsToSend, allPackets);
       Utils.logger(String.format("Progress = %f", tcpDataInClient.readDouble()));
     }
@@ -212,7 +214,7 @@ public class Client {
    * Convert a file to bytes because the rbudpSend needs a message
    * in the bytes format in order to send it.
    */
-  public byte[] readFileToBytes(String filePath) throws Exception {
+  public static byte[] readFileToBytes(String filePath) throws Exception {
     return Files.readAllBytes(Paths.get(filePath));
   }
 

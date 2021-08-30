@@ -53,11 +53,11 @@ public class SimonSender extends JFrame {
 						l14.setText("");
 						card.show(c, "fileSelect");
 					} else {
-						l14.setText("Unable to connect to server.");
+						l14.setText("Server disconnected.");
 					}
 				} catch (Exception e1) {
 					e1.printStackTrace();
-					l14.setText("Invalid UDP or TCP port.");
+					l14.setText("Unable to establish connection.");
 				}
 			}
 			
@@ -142,34 +142,11 @@ public class SimonSender extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				// TODO Auto-generated method stub
-				String[] parts = filePath.split("/");
-				String msg = parts[parts.length - 1];
 				if (rb1.isSelected()) {
 					l32.setText("RBUDP was selected");
 					System.out.println(filePath);
-					try {
-						byte[] fileBytes = Client.readFileToBytes(filePath);
-						if (fileBytes == null) {
-							return;
-						}
-						client.tcpSend(("rbudp "+msg+"\n").getBytes());
-						client.rbudpSend(fileBytes, 10000, 10);
-					} catch (Exception e1) {
-						e1.printStackTrace();
-						card.show(c, "connect");
-						l14.setText("Server disconnected");
-					}
 				} else if (rb2.isSelected()) {
 					l32.setText("TCP was selected");
-					try {
-						byte[] fileBytes = Client.readFileToBytes(filePath);
-						client.tcpSend(("tcp"+msg+"\n").getBytes());
-						client.tcpFileSend(fileBytes);
-					} catch (Exception e1) {
-						e1.printStackTrace();
-						card.show(c, "connect");
-						l14.setText("Server disconnected");
-					}
 				} else {
 					l32.setText("No protocol was selected");
 				}
@@ -200,6 +177,37 @@ public class SimonSender extends JFrame {
 		c.add("fileSelect", p2);
 		c.add("protocolSelect", p3);
 		
+	}
+	
+	public void rbudpSend() {
+		String[] parts = filePath.split("/");
+		String msg = parts[parts.length - 1];
+		try {
+			byte[] fileBytes = Client.readFileToBytes(filePath);
+			if (fileBytes == null) {
+				return;
+			}
+			client.tcpSend(("rbudp "+msg+"\n").getBytes());
+			client.rbudpSend(fileBytes, 10000, 10);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+			card.show(c, "connect");
+			l14.setText("Server disconnected");
+		}
+	}
+	
+	public void tcpSend() {
+		String[] parts = filePath.split("/");
+		String msg = parts[parts.length - 1];
+		try {
+			byte[] fileBytes = Client.readFileToBytes(filePath);
+			client.tcpSend(("tcp"+msg+"\n").getBytes());
+			client.tcpFileSend(fileBytes);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+			card.show(c, "connect");
+			l14.setText("Server disconnected");
+		}
 	}
 	
 	

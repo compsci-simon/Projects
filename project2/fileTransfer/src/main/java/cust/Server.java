@@ -15,7 +15,7 @@ public class Server {
   private DatagramSocket udpSock;
   private ServerSocket serverSock;
   private ServerSocket serverFileSock;
-  private Socket tcpSock;
+  Socket tcpSock;
   private Socket tcpFileSock;
   private OutputStream tcpOut;
   private BufferedReader tcpIn;
@@ -267,9 +267,15 @@ public class Server {
    * Used when the file has been received by rbudpRecv to write the file to the servers
    * filesystem.
    */
-  private static void writeFile(byte[] fileBytes, String path) throws Exception {
+  public static void writeFile(byte[] fileBytes, String path) throws Exception {
     Path newPath = Paths.get(path);
     Files.write(newPath, fileBytes);
+  }
+  
+  public void exit() throws IOException {
+	  if (!tcpSock.isClosed()) {
+		  tcpSock.close();
+	  }
   }
 }
 
