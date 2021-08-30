@@ -11,6 +11,7 @@ import java.awt.event.ActionListener;
 import java.io.File;
 
 public class SimonSender extends JFrame {
+	private Client client;
 	private static JPanel p1, p2, p3;
 	private CardLayout card;
 	private Container c;
@@ -20,7 +21,6 @@ public class SimonSender extends JFrame {
 	private JRadioButton rb1, rb2;
 	private File file;
 	private String filePath;
-	private Client client;
 	private JProgressBar progressBar;
 	
 	public SimonSender() {
@@ -48,7 +48,9 @@ public class SimonSender extends JFrame {
 					String address = l1.getText();
 					int udpPort = Integer.parseInt(tf12.getText());
 					int tcpPort = Integer.parseInt(tf13.getText());
+					client = new Client(udpPort, tcpPort, address);
 					l14.setText("");
+					
 					card.show(c, "fileSelect");
 				} catch (Exception e1) {
 					e1.printStackTrace();
@@ -138,6 +140,11 @@ public class SimonSender extends JFrame {
 				// TODO Auto-generated method stub
 				if (rb1.isSelected()) {
 					l32.setText("RBUDP was selected");
+					try {
+						client.tcpSend("rbudp\n".getBytes());
+					} catch (Exception e1) {
+						e1.printStackTrace();
+					}
 					Thread t = new Thread() {
 						@Override
 						public void run() {
@@ -155,6 +162,11 @@ public class SimonSender extends JFrame {
 					t.start();
 				} else if (rb2.isSelected()) {
 					l32.setText("TCP was selected");
+					try {
+						client.tcpSend("tcp\n".getBytes());
+					} catch (Exception e1) {
+						e1.printStackTrace();
+					}
 					Thread t = new Thread() {
 						@Override
 						public void run() {
@@ -204,10 +216,11 @@ public class SimonSender extends JFrame {
 	
 	
 	public static void main(String[] args) {
-		SimonSender cl=new SimonSender();  
-        cl.setSize(400,400);  
-        cl.setVisible(true);  
-        cl.setDefaultCloseOperation(EXIT_ON_CLOSE);  
+		SimonSender sender = new SimonSender();  
+		sender.setSize(400,400);  
+		sender.setResizable(false);
+		sender.setVisible(true);
+		sender.setDefaultCloseOperation(EXIT_ON_CLOSE);  
 	}
 
 }

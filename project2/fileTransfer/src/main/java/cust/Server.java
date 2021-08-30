@@ -28,6 +28,7 @@ public class Server {
   private int udpTimeout = 50;
   private int totalLoops = 0;
   private double Progress = 0;
+  private String fileName;
 
   public Server(int udpPort, int tcpPort) throws Exception {
     this.tcpPort = tcpPort;
@@ -89,6 +90,7 @@ public class Server {
     fileSize = tcpDataIn.readInt();
     packetSize = tcpDataIn.readInt();
     blastLength = tcpDataIn.readInt();
+    fileName = tcpDataIn.readUTF();
     payloadSize = packetSize - Packet.packetBaseSize;
     totalPackets = (int) Math.ceil(fileSize*1.0/payloadSize);
     file = new byte[fileSize];
@@ -284,8 +286,19 @@ public class Server {
     Files.write(newPath, fileBytes);
   }
   
-  public void exit() {
-	  
+  public void exit() throws IOException {
+	  if (udpSock != null && udpSock.isBound()) {
+		  Utils.logger("udpSock");
+		  udpSock.close();
+	  }
+	  if (tcpSock != null && !tcpSock.isClosed()) {
+		  Utils.logger("tcpSock");
+		  tcpSock.close();
+	  }
+	  if (serverSock != null && !serverSock.isClosed()) {
+		  Utils.logger("serverSock");
+		  serverSock.close();
+	  }
   }
 }
 

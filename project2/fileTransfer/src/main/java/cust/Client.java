@@ -26,6 +26,8 @@ public class Client {
   private int tcpPort;
   private int tcpFilePort;
   private static int packetSize = 10000;
+  double progress = 0;
+  private String filePath;
 
   public Client(int udpPort, int tcpPort, String hostAddress) throws Exception {
     this.hostAddress = InetAddress.getByName(hostAddress);
@@ -39,7 +41,7 @@ public class Client {
   // ------------------------------ Main method -------------------------------
   // **************************************************************************
   public static void main(String[] args) {
-    String filePath = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file.mov";
+	  String filePath = "";
     try {
       Client c = new Client(5555, 5556, "localhost");
       if (!c.tcpConnect()) {
@@ -80,6 +82,11 @@ public class Client {
     String packetsToSend;
 
     SentPackets allPackets = new SentPackets(totalPackets);
+    String fileName = getFileName();
+    if (fileName == null) {
+    	Utils.logger("Filename not yet set.");
+    	return;
+    }
 
     // Populating all packet objects
     for (int i = 0; i < totalPackets; i++) {
@@ -101,13 +108,15 @@ public class Client {
     tcpDataOutClient.writeInt(message.length);
     tcpDataOutClient.writeInt(packetSize);
     tcpDataOutClient.writeInt(blastLength);
+    tcpDataOutClient.writeBytes(fileName);
     Packet p = new Packet(0);
     p.setPayload(new byte[10]);
     System.out.println(serializePacket(p).length);
     
     while ((packetsToSend = tcpRecv())!= null && !packetsToSend.isEmpty() && !(packetsToSend.compareTo("Done") == 0)) {
       blast(packetsToSend, allPackets);
-      Utils.logger(String.format("Progress = %f", tcpDataInClient.readDouble()));
+      progress = tcpDataInClient.readDouble();
+      Utils.logger(String.format("Progress = %f", progress));
     }
 
     Utils.logger("Done");
@@ -190,6 +199,18 @@ public class Client {
   // ------------------------ Object related methods --------------------------
   // **************************************************************************
 
+  private void setFileName(String filename) {
+	  this.filePath = filename;
+  }
+  
+  private String getFileName() {
+	  if (filePath == null) {
+		  return null;
+	  } else {
+		  String[] parts = filePath.split("/");
+		  return parts[parts.length - 1];
+	  }
+  }
   /*
    * Used to create and serialize a packet object so that it can be 
    * send in a datagram packet. This is to more easily communicate 
