@@ -132,37 +132,63 @@ public class SimonReceiver extends JFrame {
 		new Thread() {
 			@Override
 			public void run() {
-				System.out.println("Waiting for tcp connection");
-				server.acceptTcpConnection();
-				l22.setText(server.tcpSock.getInetAddress() + " connected");
-				while (true) {
-					String msg = null;
-					try {
-						msg = server.tcpReceive();
-					} catch (Exception except) {
-						except.printStackTrace();
-					}
-					if (msg.equals("quit"))
-						break;
-					if (msg != null) {
-						l22.setText(msg);
-						if (msg.split(" ")[0].equals("rbudp")) {
-							try {
-								byte[] file = server.rbudpRecv();
-								Server.writeFile(file, outDir+msg.split(" ")[1]);
-							} catch (Exception e3) {
-								e3.printStackTrace();
-							}
-						} else if (msg.split(" ")[0].equals("tcp")) {
-							try {
-								byte[] file = server.tcpReceiveFile();
-								Server.writeFile(file, outDir+msg.split(" ")[1]);
-							} catch (Exception e3) {
-								e3.printStackTrace();
-							}
-						}
-					}
+				try {
+					
+					Utils.logger("Waiting for tcp connection");
+				    server.acceptTcpConnection();
+				    Utils.logger("Received connection");
+				    String msg = server.tcpReceive();
+				    String[] parts = msg.split(" ");
+				    System.out.println();
+				    byte[] fileByte = server.rbudpRecv();
+				    if (fileByte == null)
+				      return;
+				    Server.writeFile(fileByte, outDir+parts[parts.length - 1]);
+				    server.closeTcp();
+				} catch (Exception e4) {
+					e4.printStackTrace();
 				}
+//				Utils.logger("Waiting for tcp connection");
+//				server.acceptTcpConnection();
+//				Utils.logger("Connection accepted");
+//				l22.setText(server.tcpSock.getInetAddress() + " connected");
+//				try {
+//					byte[] file = server.rbudpRecv();
+//					Server.writeFile(file, "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/serverFiles/book.pdf");
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//				}
+//				while (true) {
+//					String msg = null;
+//					try {
+//						msg = server.tcpReceive();
+//					} catch (Exception except) {
+//						except.printStackTrace();
+//					}
+//					if (msg.equals("quit"))
+//						break;
+//					if (msg != null) {
+//						l22.setText(msg);
+//						if (msg.split(" ")[0].equals("rbudp")) {
+//							System.out.println("RBUDP");
+//							try {
+//								byte[] file = server.rbudpRecv();
+//								Server.writeFile(file, "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/serverFiles/book.pdf");
+//								System.out.println(outDir+msg.split(" ")[1]);
+//							} catch (Exception e3) {
+//								e3.printStackTrace();
+//							}
+//						} else if (msg.split(" ")[0].equals("tcp")) {
+//							System.out.println("TCP");
+//							try {
+//								byte[] file = server.tcpReceiveFile();
+//								Server.writeFile(file, outDir+msg.split(" ")[1]);
+//							} catch (Exception e3) {
+//								e3.printStackTrace();
+//							}
+//						}
+//					}
+//				}
 			}
 		}.start();
 	}

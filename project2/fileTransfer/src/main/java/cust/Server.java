@@ -89,6 +89,8 @@ public class Server {
     totalPackets = (int) Math.ceil(fileSize*1.0/payloadSize);
     file = new byte[fileSize];
     packetsReceived = new PacketReceiver(totalPackets, 0, file, payloadSize);
+    System.out.println(totalPackets);
+    System.out.println(packetsReceived.numMissingPackets());
 
     while (packetsReceived.missingPackets()) {
       sendMePackets = packetsReceived.getPackets(blastLength).trim() + "\n";
@@ -98,6 +100,8 @@ public class Server {
       tcpDataOut.writeDouble(packetsReceived.progress());
       Utils.logger(String.format("Progress = %f", packetsReceived.progress()));
     }
+    tcpSend("\n");
+    
 
     packetsReceived.writePayloadsToFile();
     Utils.logger(String.format("Packet success rate = %f", totalPackets*1.0/totalLoops));
@@ -197,7 +201,7 @@ public class Server {
   /*
    * Closes the tcp connection with the client.
    */
-  private void closeTcp() throws Exception {
+  void closeTcp() throws Exception {
     tcpSock.close();
   }
   
@@ -273,6 +277,8 @@ public class Server {
   }
   
   public void exit() throws IOException {
+	  if (tcpSock == null)
+		  return;
 	  if (!tcpSock.isClosed()) {
 		  tcpSock.close();
 	  }
@@ -379,6 +385,19 @@ class PacketReceiver {
       }
     }
     return packetsString;
+  }
+  
+  public boolean emptyPayload() {
+	  for (Packet p: packets) {
+		  if (p == null) {
+			  return true;
+		  } else {
+			  if (p.getPayload().length == 0) {
+				  return true;
+			  }
+		  }
+	  }
+	  return false;
   }
 
   public double progress() {

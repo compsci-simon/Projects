@@ -48,7 +48,8 @@ public class SimonSender extends JFrame {
 					String address = l1.getText();
 					int udpPort = Integer.parseInt(tf12.getText());
 					int tcpPort = Integer.parseInt(tf13.getText());
-					client = new Client(udpPort, tcpPort, address);
+					
+					client = new Client(udpPort, tcpPort, "localhost");
 					if (client.tcpConnect()) {
 						l14.setText("");
 						card.show(c, "fileSelect");
@@ -143,10 +144,19 @@ public class SimonSender extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 				// TODO Auto-generated method stub
 				if (rb1.isSelected()) {
-					l32.setText("RBUDP was selected");
-					System.out.println(filePath);
+					try {
+						byte[] file;
+						String[] parts = filePath.split("/");
+						
+					    client.tcpSend("rbudp "+parts[parts.length-1]+"\n");
+				        file = Client.readFileToBytes(filePath);
+				        client.rbudpSend(file, 64000, 30);
+					} catch (Exception e4) {
+						e4.printStackTrace();
+					}
 				} else if (rb2.isSelected()) {
 					l32.setText("TCP was selected");
+					tcpSend();
 				} else {
 					l32.setText("No protocol was selected");
 				}
@@ -158,6 +168,8 @@ public class SimonSender extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				// TODO Auto-generated method stub
+				filePath = null;
+				l22.setText("");
 				card.show(c, "fileSelect");
 			}
 			
@@ -179,16 +191,25 @@ public class SimonSender extends JFrame {
 		
 	}
 	
-	public void rbudpSend() {
+	public void rbudpSend(int packetSize, int blastLength) {
 		String[] parts = filePath.split("/");
 		String msg = parts[parts.length - 1];
 		try {
-			byte[] fileBytes = Client.readFileToBytes(filePath);
-			if (fileBytes == null) {
-				return;
-			}
+//			byte[] fileBytes = Client.readFileToBytes(filePath);
+//			if (fileBytes == null) {
+//				return;
+//			}
 			client.tcpSend(("rbudp "+msg+"\n").getBytes());
-			client.rbudpSend(fileBytes, 10000, 10);
+//			client.rbudpSend(fileBytes, packetSize, blastLength);
+			
+			String filePath = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file.mov";
+		      Utils.logger("Successfully connected");
+		      byte[] file;
+		      file = Client.readFileToBytes(filePath);
+		      final long startTime = System.currentTimeMillis();
+		      client.rbudpSend(file, packetSize, 30);
+		      final long endTime = System.currentTimeMillis();
+		      System.out.println("Total execution time: " + (endTime - startTime)/1000.0 + " seconds");
 		} catch (Exception e1) {
 			e1.printStackTrace();
 			card.show(c, "connect");
@@ -201,7 +222,7 @@ public class SimonSender extends JFrame {
 		String msg = parts[parts.length - 1];
 		try {
 			byte[] fileBytes = Client.readFileToBytes(filePath);
-			client.tcpSend(("tcp"+msg+"\n").getBytes());
+			client.tcpSend(("tcp "+msg+"\n").getBytes());
 			client.tcpFileSend(fileBytes);
 		} catch (Exception e1) {
 			e1.printStackTrace();

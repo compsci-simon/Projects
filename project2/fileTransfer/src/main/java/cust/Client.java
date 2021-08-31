@@ -50,7 +50,7 @@ public class Client {
       
       Utils.logger("Successfully connected");
       byte[] file;
-      file = c.readFileToBytes(filePath);
+      file = readFileToBytes(filePath);
       final long startTime = System.currentTimeMillis();
       c.rbudpSend(file, packetSize, 30);
       final long endTime = System.currentTimeMillis();
@@ -102,9 +102,6 @@ public class Client {
     tcpDataOutClient.writeInt(message.length);
     tcpDataOutClient.writeInt(packetSize);
     tcpDataOutClient.writeInt(blastLength);
-    Packet p = new Packet(0);
-    p.setPayload(new byte[10]);
-    System.out.println(serializePacket(p).length);
     
     while ((packetsToSend = tcpRecv())!= null && !packetsToSend.isEmpty()) {
       Utils.logger(String.format("Resending packets %s", packetsToSend));
@@ -113,7 +110,7 @@ public class Client {
     }
 
     Utils.logger("Done");
-
+    
   }
 
   public void blast(String packetsToSendString, SentPackets allPackets) {
