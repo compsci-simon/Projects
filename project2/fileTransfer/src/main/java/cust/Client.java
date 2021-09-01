@@ -41,7 +41,7 @@ public class Client {
   // ------------------------------ Main method -------------------------------
   // **************************************************************************
   public static void main(String[] args) {
-	  String filePath = "";
+	  String filePath = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file.mov";
     try {
       Client c = new Client(5555, 5556, "localhost");
       if (!c.tcpConnect()) {

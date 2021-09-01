@@ -1,7 +1,9 @@
 /Users/simon/Developer/git_repos/Projects/project2/fileTransfer/src/main/java/cust/App.java
+/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/src/main/java/cust/SimonSender.java
 /Users/simon/Developer/git_repos/Projects/project2/fileTransfer/src/main/java/cust/Utils.java
 /Users/simon/Developer/git_repos/Projects/project2/fileTransfer/src/main/java/cust/Server.java
 /Users/simon/Developer/git_repos/Projects/project2/fileTransfer/src/main/java/cust/SenderInterface.java
 /Users/simon/Developer/git_repos/Projects/project2/fileTransfer/src/main/java/cust/Packet.java
 /Users/simon/Developer/git_repos/Projects/project2/fileTransfer/src/main/java/cust/ReceiverInterface.java
+/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/src/main/java/cust/SimonReceiver.java
 /Users/simon/Developer/git_repos/Projects/project2/fileTransfer/src/main/java/cust/Client.java

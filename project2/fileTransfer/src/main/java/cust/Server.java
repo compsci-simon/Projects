@@ -41,7 +41,7 @@ public class Server {
   // ------------------------------ Main method -------------------------------
   // **************************************************************************
   public static void main (String[] args) throws Exception {
-    String filename = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file2.mov";
+    String filename = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/serverFiles/file.mov";
     Server s = new Server(5555, 5556);
     Utils.logger("Waiting for tcp connection");
     s.acceptTcpConnection();
