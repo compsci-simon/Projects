@@ -90,6 +90,10 @@ public class ReceiverInterface {
 	
 	public static void InitSelectDirectory() throws InterruptedException {
 		final JFrame select_directory = new JFrame("Select directory");
+		select_directory.setSize(400, 400);
+		select_directory.setLocationRelativeTo(null);
+		select_directory.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		
 		JLabel heading = new JLabel("Choose where you want the file to be saved");
 		JButton select_button = new JButton("Select Directory");
 		select_button.addActionListener(new ActionListener() {
@@ -104,11 +108,20 @@ public class ReceiverInterface {
 				}
 			}
 		});
-		select_directory.setSize(400, 400);
-		select_directory.setLocationRelativeTo(null);
-		select_directory.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		select_directory.add(heading);
-		select_directory.add(select_button, BorderLayout.CENTER);
+		JButton exit_button = new JButton("Exit");
+		exit_button.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				Exit();
+			}
+		});
+		
+		JPanel select_panel = new JPanel();
+		select_panel.add(heading);
+		
+		select_panel.add(select_button);
+		select_directory.add(select_panel);
+		select_directory.add(exit_button, BorderLayout.SOUTH);
 		select_directory.setVisible(true);
 	}
 	
