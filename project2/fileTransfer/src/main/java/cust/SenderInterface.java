@@ -179,6 +179,7 @@ public class SenderInterface {
 		sender_frame.setVisible(true);
      }
 	public static void SendFile(String path) throws Exception {
+		sender.setFileName(chosen_file.getText());
 		System.out.println("Sending file");
 		byte[] file = sender.readFileToBytes(path);
 		if (protocol.compareTo("TCP") == 0) {

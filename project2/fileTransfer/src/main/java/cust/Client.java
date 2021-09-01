@@ -108,7 +108,8 @@ public class Client {
     tcpDataOutClient.writeInt(message.length);
     tcpDataOutClient.writeInt(packetSize);
     tcpDataOutClient.writeInt(blastLength);
-    tcpDataOutClient.writeBytes(fileName);
+    //tcpDataOutClient.writeBytes(fileName);
+    tcpDataOutClient.writeUTF(fileName);
     Packet p = new Packet(0);
     p.setPayload(new byte[10]);
     System.out.println(serializePacket(p).length);
@@ -199,7 +200,7 @@ public class Client {
   // ------------------------ Object related methods --------------------------
   // **************************************************************************
 
-  private void setFileName(String filename) {
+  public void setFileName(String filename) {
 	  this.filePath = filename;
   }
   
