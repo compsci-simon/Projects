@@ -27,12 +27,13 @@ public class ReceiverInterface {
 	static JProgressBar progress_bar = new JProgressBar(0, 100);
 	static String protocol;
 	static Server receiver;
+	static String outDir = "";
 	
 	public static void main(String[] args) throws Exception {
 		receiver = new Server(5555, 5556);
+	    InitSelectDirectory();
 	    receiver.acceptTcpConnection();
 	    Utils.logger("Received tcp connection");
-	    
 	    while (true) {
 	    	if ((protocol = receiver.tcpReceive()) == null) {
 	    		System.exit(1);
@@ -42,8 +43,8 @@ public class ReceiverInterface {
 	    		Thread x = new Thread() {
 		    		public void run() {
 		    			try {
-							InitInterfaceImproved();
-							UpdateInterface();
+		    				InitInterfaceImproved();
+		    				UpdateInterface();
 						} catch (InterruptedException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
@@ -55,7 +56,9 @@ public class ReceiverInterface {
 		    	if (tcp_file_contents == null) {
 		    		break;
 		    	}
-		    	String path_tcp = "/home/jaco/tcp_receive.txt";
+		    	String file_name = receiver.getFileName();
+		    	String path_tcp = outDir + file_name;
+		    	System.out.println(path_tcp);
 		    	writeFile(tcp_file_contents, path_tcp);
 		    	
 	    	} else if (protocol.compareTo("RBUDP") == 0) {
@@ -63,8 +66,8 @@ public class ReceiverInterface {
 	    		Thread x = new Thread() {
 		    		public void run() {
 		    			try {
-							InitInterfaceImproved();
-							UpdateInterface();
+		    				InitInterfaceImproved();
+		    				UpdateInterface();
 						} catch (InterruptedException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
@@ -77,10 +80,36 @@ public class ReceiverInterface {
 		    	if (rbudp_file_contents == null) {
 		    		break;
 		    	}
-		    	String path_rbudp = "/home/jaco/rbudp_receive.txt";
+		    	String file_name = receiver.getFileName();
+		    	String path_rbudp = outDir + file_name;
+		    	System.out.println(path_rbudp);
 		    	writeFile(rbudp_file_contents, path_rbudp);
 	    	}
 	    }
+	}
+	
+	public static void InitSelectDirectory() throws InterruptedException {
+		final JFrame select_directory = new JFrame("Select directory");
+		JLabel heading = new JLabel("Choose where you want the file to be saved");
+		JButton select_button = new JButton("Select Directory");
+		select_button.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JFileChooser directory_chooser = new JFileChooser();
+				directory_chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+				int res = directory_chooser.showOpenDialog(null);
+				if (res == JFileChooser.APPROVE_OPTION) {
+					outDir = directory_chooser.getSelectedFile().getAbsolutePath()+"/";
+					select_directory.setVisible(false);
+				}
+			}
+		});
+		select_directory.setSize(400, 400);
+		select_directory.setLocationRelativeTo(null);
+		select_directory.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		select_directory.add(heading);
+		select_directory.add(select_button, BorderLayout.CENTER);
+		select_directory.setVisible(true);
 	}
 	
 	public static void InitInterfaceImproved() throws InterruptedException {
