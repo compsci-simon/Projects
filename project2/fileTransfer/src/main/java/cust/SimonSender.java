@@ -132,6 +132,9 @@ public class SimonSender extends JFrame {
 		p3 = new JPanel(new GridLayout(10, 1));
 		l31 = new JLabel("Select protocal to use");
 		l32 = new JLabel("");
+		JLabel l33 = new JLabel("Packet size (rbudp only)");
+		JLabel l34 = new JLabel("Blast length (rbudp only)");
+		JLabel l35 = new JLabel("Packet timeout (rbudp only)");
 		rb1 = new JRadioButton("RBUDP");
 		rb2 = new JRadioButton("TCP");
 		ButtonGroup bg = new ButtonGroup();
@@ -147,7 +150,7 @@ public class SimonSender extends JFrame {
 					try {
 						byte[] file;
 						String[] parts = filePath.split("/");
-						
+						handleProgressBar();
 					    client.tcpSend("rbudp "+parts[parts.length-1]+"\n");
 				        file = Client.readFileToBytes(filePath);
 				        client.rbudpSend(file, 64000, 30);
@@ -189,6 +192,20 @@ public class SimonSender extends JFrame {
 		c.add("fileSelect", p2);
 		c.add("protocolSelect", p3);
 		
+	}
+	
+	public void handleProgressBar() {
+
+		new Thread () {
+			@Override
+			public void run() {
+				int progress;
+				while (((progress = (int) Math.ceil(client.getProgress()*100)) < 100)) {
+					progressBar.setValue(progress);
+				}
+				progressBar.setValue(100);
+			}
+		}.start();
 	}
 	
 	public void rbudpSend(int packetSize, int blastLength) {

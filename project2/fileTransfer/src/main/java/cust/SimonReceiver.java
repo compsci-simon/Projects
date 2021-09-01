@@ -14,7 +14,7 @@ public class SimonReceiver extends JFrame {
 	private JLabel l11, l12, l13, l14, l15, l21, l22, l23;
 	private JTextField tf11, tf12;
 	private JButton b11, b12, b21;
-	JProgressBar progressBar;
+	private JProgressBar progressBar;
 	Thread t;
 	String outDir;
 	
@@ -169,9 +169,8 @@ public class SimonReceiver extends JFrame {
 				int progress;
 				while (((progress = (int) Math.ceil(server.getProgress()*100)) < 100)) {
 					progressBar.setValue(progress);
-					System.out.println("Here");
 				}
-
+				progressBar.setValue(100);
 			}
 		}.start();
 	}

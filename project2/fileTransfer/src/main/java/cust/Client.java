@@ -26,6 +26,7 @@ public class Client {
   private int tcpPort;
   private int tcpFilePort;
   private static int packetSize = 10000;
+  private double progress;
 
   public Client(int udpPort, int tcpPort, String hostAddress) throws Exception {
 	  hostAddress = "localhost";
@@ -106,7 +107,8 @@ public class Client {
     while ((packetsToSend = tcpRecv())!= null && !packetsToSend.isEmpty()) {
       Utils.logger(String.format("Resending packets %s", packetsToSend));
       blast(packetsToSend, allPackets);
-      Utils.logger(String.format("Progress = %f", tcpDataInClient.readDouble()));
+      progress = tcpDataInClient.readDouble();
+      Utils.logger(String.format("Progress = %f", progress));
     }
 
     Utils.logger("Done");
@@ -184,6 +186,7 @@ public class Client {
       return null;
     }
   }
+  
 
   // **************************************************************************
   // ------------------------ Object related methods --------------------------
@@ -213,6 +216,10 @@ public class Client {
    */
   public static byte[] readFileToBytes(String filePath) throws Exception {
     return Files.readAllBytes(Paths.get(filePath));
+  }
+  
+  public double getProgress() {
+	  return progress;
   }
 
 }
