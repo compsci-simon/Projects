@@ -25,6 +25,7 @@ public class Server {
   private int tcpFilePort;
   private int udpTimeout = 50;
   private int totalLoops = 0;
+  PacketReceiver packetsReceived;
 
   public Server(int udpPort, int tcpPort) throws Exception {
     this.tcpPort = tcpPort;
@@ -37,17 +38,17 @@ public class Server {
   // ------------------------------ Main method -------------------------------
   // **************************************************************************
   public static void main (String[] args) throws Exception {
-    String filename = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/serverFiles/file2.mov";
-    Server s = new Server(5555, 5556);
-    Utils.logger("Waiting for tcp connection");
-    s.acceptTcpConnection();
-    Utils.logger("Received connection");
-    byte[] fileByte = s.rbudpRecv();
-    if (fileByte == null)
-      return;
-    writeFile(fileByte, filename);
-    s.closeTcp();
-
+    // String filename = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/serverFiles/file2.mov";
+    // Server s = new Server(5555, 5556);
+    // Utils.logger("Waiting for tcp connection");
+    // s.acceptTcpConnection();
+    // Utils.logger("Received connection");
+    // byte[] fileByte = s.rbudpRecv();
+    // if (fileByte == null)
+    //   return;
+    // writeFile(fileByte, filename);
+    // s.closeTcp();
+    System.out.print(1/0);
     // byte[] file = s.tcpReceiveFile();
     // if (file == null)
     //   return;
@@ -73,7 +74,6 @@ public class Server {
       Utils.logger(String.format("You first need to establish a tcp connection to use this function."));
       return null;
     }
-    PacketReceiver packetsReceived;
     byte[] file;
     int fileSize;
     int packetSize;
@@ -96,7 +96,7 @@ public class Server {
       sendMePackets = packetsReceived.getPackets(blastLength).trim() + "\n";
       Utils.logger(String.format("Send me packets %s", sendMePackets));
       tcpSend(sendMePackets);
-      receiveBlast(packetsReceived, blastLength);
+      receiveBlast(blastLength);
       tcpDataOut.writeDouble(packetsReceived.progress());
       Utils.logger(String.format("Progress = %f", packetsReceived.progress()));
     }
@@ -111,9 +111,9 @@ public class Server {
   /*
    * Used to receive a blast of udp packets during the rbudp receive method.
    */
-  private void receiveBlast(PacketReceiver mainPacketReceiver, int blastLength) {
+  private void receiveBlast(int blastLength) {
     
-    int packetSize = mainPacketReceiver.getPayloadSize() + Packet.packetBaseSize;
+    int packetSize = packetsReceived.getPayloadSize() + Packet.packetBaseSize;
     byte[] packetBytes = new byte[packetSize];
     for (int i = 0; i < blastLength; i++) {
       totalLoops++;
@@ -123,7 +123,7 @@ public class Server {
       Packet packet = deserializePacket(packetBytes);
       if (packet == null)
         continue;
-      mainPacketReceiver.receivePacket(packet);
+      packetsReceived.receivePacket(packet);
       Utils.logger(String.format("Received packet %d", packet.getPacketID()));
     }
   }
@@ -281,6 +281,14 @@ public class Server {
 		  return;
 	  if (!tcpSock.isClosed()) {
 		  tcpSock.close();
+	  }
+  }
+  
+  public double getProgress() {
+	  if (packetsReceived == null) {
+		  return 0;
+	  } else {
+		  return packetsReceived.progress();
 	  }
   }
 }

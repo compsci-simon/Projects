@@ -137,58 +137,41 @@ public class SimonReceiver extends JFrame {
 					Utils.logger("Waiting for tcp connection");
 				    server.acceptTcpConnection();
 				    Utils.logger("Received connection");
-				    String msg = server.tcpReceive();
-				    String[] parts = msg.split(" ");
-				    System.out.println();
-				    byte[] fileByte = server.rbudpRecv();
-				    if (fileByte == null)
-				      return;
-				    Server.writeFile(fileByte, outDir+parts[parts.length - 1]);
-				    server.closeTcp();
+				    String msg;
+				    while ((msg = server.tcpReceive()) != null) {
+				    	if (msg.equals("quit"))
+				    		break;
+				    	l22.setText(msg);
+					    String[] parts = msg.split(" ");
+						int index = msg.indexOf(' ');
+					    if (msg.substring(0, index).equals("rbudp")) {
+					    	// Continue working here Handling the progress bar
+					    	handleProgressBar();
+						    byte[] fileByte = server.rbudpRecv();
+						    if (fileByte == null)
+						      return;
+						    Server.writeFile(fileByte, outDir+msg.substring(index+1, msg.length()));
+					    }
+				    }
+					server.closeTcp();
+				    
 				} catch (Exception e4) {
 					e4.printStackTrace();
 				}
-//				Utils.logger("Waiting for tcp connection");
-//				server.acceptTcpConnection();
-//				Utils.logger("Connection accepted");
-//				l22.setText(server.tcpSock.getInetAddress() + " connected");
-//				try {
-//					byte[] file = server.rbudpRecv();
-//					Server.writeFile(file, "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/serverFiles/book.pdf");
-//				} catch (Exception e) {
-//					e.printStackTrace();
-//				}
-//				while (true) {
-//					String msg = null;
-//					try {
-//						msg = server.tcpReceive();
-//					} catch (Exception except) {
-//						except.printStackTrace();
-//					}
-//					if (msg.equals("quit"))
-//						break;
-//					if (msg != null) {
-//						l22.setText(msg);
-//						if (msg.split(" ")[0].equals("rbudp")) {
-//							System.out.println("RBUDP");
-//							try {
-//								byte[] file = server.rbudpRecv();
-//								Server.writeFile(file, "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/serverFiles/book.pdf");
-//								System.out.println(outDir+msg.split(" ")[1]);
-//							} catch (Exception e3) {
-//								e3.printStackTrace();
-//							}
-//						} else if (msg.split(" ")[0].equals("tcp")) {
-//							System.out.println("TCP");
-//							try {
-//								byte[] file = server.tcpReceiveFile();
-//								Server.writeFile(file, outDir+msg.split(" ")[1]);
-//							} catch (Exception e3) {
-//								e3.printStackTrace();
-//							}
-//						}
-//					}
-//				}
+			}
+		}.start();
+	}
+	
+	public void handleProgressBar() {
+		new Thread () {
+			@Override
+			public void run() {
+				int progress;
+				while (((progress = (int) Math.ceil(server.getProgress()*100)) < 100)) {
+					progressBar.setValue(progress);
+					System.out.println("Here");
+				}
+
 			}
 		}.start();
 	}
