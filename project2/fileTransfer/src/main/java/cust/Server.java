@@ -91,6 +91,7 @@ public class Server {
     packetSize = tcpDataIn.readInt();
     blastLength = tcpDataIn.readInt();
     fileName = tcpDataIn.readUTF();
+    System.out.println("fileName received: " +  fileName);
     payloadSize = packetSize - Packet.packetBaseSize;
     totalPackets = (int) Math.ceil(fileSize*1.0/payloadSize);
     file = new byte[fileSize];
@@ -186,20 +187,6 @@ public class Server {
       System.exit(0);
     }
   }
-  
-  /*
-   * accepts tcp connection used for transferring files with tcp
-   */
-  public void acceptFileTcpConnection() {
-	    try {
-	      serverFileSock = new ServerSocket(tcpFilePort);
-	      tcpFileSock = serverFileSock.accept();
-	      tcpDataOut = new DataOutputStream(tcpFileSock.getOutputStream());
-	      tcpDataIn = new DataInputStream(tcpFileSock.getInputStream());
-	    } catch (Exception e) {
-	      System.exit(0);
-	    }
-	  }
 
   /*
    * Closes the tcp connection with the client.
@@ -234,6 +221,7 @@ public class Server {
    */
   public byte[] tcpReceiveFile() throws IOException {
 	  Progress = 0;
+	  fileName = tcpDataIn.readUTF();
 	  try {
       int filesize = tcpDataIn.readInt();
       byte [] mybytearray  = new byte [filesize];
@@ -256,6 +244,10 @@ public class Server {
   
   public double ProgressRecv() {
 	  return Progress;
+  }
+  
+  public String getFileName() {
+	  return fileName;
   }
 
   // **************************************************************************

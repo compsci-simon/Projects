@@ -108,7 +108,6 @@ public class Client {
     tcpDataOutClient.writeInt(message.length);
     tcpDataOutClient.writeInt(packetSize);
     tcpDataOutClient.writeInt(blastLength);
-    //tcpDataOutClient.writeBytes(fileName);
     tcpDataOutClient.writeUTF(fileName);
     Packet p = new Packet(0);
     p.setPayload(new byte[10]);
@@ -179,6 +178,13 @@ public class Client {
   
   /* Used to send length of file and file with tcp */
   public void tcpFileSend(byte[] file) throws IOException {
+	String fileName = getFileName();
+	if (fileName == null) {
+		Utils.logger("Filename not yet set.");
+	    return;
+	}
+	
+	tcpDataOutClient.writeUTF(fileName);   
     tcpDataOutClient.writeInt(file.length);
     
     OutputStream os = tcpSock.getOutputStream();
