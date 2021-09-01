@@ -10,6 +10,7 @@ import java.awt.event.ActionListener;
 import java.io.IOException;
 
 import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -20,10 +21,10 @@ public class SenderInterface {
 	
 	static JLabel chosen_file = new JLabel("");
 	static JFrame sender_frame = new JFrame("File Sender");
-	static JFrame protocol_frame = new JFrame("Protocol Frame");
 	static JPanel main_panel = new JPanel();
 	static Client sender;
 	static String protocol;
+	static JFrame protocol_frame = new JFrame("Protocol Frame");
 	static Font font = new Font("Arial", Font.BOLD, 16);
 
 	public static void main(String[] args) throws Exception {
@@ -37,13 +38,18 @@ public class SenderInterface {
 	}
 
 	public static void InitInterfaceProtocol() {
-		JLabel heading = new JLabel("Select your protocol");
-		heading.setFont(new Font("Arial", Font.BOLD, 15));
-		heading.setHorizontalAlignment(JLabel.CENTER);
+		protocol_frame.setSize(400, 400);
+		protocol_frame.setLocationRelativeTo(null);
+		protocol_frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
-		JPanel protocol_panel = new JPanel();
+		JLabel heading = new JLabel("Select protocol");
+		heading.setFont(font);
 		
 		JButton tcp_button = new JButton("TCP");
+		tcp_button.setFont(font);
+		tcp_button.setBackground(new Color(59, 89, 182));
+        tcp_button.setForeground(Color.WHITE);
+        tcp_button.setFocusPainted(false);
 		tcp_button.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -56,10 +62,6 @@ public class SenderInterface {
 				}
 			}
 		});
-		tcp_button.setFont(font);
-		tcp_button.setBackground(new Color(59, 89, 182));
-        tcp_button.setForeground(Color.WHITE);
-        tcp_button.setFocusPainted(false);
 		
 		JButton rbudp_button = new JButton("RBUDP");
 		rbudp_button.addActionListener(new ActionListener() {
@@ -78,11 +80,8 @@ public class SenderInterface {
 		rbudp_button.setBackground(new Color(59, 89, 182));
         rbudp_button.setForeground(Color.WHITE);
         rbudp_button.setFocusPainted(false);
-		
-		protocol_panel.add(tcp_button);
-		protocol_panel.add(rbudp_button);
-		
-		JButton exit_button = new JButton("Exit");
+        
+        JButton exit_button = new JButton("Exit");
 		exit_button.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -93,12 +92,17 @@ public class SenderInterface {
 		exit_button.setBackground(new Color(59, 89, 182));
         exit_button.setForeground(Color.WHITE);
         exit_button.setFocusPainted(false);
+        
+        JPanel protocol_panel = new JPanel();
+        protocol_panel.add(heading);
+        protocol_panel.add(Box.createRigidArea(new Dimension(350,60)));;
+        protocol_panel.add(Box.createVerticalStrut(100));
+		protocol_panel.add(tcp_button);
+		protocol_panel.add(Box.createVerticalStrut(50));
+		protocol_panel.add(rbudp_button);
 		
 		protocol_frame.add(protocol_panel);
 		protocol_frame.add(exit_button, BorderLayout.SOUTH);
-		protocol_frame.setSize(400, 400);
-		protocol_frame.setLocationRelativeTo(null);
-		protocol_frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		protocol_frame.setVisible(true);
 	}
 	
@@ -121,7 +125,7 @@ public class SenderInterface {
 		main_panel.setLayout(new FlowLayout());
 		
 		JLabel heading = new JLabel("Select your file");
-		heading.setFont(new Font("Arial", Font.BOLD, 20));
+		heading.setFont(font);
 		heading.setHorizontalAlignment(JLabel.CENTER);
 		
 		JButton select_button = new JButton("Select file");
@@ -180,7 +184,7 @@ public class SenderInterface {
 		String file_name = path[path.length-1];
 		chosen_file.setText(file_name);
 		JButton send_button = new JButton("Send");
-		send_button.setFont(new java.awt.Font("Arial", Font.BOLD, 15));
+		send_button.setFont(font);
 		send_button.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {

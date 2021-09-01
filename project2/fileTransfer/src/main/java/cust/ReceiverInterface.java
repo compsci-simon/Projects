@@ -98,6 +98,7 @@ public class ReceiverInterface {
 		
 		JLabel heading = new JLabel("Where do you want to save the file?");
 		heading.setFont(font);
+		
 		JButton select_button = new JButton("Select Directory");
 		select_button.setFont(font);
 		select_button.setBackground(new Color(59, 89, 182));
@@ -115,6 +116,7 @@ public class ReceiverInterface {
 				}
 			}
 		});
+		
 		JButton exit_button = new JButton("Exit");
 		exit_button.addActionListener(new ActionListener() {
 			@Override
@@ -126,9 +128,9 @@ public class ReceiverInterface {
 		exit_button.setBackground(new Color(59, 89, 182));
         exit_button.setForeground(Color.WHITE);
         exit_button.setFocusPainted(false);
+        
 		JPanel select_panel = new JPanel();
 		select_panel.add(heading);
-		
 		select_panel.add(select_button);
 		select_panel.add(Box.createVerticalStrut(200));
 		select_directory.add(select_panel);
@@ -172,13 +174,12 @@ public class ReceiverInterface {
 		main_panel.removeAll();
 		
 		JLabel heading = new JLabel("Progress of receiving files");
-		heading.setFont(new Font("Arial", Font.BOLD, 15));
+		heading.setFont(font);
 		heading.setHorizontalAlignment(JLabel.CENTER);
 		main_panel.add(heading, BorderLayout.CENTER);
-		
+		main_panel.add(Box.createVerticalStrut(100));
 		progress_bar.setValue(0);
 		main_panel.add(progress_bar);
-		main_panel.add(Box.createVerticalStrut(50));
 		main_panel.repaint();
 		receiver_frame.setVisible(true);
 			int previous_progress = 0;
