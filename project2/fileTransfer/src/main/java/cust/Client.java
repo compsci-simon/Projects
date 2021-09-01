@@ -3,6 +3,8 @@ package cust;
 import java.net.*;
 import java.nio.file.*;
 import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.io.*;
 import cust.Utils.*;
 import cust.Packet;
@@ -14,6 +16,7 @@ import cust.Packet;
  * 
  */
 public class Client {
+  private Lock lock;
   private DatagramSocket udpSock;
   private Socket tcpSock;
   private Socket tcpFileSock;
@@ -35,6 +38,7 @@ public class Client {
     this.tcpPort = tcpPort;
     this.tcpFilePort = tcpFilePort;
     udpSock = new DatagramSocket();
+    this.lock = new ReentrantLock();
   }
 
   // **************************************************************************
@@ -107,7 +111,9 @@ public class Client {
     while ((packetsToSend = tcpRecv())!= null && !packetsToSend.isEmpty()) {
       Utils.logger(String.format("Resending packets %s", packetsToSend));
       blast(packetsToSend, allPackets);
+      lock.lock();
       progress = tcpDataInClient.readDouble();
+      lock.unlock();
       Utils.logger(String.format("Progress = %f", progress));
     }
 
@@ -219,7 +225,12 @@ public class Client {
   }
   
   public double getProgress() {
-	  return progress;
+	  try {
+		  lock.lock();
+		  return progress;
+	  } finally {
+		  lock.unlock();
+	  }
   }
 
 }

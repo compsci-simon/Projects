@@ -9,6 +9,7 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.util.List;
 
 public class SimonSender extends JFrame {
 	private Client client;
@@ -194,18 +195,34 @@ public class SimonSender extends JFrame {
 		
 	}
 	
-	public void handleProgressBar() {
+	private void handleProgressBar() {
 
-		new Thread () {
+		new SwingWorker<Void, Integer>() {
+
 			@Override
-			public void run() {
+			protected Void doInBackground() throws Exception {
 				int progress;
 				while (((progress = (int) Math.ceil(client.getProgress()*100)) < 100)) {
-					progressBar.setValue(progress);
+					publish(progress);
+					Thread.sleep(100);
 				}
+				return null;
+			}
+			
+			@Override
+			protected void process(List<Integer> chunks) {
+				int lastVal = (int) chunks.get(chunks.size() - 1);
+				System.out.println(lastVal);
+				progressBar.setValue(lastVal);
+			}
+			
+			@Override
+			protected void done() {
 				progressBar.setValue(100);
 			}
-		}.start();
+			
+			
+		}.execute();
 	}
 	
 	public void rbudpSend(int packetSize, int blastLength) {

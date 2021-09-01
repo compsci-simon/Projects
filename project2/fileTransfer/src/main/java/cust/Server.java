@@ -24,6 +24,7 @@ public class Server {
   private int tcpPort;
   private int tcpFilePort;
   private int udpTimeout = 50;
+  private int tcpTimeout = 5000;
   private int totalLoops = 0;
   PacketReceiver packetsReceived;
 
@@ -124,7 +125,10 @@ public class Server {
       Packet packet = deserializePacket(packetBytes);
       if (packet == null)
         continue;
-      packetsReceived.receivePacket(packet);
+      if (!packetsReceived.receivePacket(packet)) {
+        totalLoops--;
+        i--;
+      }
       Utils.logger(String.format("Received packet %d", packet.getPacketID()));
     }
   }
@@ -176,6 +180,7 @@ public class Server {
     try {
       serverSock = new ServerSocket(tcpPort);
       tcpSock = serverSock.accept();
+      tcpSock.setSoTimeout(tcpTimeout);
       tcpOut = tcpSock.getOutputStream();
       tcpIn = new BufferedReader(new InputStreamReader(tcpSock.getInputStream()));
       tcpDataOut = new DataOutputStream(tcpSock.getOutputStream());
@@ -223,6 +228,7 @@ public class Server {
       message = tcpIn.readLine();
     } catch (Exception e) {
       e.printStackTrace();
+      return "";
     }
     return message;
   }
@@ -325,9 +331,12 @@ class PacketReceiver {
     return res;
   }
 
-  public void receivePacket(Packet p) {
-    if (p.getPacketID() < totalPackets) {
+  public boolean receivePacket(Packet p) {
+    if (packets[p.getPacketID()] != null) {
+      return false;
+    } else {
       packets[p.getPacketID()] = p;
+      return true;
     }
   }
 

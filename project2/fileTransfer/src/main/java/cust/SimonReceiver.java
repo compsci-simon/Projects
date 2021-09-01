@@ -3,6 +3,7 @@ package cust;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.List;
 
 import javax.swing.*;
 
@@ -15,8 +16,9 @@ public class SimonReceiver extends JFrame {
 	private JTextField tf11, tf12;
 	private JButton b11, b12, b21;
 	private JProgressBar progressBar;
-	Thread t;
-	String outDir;
+	private Thread t;
+	private String outDir;
+	private static boolean receiveConnections = false;
 	
 	public SimonReceiver() {
 		
@@ -51,6 +53,7 @@ public class SimonReceiver extends JFrame {
 					int tcpPort = Integer.parseInt(tf12.getText());
 					server = new Server(udpPort, tcpPort);
 					card.show(c, "running");
+					receiveConnections = true;
 
 					transmissionHandler();
 			
@@ -108,6 +111,8 @@ public class SimonReceiver extends JFrame {
 					server = null;
 					card.show(c, "start");
 					l22.setText("");
+					receiveConnections = false;
+					
 				} catch (Exception e1) {
 					e1.printStackTrace();
 					l23.setText("Error closing server");
@@ -128,32 +133,37 @@ public class SimonReceiver extends JFrame {
 		c.add(p2, "running");
 	}
 	
-	public void transmissionHandler() {
+	private void transmissionHandler() {
 		new Thread() {
 			@Override
 			public void run() {
 				try {
-					
-					Utils.logger("Waiting for tcp connection");
-				    server.acceptTcpConnection();
-				    Utils.logger("Received connection");
-				    String msg;
-				    while ((msg = server.tcpReceive()) != null) {
-				    	if (msg.equals("quit"))
-				    		break;
-				    	l22.setText(msg);
-					    String[] parts = msg.split(" ");
-						int index = msg.indexOf(' ');
-					    if (msg.substring(0, index).equals("rbudp")) {
-					    	// Continue working here Handling the progress bar
-					    	handleProgressBar();
-						    byte[] fileByte = server.rbudpRecv();
-						    if (fileByte == null)
-						      return;
-						    Server.writeFile(fileByte, outDir+msg.substring(index+1, msg.length()));
+					while (receiveConnections) {
+						Utils.logger("Waiting for tcp connection");
+						acceptConneciton();
+					    Utils.logger("Received connection");
+					    String msg;
+					    while (server != null && (msg = server.tcpReceive()) != null) {
+					    	if (msg.equals("quit"))
+					    		break;
+					    	else if (msg.isEmpty())
+					    		continue;
+					    	l22.setText("Receiving file...");
+							int index = msg.indexOf(' ');
+						    if (msg.substring(0, index).equals("rbudp")) {
+						    	// Continue working here Handling the progress bar
+						    	handleProgressBar();
+							    byte[] fileByte = server.rbudpRecv();
+							    if (fileByte == null)
+							      return;
+							    Server.writeFile(fileByte, outDir+msg.substring(index+1, msg.length()));
+						    	l22.setText("Received file.");
+						    }
 					    }
-				    }
-					server.closeTcp();
+					    System.out.println("Client closed connection");
+					    System.out.println(receiveConnections);
+						server.closeTcp();
+					}
 				    
 				} catch (Exception e4) {
 					e4.printStackTrace();
@@ -162,24 +172,38 @@ public class SimonReceiver extends JFrame {
 		}.start();
 	}
 	
-	public void handleProgressBar() {
-		new Thread () {
+	private void handleProgressBar() {
+		new SwingWorker<Void, Integer>() {
+
 			@Override
-			public void run() {
+			protected Void doInBackground() throws Exception {
+				// TODO Auto-generated method stub
 				int progress;
 				while (((progress = (int) Math.ceil(server.getProgress()*100)) < 100)) {
-					progressBar.setValue(progress);
+					publish(progress);
 				}
+				
+				return null;
+			}
+			
+			@Override
+			protected void process(List<Integer> chunks) {
+				int lastVal = (int) chunks.get(chunks.size() - 1);
+				
+				progressBar.setValue(lastVal);
+			}
+
+			@Override
+			protected void done() {
 				progressBar.setValue(100);
 			}
-		}.start();
+			
+		}.execute();
 	}
 	
 	public void acceptConneciton() {
-		System.out.println("Here");
 		server.acceptTcpConnection();
 		l23.setText("Accepted tcp connection");
-		System.out.println("not Here");
 	}
 	
 	public static void main(String[] args) {
