@@ -1,6 +1,7 @@
 package cust;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -28,6 +29,7 @@ public class ReceiverInterface {
 	static String protocol;
 	static Server receiver;
 	static String outDir = "";
+	static Font font = new Font("Arial", Font.BOLD, 16);
 	
 	public static void main(String[] args) throws Exception {
 		receiver = new Server(5555, 5556);
@@ -94,8 +96,13 @@ public class ReceiverInterface {
 		select_directory.setLocationRelativeTo(null);
 		select_directory.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
-		JLabel heading = new JLabel("Choose where you want the file to be saved");
+		JLabel heading = new JLabel("Where do you want to save the file?");
+		heading.setFont(font);
 		JButton select_button = new JButton("Select Directory");
+		select_button.setFont(font);
+		select_button.setBackground(new Color(59, 89, 182));
+        select_button.setForeground(Color.WHITE);
+        select_button.setFocusPainted(false);
 		select_button.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -115,11 +122,15 @@ public class ReceiverInterface {
 				Exit();
 			}
 		});
-		
+		exit_button.setFont(font);
+		exit_button.setBackground(new Color(59, 89, 182));
+        exit_button.setForeground(Color.WHITE);
+        exit_button.setFocusPainted(false);
 		JPanel select_panel = new JPanel();
 		select_panel.add(heading);
 		
 		select_panel.add(select_button);
+		select_panel.add(Box.createVerticalStrut(200));
 		select_directory.add(select_panel);
 		select_directory.add(exit_button, BorderLayout.SOUTH);
 		select_directory.setVisible(true);
@@ -144,6 +155,10 @@ public class ReceiverInterface {
 				Exit();
 			}
 		});
+		exit_button.setFont(font);
+		exit_button.setBackground(new Color(59, 89, 182));
+        exit_button.setForeground(Color.WHITE);
+        exit_button.setFocusPainted(false);
 		
 		receiver_frame.setSize(400, 400);
 		receiver_frame.setLocationRelativeTo(null);
@@ -163,6 +178,7 @@ public class ReceiverInterface {
 		
 		progress_bar.setValue(0);
 		main_panel.add(progress_bar);
+		main_panel.add(Box.createVerticalStrut(50));
 		main_panel.repaint();
 		receiver_frame.setVisible(true);
 			int previous_progress = 0;
