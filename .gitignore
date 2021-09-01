@@ -1,0 +1,6 @@
+**/target
+*.class
+*.log
+*.logs
+*.DS_Store
+**/.metadata

@@ -38,17 +38,17 @@ public class Server {
   // ------------------------------ Main method -------------------------------
   // **************************************************************************
   public static void main (String[] args) throws Exception {
-    // String filename = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/serverFiles/file2.mov";
-    // Server s = new Server(5555, 5556);
-    // Utils.logger("Waiting for tcp connection");
-    // s.acceptTcpConnection();
-    // Utils.logger("Received connection");
-    // byte[] fileByte = s.rbudpRecv();
-    // if (fileByte == null)
-    //   return;
-    // writeFile(fileByte, filename);
-    // s.closeTcp();
-    System.out.print(1/0);
+    String filename = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/serverFiles/file2.mov";
+    Server s = new Server(5555, 5556);
+    Utils.logger("Waiting for tcp connection");
+    s.acceptTcpConnection();
+    Utils.logger("Received connection");
+    byte[] fileByte = s.rbudpRecv();
+    if (fileByte == null)
+      return;
+    writeFile(fileByte, filename);
+    s.closeTcp();
+
     // byte[] file = s.tcpReceiveFile();
     // if (file == null)
     //   return;
@@ -115,6 +115,7 @@ public class Server {
     
     int packetSize = packetsReceived.getPayloadSize() + Packet.packetBaseSize;
     byte[] packetBytes = new byte[packetSize];
+    
     for (int i = 0; i < blastLength; i++) {
       totalLoops++;
       packetBytes = udpRecv(packetSize);
