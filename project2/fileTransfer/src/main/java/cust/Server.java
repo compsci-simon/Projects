@@ -27,6 +27,7 @@ public class Server {
   private int tcpTimeout = 5000;
   private int totalLoops = 0;
   PacketReceiver packetsReceived;
+  private double tcpProgress;
 
   public Server(int udpPort, int tcpPort) throws Exception {
     this.tcpPort = tcpPort;
@@ -253,12 +254,17 @@ public class Server {
          bytesRead =
             is.read(mybytearray, current, (mybytearray.length-current));
          if(bytesRead >= 0) current += bytesRead;
+         tcpProgress = current*1.0 / filesize;
       } while(bytesRead > 0);
 		  return mybytearray;
 	  } catch(Exception e) {
       e.printStackTrace();
 		  return null;
 	  }
+  }
+  
+  public double tcpFileProgress() {
+	  return tcpProgress;
   }
 
   // **************************************************************************

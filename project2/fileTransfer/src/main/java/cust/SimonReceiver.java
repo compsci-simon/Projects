@@ -213,7 +213,7 @@ public class SimonReceiver extends JFrame {
 		Utils.logger("Waiting for tcp connection");
 		if (server.acceptTcpConnection()) {
 		    Utils.logger("Received connection");
-		    l22.setText("Connection received.");
+		    l22.setText("Client connected.");
 		}
 	}
 	

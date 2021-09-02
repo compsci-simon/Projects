@@ -47,7 +47,9 @@ public class SimonSender extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 				// TODO Auto-generated method stub
 				try {
-					String address = l1.getText();
+					String address = tf1.getText().strip();
+					Utils.logger(address.equals("localhost"));
+					Utils.logger(address);
 					int udpPort = Integer.parseInt(tf12.getText());
 					int tcpPort = Integer.parseInt(tf13.getText());
 					
@@ -172,8 +174,8 @@ public class SimonSender extends JFrame {
 							try {
 								byte[] file;
 								String[] parts = filePath.split("/");
-								handleProgressBar();
 							    client.tcpSend("tcp "+parts[parts.length-1]+"\n");
+								progressBar.setValue(100);
 						        file = Client.readFileToBytes(filePath);
 								client.tcpFileSend(file);
 							} catch (Exception e1) {

@@ -179,9 +179,8 @@ public class Client {
   public void tcpFileSend(byte[] file) throws IOException {
     tcpDataOutClient.writeInt(file.length);
     
-    OutputStream os = tcpSock.getOutputStream();
-    os.write(file,0,file.length);
-    os.flush();
+    tcpOutClient.write(file,0,file.length);
+    tcpOutClient.flush();
 
   }
 
