@@ -143,7 +143,9 @@ public class SimonReceiver extends JFrame {
 						acceptConneciton();
 					    Utils.logger("Received connection");
 					    String msg;
-					    while (server != null && (msg = server.tcpReceive()) != null) {
+					    while ((msg = server.tcpReceive()) != null) {
+					    	if (server == null)
+					    		break;
 					    	if (msg.equals("quit"))
 					    		break;
 					    	else if (msg.isEmpty())

@@ -180,7 +180,6 @@ public class Server {
     try {
       serverSock = new ServerSocket(tcpPort);
       tcpSock = serverSock.accept();
-      tcpSock.setSoTimeout(tcpTimeout);
       tcpOut = tcpSock.getOutputStream();
       tcpIn = new BufferedReader(new InputStreamReader(tcpSock.getInputStream()));
       tcpDataOut = new DataOutputStream(tcpSock.getOutputStream());

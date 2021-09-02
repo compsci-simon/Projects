@@ -80,7 +80,7 @@ public class SimonSender extends JFrame {
 		l23 = new JLabel("");
 		b21 = new JButton("Select File");
 		b22 = new JButton("Continue");
-		b23 = new JButton("Back");
+		b23 = new JButton("Disconnect");
 		b21.addActionListener(new ActionListener() {
 
 			@Override
@@ -119,6 +119,11 @@ public class SimonSender extends JFrame {
 				// TODO Auto-generated method stub
 				client = null;
 				card.show(c, "connect");
+				try {
+					client.tcpSend("quit");
+				} catch (Exception e1) {
+					e1.printStackTrace();
+				}
 			}
 			
 		});
@@ -141,29 +146,34 @@ public class SimonSender extends JFrame {
 		ButtonGroup bg = new ButtonGroup();
 		b31 = new JButton("Send File");
 		progressBar = new JProgressBar(0, 100);
-		b32 = new JButton("Go back");
+		b32 = new JButton("Back");
 		b31.addActionListener(new ActionListener() {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				// TODO Auto-generated method stub
-				if (rb1.isSelected()) {
-					try {
-						byte[] file;
-						String[] parts = filePath.split("/");
-						handleProgressBar();
-					    client.tcpSend("rbudp "+parts[parts.length-1]+"\n");
-				        file = Client.readFileToBytes(filePath);
-				        client.rbudpSend(file, 64000, 30);
-					} catch (Exception e4) {
-						e4.printStackTrace();
+				new Thread() {
+					@Override
+					public void run() {
+						if (rb1.isSelected()) {
+							try {
+								byte[] file;
+								String[] parts = filePath.split("/");
+								handleProgressBar();
+							    client.tcpSend("rbudp "+parts[parts.length-1]+"\n");
+						        file = Client.readFileToBytes(filePath);
+						        client.rbudpSend(file, 64000, 30);
+							} catch (Exception e4) {
+								e4.printStackTrace();
+							}
+						} else if (rb2.isSelected()) {
+							l32.setText("TCP was selected");
+							tcpSend();
+						} else {
+							l32.setText("No protocol was selected");
+						}
 					}
-				} else if (rb2.isSelected()) {
-					l32.setText("TCP was selected");
-					tcpSend();
-				} else {
-					l32.setText("No protocol was selected");
-				}
+				}.start();
 			}
 			
 		});
