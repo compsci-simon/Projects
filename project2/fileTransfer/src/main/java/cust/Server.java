@@ -23,17 +23,16 @@ public class Server {
   private DataInputStream tcpDataIn;
   private int tcpPort;
   private int tcpFilePort;
-  private int udpTimeout = 50;
-  private int tcpTimeout = 5000;
+  private int udpTimeout;
   private int totalLoops = 0;
   PacketReceiver packetsReceived;
   private double tcpProgress;
 
-  public Server(int udpPort, int tcpPort) throws Exception {
+  public Server(int udpPort, int tcpPort, int udpTimeout) throws Exception {
     this.tcpPort = tcpPort;
-    this.tcpFilePort = tcpFilePort;
     udpSock = new DatagramSocket(udpPort);
     udpSock.setSoTimeout(udpTimeout);
+    this.udpTimeout = udpTimeout;
   }
 
   // **************************************************************************
@@ -41,27 +40,11 @@ public class Server {
   // **************************************************************************
   public static void main (String[] args) throws Exception {
     String filename = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/serverFiles/file2.mov";
-    Server s = new Server(5555, 5556);
+    Server s = new Server(5555, 5556, 60);
     Utils.logger("Waiting for tcp connection");
     s.acceptTcpConnection();
     Utils.logger("Received connection");
-    byte[] fileByte = s.tcpReceiveFile();
-    if (fileByte == null)
-      return;
-    writeFile(fileByte, filename);
     s.closeTcp();
-
-    // byte[] file = s.tcpReceiveFile();
-    // if (file == null)
-    //   return;
-    // writeFile(file, filename);
-
-    // byte[] packetBytes = s.udpRecv(64000);
-    // if (packetBytes == null)
-    //   System.err.println("Weird");
-    // Packet p = deserializePacket(packetBytes);
-    // System.out.println(p.getBlastNum());
-
   }
 
   // **************************************************************************

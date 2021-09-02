@@ -19,24 +19,20 @@ public class Client {
   private Lock lock;
   private DatagramSocket udpSock;
   private Socket tcpSock;
-  private Socket tcpFileSock;
   private OutputStream tcpOutClient;
   private BufferedReader tcpInClient;
   private DataOutputStream tcpDataOutClient;
   private DataInputStream tcpDataInClient;
   private InetAddress hostAddress;
-  private int udpPort;
-  private int tcpPort;
-  private int tcpFilePort;
-  private static int packetSize = 10000;
+  private String stringHostAddress;
+  private int udpPort, tcpPort;
   private double progress;
 
   public Client(int udpPort, int tcpPort, String hostAddress) throws Exception {
-	  hostAddress = "localhost";
     this.hostAddress = InetAddress.getByName(hostAddress);
+    stringHostAddress = hostAddress;
     this.udpPort = udpPort;
     this.tcpPort = tcpPort;
-    this.tcpFilePort = tcpFilePort;
     udpSock = new DatagramSocket();
     this.lock = new ReentrantLock();
   }
@@ -44,22 +40,22 @@ public class Client {
   // **************************************************************************
   // ------------------------------ Main method -------------------------------
   // **************************************************************************
-  public static void main(String[] args) {
+  public static void main(String[] args) throws UnknownHostException, IOException {
     String filePath = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file.mov";
     try {
-      Client c = new Client(5555, 5556, "localhost");
+      Client c = new Client(9004, 9005, "10.147.18.241");
       if (!c.tcpConnect()) {
         Utils.logger("Failed to connect");
         return;
       }
-      
-      Utils.logger("Successfully connected");
-      byte[] file;
-      file = readFileToBytes(filePath);
-      final long startTime = System.currentTimeMillis();
-      c.tcpFileSend(file);
-      final long endTime = System.currentTimeMillis();
-      System.out.println("Total execution time: " + (endTime - startTime)/1000.0 + " seconds");
+//      
+//      Utils.logger("Successfully connected");
+//      byte[] file;
+//      file = readFileToBytes(filePath);
+//      final long startTime = System.currentTimeMillis();
+//      c.tcpFileSend(file);
+//      final long endTime = System.currentTimeMillis();
+//      System.out.println("Total execution time: " + (endTime - startTime)/1000.0 + " seconds");
 
       // byte[] fileBytes = c.readFileToBytes(filePath);
       // c.tcpFileSend(fileBytes);
@@ -151,7 +147,7 @@ public class Client {
    */
   public boolean tcpConnect() {
     try {
-      tcpSock = new Socket(hostAddress, tcpPort);
+      tcpSock = new Socket(stringHostAddress, tcpPort);
       tcpSock.setSoTimeout(5000);
       tcpOutClient = tcpSock.getOutputStream();
       tcpInClient = new BufferedReader(new InputStreamReader(tcpSock.getInputStream()));
@@ -159,6 +155,7 @@ public class Client {
       tcpDataInClient = new DataInputStream(tcpSock.getInputStream());
       return true;
     } catch (Exception e) {
+    	e.printStackTrace();
       return false;
     }
   }
@@ -184,7 +181,7 @@ public class Client {
 
   }
 
-  private String tcpRecv() {
+  public String tcpRecv() {
     try {
       return tcpInClient.readLine();
     } catch (Exception e) {

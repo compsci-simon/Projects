@@ -13,10 +13,11 @@ public class SimonReceiver extends JFrame {
 	private JPanel p1, p2;
 	private Container c;
 	private CardLayout card;
-	private JLabel l11, l12, l13, l14, l15, l21, l22, l23;
+	private JLabel l11, l12, l13, l14, l15, l16, l21, l22, l23;
 	private JTextField tf11, tf12;
 	private JButton b11, b12, b21;
 	private JProgressBar progressBar;
+	JSlider timeoutSlider;
 	private Thread t;
 	private String outDir;
 	private static boolean receiveConnections = false;
@@ -28,14 +29,20 @@ public class SimonReceiver extends JFrame {
 		c.setLayout(card);
 		setTitle("Server");
 		
-		p1 = new JPanel(new GridLayout(10, 1));
+		p1 = new JPanel(new GridLayout(11, 1));
 		l11 = new JLabel("UDP Port");
 		tf11 = new JTextField();
 		l12 = new JLabel("TCP Port");
 		tf12 = new JTextField();
 		l14 = new JLabel("Select out dir");
 		b12 = new JButton("Select dir");
+		l16 = new JLabel("Set UDP socket timeout");
 		l15 = new JLabel("No dir selected");
+		timeoutSlider = new JSlider(JSlider.HORIZONTAL, 20, 320, 70);
+		timeoutSlider.setMinorTickSpacing(10);
+		timeoutSlider.setMajorTickSpacing(30);
+		timeoutSlider.setPaintTicks(true);
+		timeoutSlider.setPaintLabels(true);
 		b11 = new JButton("Start server");
 		l13 = new JLabel("");
 		
@@ -52,7 +59,7 @@ public class SimonReceiver extends JFrame {
 					l13.setText("");
 					int udpPort = Integer.parseInt(tf11.getText());
 					int tcpPort = Integer.parseInt(tf12.getText());
-					server = new Server(udpPort, tcpPort);
+					server = new Server(udpPort, tcpPort, timeoutSlider.getValue());
 					card.show(c, "running");
 					receiveConnections = true;
 
@@ -91,6 +98,8 @@ public class SimonReceiver extends JFrame {
 		p1.add(l14);
 		p1.add(b12);
 		p1.add(l15);
+		p1.add(l16);
+		p1.add(timeoutSlider);
 		p1.add(b11);
 		p1.add(l13);
 		
@@ -148,8 +157,10 @@ public class SimonReceiver extends JFrame {
 					    	}
 					    	if (msg.equals("quit")) {
 					    		break;
-					    	}
-					    	else if (msg.isEmpty())
+					    	} else if (msg.equals("ping")) {
+					    		server.tcpSend("ack\n");
+					    		continue;
+					    	} if (msg.isEmpty())
 					    		continue;
 							int index = msg.indexOf(' ');
 						    if (msg.substring(0, index).equals("rbudp")) {
@@ -219,7 +230,7 @@ public class SimonReceiver extends JFrame {
 	
 	public static void main(String[] args) {
 		final SimonReceiver receiver = new SimonReceiver();
-		receiver.setSize(400, 400);
+		receiver.setSize(400, 550);
 		receiver.setDefaultCloseOperation(EXIT_ON_CLOSE);
 		receiver.setResizable(false);
 		receiver.setVisible(true);

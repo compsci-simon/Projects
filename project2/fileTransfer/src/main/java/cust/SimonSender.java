@@ -13,17 +13,18 @@ import java.util.List;
 
 public class SimonSender extends JFrame {
 	private Client client;
-	private static JPanel p1, p2, p3;
+	private static JPanel p1, p2, p3, p4, p5;
 	private CardLayout card;
 	private Container c;
-	private JButton b1, b21, b22, b23, b31, b32;
-	private JLabel l1, l12,  l13, l14, l21, l22, l23, l31, l32;
+	private JButton b1, b21, b22, b23, b31, b32, b33;
+	private JLabel l1, l12,  l13, l14, l21, l22, l23, l31, l32, l33, l34, l35, pingRes;
 	private JTextField tf1, tf12, tf13;
 	private JRadioButton rb1, rb2;
-	private File file;
 	private String filePath;
 	private JProgressBar progressBar;
 	ButtonGroup bg;
+	byte[] fileBytes;
+	JSlider packetSlider, blastLengthSlider;
 	
 	public SimonSender() {
 		
@@ -48,17 +49,15 @@ public class SimonSender extends JFrame {
 				// TODO Auto-generated method stub
 				try {
 					String address = tf1.getText().strip();
-					Utils.logger(address.equals("localhost"));
-					Utils.logger(address);
 					int udpPort = Integer.parseInt(tf12.getText());
 					int tcpPort = Integer.parseInt(tf13.getText());
 					
-					client = new Client(udpPort, tcpPort, "localhost");
+					client = new Client(udpPort, tcpPort, address);
 					if (client.tcpConnect()) {
 						l14.setText("");
 						card.show(c, "fileSelect");
 					} else {
-						l14.setText("Server disconnected.");
+						l14.setText("Cannot connect to server.");
 					}
 				} catch (Exception e1) {
 					e1.printStackTrace();
@@ -109,6 +108,12 @@ public class SimonSender extends JFrame {
 				if (filePath != null) {
 					l23.setText("");
 					card.show(c, "protocolSelect");
+					try {
+						fileBytes = Client.readFileToBytes(filePath);
+						l35.setText(String.format("%d bytes", fileBytes.length));
+					} catch (Exception e1) {
+						e1.printStackTrace();
+					}
 				} else {
 					l23.setText("You must first select a file!");
 				}
@@ -138,12 +143,31 @@ public class SimonSender extends JFrame {
 		p2.add(b23);
 		p2.add(l23);
 		
-		p3 = new JPanel(new GridLayout(10, 1));
+		p3 = new JPanel(new GridLayout(13, 1));
+		p4 = new JPanel(new GridLayout(1, 8));
+		p5 = new JPanel(new GridLayout(1, 8));
+		b33 = new JButton("Ping");
+		pingRes = new JLabel("");
+		p4.add(b33);
+		p4.add(pingRes);
 		l31 = new JLabel("Select protocal to use");
+		l35 = new JLabel("");
+		p5.add(l31);
+		p5.add(l35);
 		l32 = new JLabel("");
-		JLabel l33 = new JLabel("Packet size (rbudp only)");
-		JLabel l34 = new JLabel("Blast length (rbudp only)");
-		JLabel l35 = new JLabel("Packet timeout (rbudp only)");
+		l33 = new JLabel("Packet size (rbudp only)");
+		l34 = new JLabel("Blast length (rbudp only)");
+		packetSlider = new JSlider(JSlider.HORIZONTAL, 0, 64000, 10000);
+		packetSlider.setMinorTickSpacing(2000);  
+		packetSlider.setMajorTickSpacing(8000);  
+		packetSlider.setPaintTicks(true);  
+		packetSlider.setPaintLabels(true); 
+		blastLengthSlider = new JSlider(JSlider.HORIZONTAL, 0, 100, 10);
+		blastLengthSlider.setMinorTickSpacing(5);
+		blastLengthSlider.setMajorTickSpacing(20);
+		blastLengthSlider.setPaintTicks(true);
+		blastLengthSlider.setPaintLabels(true);
+		
 		rb1 = new JRadioButton("RBUDP");
 		rb2 = new JRadioButton("TCP");
 		bg = new ButtonGroup();
@@ -160,12 +184,12 @@ public class SimonSender extends JFrame {
 					public void run() {
 						if (rb1.isSelected()) {
 							try {
-								byte[] file;
+								l32.setText(String.format("%d", packetSlider.getValue()));
 								String[] parts = filePath.split("/");
 								handleProgressBar();
 							    client.tcpSend("rbudp "+parts[parts.length-1]+"\n");
-						        file = Client.readFileToBytes(filePath);
-						        client.rbudpSend(file, 64000, 30);
+						        fileBytes = Client.readFileToBytes(filePath);
+						        client.rbudpSend(fileBytes, packetSlider.getValue(), blastLengthSlider.getValue());
 							} catch (Exception e1) {
 								e1.printStackTrace();
 							}
@@ -202,10 +226,24 @@ public class SimonSender extends JFrame {
 			}
 			
 		});
+		b33.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+		      handlePing();
+			}
+			
+		});
 		
+		p3.add(p4);
+		p3.add(p5);
 		bg.add(rb1);
 		bg.add(rb2);
 		p3.add(rb1);
+		p3.add(l33);
+		p3.add(packetSlider);
+		p3.add(l34);
+		p3.add(blastLengthSlider);
 		p3.add(rb2);
 		p3.add(progressBar);
 		p3.add(b31);
@@ -217,6 +255,18 @@ public class SimonSender extends JFrame {
 		c.add("fileSelect", p2);
 		c.add("protocolSelect", p3);
 		
+	}
+	
+	private void handlePing() {
+      try {
+    	  final long startTime = System.currentTimeMillis();
+          client.tcpSend("ping\n");
+          String res = client.tcpRecv();
+          final long endTime = System.currentTimeMillis();
+          pingRes.setText(String.format("\t%sms", endTime - startTime));
+      } catch (Exception e) {
+    	  e.printStackTrace();
+      }
 	}
 	
 	private void handleProgressBar() {
@@ -248,32 +298,6 @@ public class SimonSender extends JFrame {
 		}.execute();
 	}
 	
-	public void rbudpSend(int packetSize, int blastLength) {
-		String[] parts = filePath.split("/");
-		String msg = parts[parts.length - 1];
-		try {
-//			byte[] fileBytes = Client.readFileToBytes(filePath);
-//			if (fileBytes == null) {
-//				return;
-//			}
-			client.tcpSend(("rbudp "+msg+"\n").getBytes());
-//			client.rbudpSend(fileBytes, packetSize, blastLength);
-			
-			String filePath = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file.mov";
-		      Utils.logger("Successfully connected");
-		      byte[] file;
-		      file = Client.readFileToBytes(filePath);
-		      final long startTime = System.currentTimeMillis();
-		      client.rbudpSend(file, packetSize, 30);
-		      final long endTime = System.currentTimeMillis();
-		      System.out.println("Total execution time: " + (endTime - startTime)/1000.0 + " seconds");
-		} catch (Exception e1) {
-			e1.printStackTrace();
-			card.show(c, "connect");
-			l14.setText("Server disconnected");
-		}
-	}
-	
 	public void tcpSend() {
 		String[] parts = filePath.split("/");
 		String msg = parts[parts.length - 1];
@@ -291,7 +315,7 @@ public class SimonSender extends JFrame {
 	
 	public static void main(String[] args) throws Exception {
 		SimonSender sender = new SimonSender();  
-		sender.setSize(400,400);  
+		sender.setSize(600, 600);  
 		sender.setResizable(false);
 		sender.setVisible(true);
 		sender.setDefaultCloseOperation(EXIT_ON_CLOSE);
