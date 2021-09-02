@@ -15,7 +15,7 @@ public class Server {
   private DatagramSocket udpSock;
   private ServerSocket serverSock;
   private ServerSocket serverFileSock;
-  Socket tcpSock;
+  private Socket tcpSock;
   private Socket tcpFileSock;
   private OutputStream tcpOut;
   private BufferedReader tcpIn;
@@ -44,7 +44,7 @@ public class Server {
     Utils.logger("Waiting for tcp connection");
     s.acceptTcpConnection();
     Utils.logger("Received connection");
-    byte[] fileByte = s.rbudpRecv();
+    byte[] fileByte = s.tcpReceiveFile();
     if (fileByte == null)
       return;
     writeFile(fileByte, filename);
@@ -106,6 +106,7 @@ public class Server {
 
     packetsReceived.writePayloadsToFile();
     Utils.logger(String.format("Packet success rate = %f", totalPackets*1.0/totalLoops));
+    packetsReceived = null;
     return file;
   }
 
@@ -176,18 +177,25 @@ public class Server {
    * This method simply accepts a tcp connection which can then be utilized at a later stage by sending
    * and receiving messages over the connection.
    */
-  public void acceptTcpConnection() {
+  public boolean acceptTcpConnection() {
     try {
       serverSock = new ServerSocket(tcpPort);
+    } catch (Exception e) {
+	  e.printStackTrace();
+    }
+    try {
       tcpSock = serverSock.accept();
       tcpOut = tcpSock.getOutputStream();
       tcpIn = new BufferedReader(new InputStreamReader(tcpSock.getInputStream()));
       tcpDataOut = new DataOutputStream(tcpSock.getOutputStream());
       tcpDataIn = new DataInputStream(tcpSock.getInputStream());
+      return true;
     } catch (Exception e) {
-      System.exit(0);
+    	e.printStackTrace();
+    	return false;
     }
   }
+  
   
   /*
    * accepts tcp connection used for transferring files with tcp
@@ -227,7 +235,6 @@ public class Server {
       message = tcpIn.readLine();
     } catch (Exception e) {
       e.printStackTrace();
-      return "";
     }
     return message;
   }
@@ -283,6 +290,8 @@ public class Server {
   }
   
   public void exit() throws IOException {
+	  serverSock.close();
+	  udpSock.close();
 	  if (tcpSock == null)
 		  return;
 	  if (!tcpSock.isClosed()) {

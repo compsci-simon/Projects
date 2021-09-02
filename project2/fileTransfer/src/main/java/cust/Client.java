@@ -57,7 +57,7 @@ public class Client {
       byte[] file;
       file = readFileToBytes(filePath);
       final long startTime = System.currentTimeMillis();
-      c.rbudpSend(file, packetSize, 30);
+      c.tcpFileSend(file);
       final long endTime = System.currentTimeMillis();
       System.out.println("Total execution time: " + (endTime - startTime)/1000.0 + " seconds");
 
@@ -118,6 +118,7 @@ public class Client {
     }
 
     Utils.logger("Done");
+    progress = 0;
     
   }
 

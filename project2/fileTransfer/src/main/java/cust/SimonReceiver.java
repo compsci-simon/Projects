@@ -3,6 +3,7 @@ package cust;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 import java.util.List;
 
 import javax.swing.*;
@@ -58,6 +59,7 @@ public class SimonReceiver extends JFrame {
 					transmissionHandler();
 			
 				} catch (Exception e1) {
+					e1.printStackTrace();
 					l13.setText("Unable to create server");
 				}
 			}
@@ -104,7 +106,6 @@ public class SimonReceiver extends JFrame {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				// TODO Auto-generated method stub
 				try {
 					l23.setText("");
 					server.exit();
@@ -139,23 +140,30 @@ public class SimonReceiver extends JFrame {
 			public void run() {
 				try {
 					while (receiveConnections) {
-						Utils.logger("Waiting for tcp connection");
-						acceptConneciton();
-					    Utils.logger("Received connection");
+						acceptConnection();
 					    String msg;
 					    while ((msg = server.tcpReceive()) != null) {
-					    	if (server == null)
+					    	if (server == null) {
 					    		break;
-					    	if (msg.equals("quit"))
+					    	}
+					    	if (msg.equals("quit")) {
 					    		break;
+					    	}
 					    	else if (msg.isEmpty())
 					    		continue;
-					    	l22.setText("Receiving file...");
 							int index = msg.indexOf(' ');
 						    if (msg.substring(0, index).equals("rbudp")) {
-						    	// Continue working here Handling the progress bar
+						    	l22.setText("Receiving file from rbudp...");
 						    	handleProgressBar();
 							    byte[] fileByte = server.rbudpRecv();
+							    if (fileByte == null)
+							      return;
+							    Server.writeFile(fileByte, outDir+msg.substring(index+1, msg.length()));
+						    	l22.setText("Received file.");
+						    } else if (msg.substring(0, index).equals("tcp")) {
+						    	l22.setText("Receiving file from tcp...");
+						    	handleProgressBar();
+							    byte[] fileByte = server.tcpReceiveFile();
 							    if (fileByte == null)
 							      return;
 							    Server.writeFile(fileByte, outDir+msg.substring(index+1, msg.length()));
@@ -163,12 +171,12 @@ public class SimonReceiver extends JFrame {
 						    }
 					    }
 					    System.out.println("Client closed connection");
-					    System.out.println(receiveConnections);
+					    l22.setText("Client disconnected.");
 						server.closeTcp();
 					}
 				    
-				} catch (Exception e4) {
-					e4.printStackTrace();
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
 			}
 		}.start();
@@ -184,14 +192,12 @@ public class SimonReceiver extends JFrame {
 				while (((progress = (int) Math.ceil(server.getProgress()*100)) < 100)) {
 					publish(progress);
 				}
-				
 				return null;
 			}
 			
 			@Override
 			protected void process(List<Integer> chunks) {
 				int lastVal = (int) chunks.get(chunks.size() - 1);
-				
 				progressBar.setValue(lastVal);
 			}
 
@@ -203,9 +209,12 @@ public class SimonReceiver extends JFrame {
 		}.execute();
 	}
 	
-	public void acceptConneciton() {
-		server.acceptTcpConnection();
-		l23.setText("Accepted tcp connection");
+	public void acceptConnection() {
+		Utils.logger("Waiting for tcp connection");
+		if (server.acceptTcpConnection()) {
+		    Utils.logger("Received connection");
+		    l22.setText("Connection received.");
+		}
 	}
 	
 	public static void main(String[] args) {

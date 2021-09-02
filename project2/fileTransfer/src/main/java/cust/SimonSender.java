@@ -23,6 +23,7 @@ public class SimonSender extends JFrame {
 	private File file;
 	private String filePath;
 	private JProgressBar progressBar;
+	ButtonGroup bg;
 	
 	public SimonSender() {
 		
@@ -117,13 +118,13 @@ public class SimonSender extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				// TODO Auto-generated method stub
-				client = null;
-				card.show(c, "connect");
 				try {
-					client.tcpSend("quit");
+					client.tcpSend("quit\n");
 				} catch (Exception e1) {
 					e1.printStackTrace();
 				}
+				client = null;
+				card.show(c, "connect");
 			}
 			
 		});
@@ -143,7 +144,7 @@ public class SimonSender extends JFrame {
 		JLabel l35 = new JLabel("Packet timeout (rbudp only)");
 		rb1 = new JRadioButton("RBUDP");
 		rb2 = new JRadioButton("TCP");
-		ButtonGroup bg = new ButtonGroup();
+		bg = new ButtonGroup();
 		b31 = new JButton("Send File");
 		progressBar = new JProgressBar(0, 100);
 		b32 = new JButton("Back");
@@ -163,12 +164,21 @@ public class SimonSender extends JFrame {
 							    client.tcpSend("rbudp "+parts[parts.length-1]+"\n");
 						        file = Client.readFileToBytes(filePath);
 						        client.rbudpSend(file, 64000, 30);
-							} catch (Exception e4) {
-								e4.printStackTrace();
+							} catch (Exception e1) {
+								e1.printStackTrace();
 							}
 						} else if (rb2.isSelected()) {
 							l32.setText("TCP was selected");
-							tcpSend();
+							try {
+								byte[] file;
+								String[] parts = filePath.split("/");
+								handleProgressBar();
+							    client.tcpSend("tcp "+parts[parts.length-1]+"\n");
+						        file = Client.readFileToBytes(filePath);
+								client.tcpFileSend(file);
+							} catch (Exception e1) {
+								e1.printStackTrace();
+							}
 						} else {
 							l32.setText("No protocol was selected");
 						}
@@ -183,6 +193,8 @@ public class SimonSender extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 				// TODO Auto-generated method stub
 				filePath = null;
+				progressBar.setValue(0);
+				bg.clearSelection();
 				l22.setText("");
 				card.show(c, "fileSelect");
 			}
@@ -214,7 +226,6 @@ public class SimonSender extends JFrame {
 				int progress;
 				while (((progress = (int) Math.ceil(client.getProgress()*100)) < 100)) {
 					publish(progress);
-					Thread.sleep(100);
 				}
 				return null;
 			}
