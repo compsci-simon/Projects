@@ -148,7 +148,7 @@ public class Client {
   public boolean tcpConnect() {
     try {
       tcpSock = new Socket(stringHostAddress, tcpPort);
-      tcpSock.setSoTimeout(5000);
+      tcpSock.setSoTimeout(10000);
       tcpOutClient = tcpSock.getOutputStream();
       tcpInClient = new BufferedReader(new InputStreamReader(tcpSock.getInputStream()));
       tcpDataOutClient = new DataOutputStream(tcpSock.getOutputStream());
@@ -276,7 +276,7 @@ class SentPackets {
     		packetsToSend[i] = packets[Integer.parseInt(sPackets[i])];
     	} catch (Exception e) {
     		e.printStackTrace();
-    		packetsToSend[i] = packets[packets.length];
+    		packetsToSend[i] = packets[packets.length - 1];
     	}
     }
     return packetsToSend;

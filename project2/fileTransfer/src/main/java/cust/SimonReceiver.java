@@ -170,7 +170,8 @@ public class SimonReceiver extends JFrame {
 							    if (fileByte == null)
 							      return;
 							    Server.writeFile(fileByte, outDir+msg.substring(index+1, msg.length()));
-						    	l22.setText("Received file.");
+						    	l22.setText(String.format("Received file. Packet success rate = %f", server.successRate));
+						    	server.successRate = 0;
 						    } else if (msg.substring(0, index).equals("tcp")) {
 						    	l22.setText("Receiving file from tcp...");
 						    	handleProgressBar();

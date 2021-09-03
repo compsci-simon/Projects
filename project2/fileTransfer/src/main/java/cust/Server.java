@@ -24,9 +24,10 @@ public class Server {
   private int tcpPort;
   private int tcpFilePort;
   private int udpTimeout;
-  private int totalLoops = 0;
+  private int totalLoops;
   PacketReceiver packetsReceived;
   private double tcpProgress;
+  double successRate = 0;
 
   public Server(int udpPort, int tcpPort, int udpTimeout) throws Exception {
     this.tcpPort = tcpPort;
@@ -56,6 +57,8 @@ public class Server {
    * Used to send files quickly with udp but is also reliable
    */
   public byte[] rbudpRecv () throws Exception {
+	
+	totalLoops = 0;
     if (tcpSock == null) {
       Utils.logger(String.format("You first need to establish a tcp connection to use this function."));
       return null;
@@ -90,7 +93,8 @@ public class Server {
     
 
     packetsReceived.writePayloadsToFile();
-    Utils.logger(String.format("Packet success rate = %f", totalPackets*1.0/totalLoops));
+    successRate = totalPackets*1.0/totalLoops;
+    Utils.logger(String.format("Packet success rate = %f", successRate));
     packetsReceived = null;
     return file;
   }

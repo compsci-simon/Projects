@@ -190,14 +190,14 @@ public class SimonSender extends JFrame {
 						    	final long startTime = System.currentTimeMillis();
 							    client.tcpSend("rbudp "+parts[parts.length-1]+"\n");
 						        fileBytes = Client.readFileToBytes(filePath);
-						        client.rbudpSend(fileBytes, packetSlider.getValue(), blastLengthSlider.getValue());
+						        client.rbudpSend(fileBytes, packetSize(), blastLengthSlider.getValue());
 						    	final long endTime = System.currentTimeMillis();
 						    	l32.setText(String.format("Took %sms", endTime - startTime));
 							} catch (Exception e1) {
 								e1.printStackTrace();
+								l32.setText("Failed to send file.");
 							}
 						} else if (rb2.isSelected()) {
-							l32.setText("TCP was selected");
 							try {
 								byte[] file;
 								String[] parts = filePath.split("/");
@@ -211,6 +211,7 @@ public class SimonSender extends JFrame {
 						    	l32.setText(String.format("Took %sms", endTime - startTime));
 							} catch (Exception e1) {
 								e1.printStackTrace();
+								l32.setText("Failed to send file.");
 							}
 						} else {
 							l32.setText("No protocol was selected");
@@ -263,6 +264,10 @@ public class SimonSender extends JFrame {
 		c.add("fileSelect", p2);
 		c.add("protocolSelect", p3);
 		
+	}
+	
+	public int packetSize() {
+		return packetSlider.getValue() > 0? packetSlider.getValue(): 1;
 	}
 	
 	private void handlePing() {
