@@ -175,7 +175,7 @@ public class SimonReceiver extends JFrame {
 						    } else if (msg.substring(0, index).equals("tcp")) {
 						    	l22.setText("Receiving file from tcp...");
 						    	handleProgressBar();
-							    byte[] fileByte = server.tcpReceiveFile();
+							    byte[] fileByte = server.tcpReceiveFilev2();
 							    if (fileByte == null)
 							      return;
 							    Server.writeFile(fileByte, outDir+msg.substring(index+1, msg.length()));

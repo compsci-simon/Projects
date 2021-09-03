@@ -8,7 +8,7 @@ import java.io.*;
 public class Utils {
 
   public static void main(String[] args) {
-    
+	  System.out.println(highest_common_denom(12507004));
   }
   
   /*
@@ -45,6 +45,16 @@ public class Utils {
     FileWriter writer = new FileWriter(filename);
     writer.write(message);
     writer.close();
+  }
+  
+  public static int highest_common_denom(int size) {
+	  int denom = 1;
+	  for (int i = 1; i < 100; i++) {
+		  if (size%i == 0) {
+			  denom = i;
+		  }
+	  }
+	  return denom;
   }
 
 }

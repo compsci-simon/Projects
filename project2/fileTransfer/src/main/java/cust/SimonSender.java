@@ -201,11 +201,11 @@ public class SimonSender extends JFrame {
 							try {
 								byte[] file;
 								String[] parts = filePath.split("/");
+								handleProgressBar();
 						    	final long startTime = System.currentTimeMillis();
 							    client.tcpSend("tcp "+parts[parts.length-1]+"\n");
-								progressBar.setValue(100);
 						        file = Client.readFileToBytes(filePath);
-								client.tcpFileSend(file);
+								client.tcpFileSendv2(file, Utils.highest_common_denom(file.length));
 								client.tcpRecv();
 						    	final long endTime = System.currentTimeMillis();
 						    	l32.setText(String.format("Took %sms", endTime - startTime));
@@ -267,7 +267,7 @@ public class SimonSender extends JFrame {
 	}
 	
 	public int packetSize() {
-		return packetSlider.getValue() > 0? packetSlider.getValue(): 1;
+		return packetSlider.getValue() > Packet.packetBaseSize + 2? packetSlider.getValue(): Packet.packetBaseSize + 2;
 	}
 	
 	private void handlePing() {

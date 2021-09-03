@@ -34,18 +34,19 @@ public class Server {
     udpSock = new DatagramSocket(udpPort);
     udpSock.setSoTimeout(udpTimeout);
     this.udpTimeout = udpTimeout;
-    Utils.logger(false);
   }
 
   // **************************************************************************
   // ------------------------------ Main method -------------------------------
   // **************************************************************************
   public static void main (String[] args) throws Exception {
-    String filename = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/serverFiles/file2.mov";
-    Server s = new Server(5555, 5556, 60);
+    String filename = "/Users/simon/Desktop/book.pdf";
+    Server s = new Server(9004, 9005, 60);
     Utils.logger("Waiting for tcp connection");
     s.acceptTcpConnection();
     Utils.logger("Received connection");
+    byte[] file = s.tcpReceiveFilev2();
+    writeFile(file, filename);
     s.closeTcp();
   }
 
@@ -251,6 +252,53 @@ public class Server {
 	  }
   }
   
+  public byte[] tcpReceiveFilev2() throws IOException {
+	  try {
+	      int filesize = tcpDataIn.readInt();
+	      int blasts = tcpDataIn.readInt();
+	      byte[] fileBytes = new byte[filesize];
+	      tcpProgress = 0;
+	      
+	      InputStream is = tcpSock.getInputStream();
+	      byte[][] fragments = new byte[blasts][];
+	      
+	      for (int i = 0; i < blasts; i++) {
+		      int bytesRead = 0;
+	    	  int bytesToRead = tcpDataIn.readInt();
+		      fragments[i] = new byte[bytesToRead];
+		      int current = bytesRead;
+		      do {
+		         bytesRead =
+		            is.read(fragments[i], current, (bytesToRead-current));
+		         if(bytesRead >= 0) current += bytesRead;
+			  } while(bytesRead > 0);
+		      tcpProgress += 1/blasts;
+		      syn();
+	      }
+	      int defaultFragSize = fragments[0].length;
+	      for (int i = 0; i < fragments.length; i++) {
+	    	  System.arraycopy(fragments[i], 0, fileBytes, i*defaultFragSize, fragments[i].length);
+	      }
+	      return fileBytes;
+	  } catch(Exception e) {
+      e.printStackTrace();
+		  return null;
+	  }
+  }
+  
+  public byte[][] createFragmentBuffer(int fileSize, int blasts) {
+	  int fragmentSize = (int) Math.ceil(fileSize*1.0/blasts);
+	  byte[][] fragments = new byte[blasts][];
+	  
+	  for (int i = 0; i < blasts; i++) {
+		  if (fileSize - i*fragmentSize < fragmentSize) {
+			  fragmentSize = fileSize - i*fragmentSize;
+		  }
+		  fragments[i] = new byte[fragmentSize];
+	  }
+	  return fragments;
+  }
+  
   public double tcpFileProgress() {
 	  return tcpProgress;
   }
@@ -295,7 +343,7 @@ public class Server {
   
   public double getProgress() {
 	  if (packetsReceived == null) {
-		  return 0;
+		  return tcpProgress*100;
 	  } else {
 		  return packetsReceived.progress();
 	  }

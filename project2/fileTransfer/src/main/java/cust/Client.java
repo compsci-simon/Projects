@@ -41,24 +41,16 @@ public class Client {
   // ------------------------------ Main method -------------------------------
   // **************************************************************************
   public static void main(String[] args) throws UnknownHostException, IOException {
-    String filePath = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/file.mov";
+    String filePath = "/Users/simon/Developer/git_repos/Projects/project2/fileTransfer/assets/book.pdf";
     try {
-      Client c = new Client(9004, 9005, "10.147.18.241");
+      Client c = new Client(9004, 9005, "localhost");
       if (!c.tcpConnect()) {
         Utils.logger("Failed to connect");
         return;
       }
-//      
-//      Utils.logger("Successfully connected");
-//      byte[] file;
-//      file = readFileToBytes(filePath);
-//      final long startTime = System.currentTimeMillis();
-//      c.tcpFileSend(file);
-//      final long endTime = System.currentTimeMillis();
-//      System.out.println("Total execution time: " + (endTime - startTime)/1000.0 + " seconds");
-
-      // byte[] fileBytes = c.readFileToBytes(filePath);
-      // c.tcpFileSend(fileBytes);
+      byte[] fileBytes = readFileToBytes(filePath);
+      c.tcpFileSendv2(fileBytes, Utils.highest_common_denom(fileBytes.length));
+      System.out.println("Done");
 
     } catch (Exception e) {
       e.printStackTrace();
@@ -179,6 +171,36 @@ public class Client {
     tcpOutClient.write(file,0,file.length);
     tcpOutClient.flush();
 
+  }
+  
+  public void tcpFileSendv2(byte[] file, int blasts) throws IOException {
+	  	progress = 0;
+	    tcpDataOutClient.writeInt(file.length);
+	    tcpDataOutClient.writeInt(blasts);
+	    
+	    byte[][] fragments = fragmentMessage(file, blasts);
+	    for (int i = 0; i < blasts; i++) {
+	    	tcpDataOutClient.writeInt(fragments[i].length);
+	        tcpOutClient.write(fragments[i], 0, fragments[i].length);
+	        tcpOutClient.flush();
+	        tcpRecv();
+	        progress += 1.0/blasts;
+	    }
+  }
+  
+  public byte[][] fragmentMessage(byte[] message, int blasts) {
+	  int fragmentSize = (int) Math.ceil(message.length*1.0/blasts);
+	  byte[][] fragments = new byte[blasts][];
+	  
+	  for (int i = 0; i < blasts; i++) {
+		  if (message.length - i*fragmentSize < fragmentSize) {
+			  fragmentSize = message.length - i*fragmentSize;
+		  }
+		  fragments[i] = new byte[fragmentSize];
+		  Utils.logger(String.format("i = %d, fs = %d", i, fragmentSize));
+		  System.arraycopy(message, i*fragmentSize, fragments[i], 0, fragmentSize);
+	  }
+	  return fragments;
   }
 
   public String tcpRecv() {
