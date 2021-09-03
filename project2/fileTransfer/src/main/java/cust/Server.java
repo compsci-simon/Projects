@@ -33,6 +33,7 @@ public class Server {
     udpSock = new DatagramSocket(udpPort);
     udpSock.setSoTimeout(udpTimeout);
     this.udpTimeout = udpTimeout;
+    Utils.logger(false);
   }
 
   // **************************************************************************

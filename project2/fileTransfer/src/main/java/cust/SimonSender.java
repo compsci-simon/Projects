@@ -184,7 +184,7 @@ public class SimonSender extends JFrame {
 					public void run() {
 						if (rb1.isSelected()) {
 							try {
-								l32.setText(String.format("%d", packetSlider.getValue()));
+								l32.setText(String.format("Packet size = %d, blast length = %d", packetSlider.getValue(), blastLengthSlider.getValue()));
 								String[] parts = filePath.split("/");
 								handleProgressBar();
 						    	final long startTime = System.currentTimeMillis();

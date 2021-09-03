@@ -272,7 +272,12 @@ class SentPackets {
     String[] sPackets = packetString.trim().split(" ");
     Packet[] packetsToSend = new Packet[sPackets.length];
     for (int i = 0; i < sPackets.length; i++) {
-      packetsToSend[i] = packets[Integer.parseInt(sPackets[i])];
+    	try {
+    		packetsToSend[i] = packets[Integer.parseInt(sPackets[i])];
+    	} catch (Exception e) {
+    		e.printStackTrace();
+    		packetsToSend[i] = packets[packets.length];
+    	}
     }
     return packetsToSend;
   }
