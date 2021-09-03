@@ -178,6 +178,7 @@ public class SimonReceiver extends JFrame {
 							    if (fileByte == null)
 							      return;
 							    Server.writeFile(fileByte, outDir+msg.substring(index+1, msg.length()));
+							    server.tcpSend("done\n");
 						    	l22.setText("Received file.");
 						    }
 					    }

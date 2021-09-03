@@ -187,9 +187,12 @@ public class SimonSender extends JFrame {
 								l32.setText(String.format("%d", packetSlider.getValue()));
 								String[] parts = filePath.split("/");
 								handleProgressBar();
+						    	final long startTime = System.currentTimeMillis();
 							    client.tcpSend("rbudp "+parts[parts.length-1]+"\n");
 						        fileBytes = Client.readFileToBytes(filePath);
 						        client.rbudpSend(fileBytes, packetSlider.getValue(), blastLengthSlider.getValue());
+						    	final long endTime = System.currentTimeMillis();
+						    	l32.setText(String.format("Took %sms", endTime - startTime));
 							} catch (Exception e1) {
 								e1.printStackTrace();
 							}
@@ -198,10 +201,14 @@ public class SimonSender extends JFrame {
 							try {
 								byte[] file;
 								String[] parts = filePath.split("/");
+						    	final long startTime = System.currentTimeMillis();
 							    client.tcpSend("tcp "+parts[parts.length-1]+"\n");
 								progressBar.setValue(100);
 						        file = Client.readFileToBytes(filePath);
 								client.tcpFileSend(file);
+								client.tcpRecv();
+						    	final long endTime = System.currentTimeMillis();
+						    	l32.setText(String.format("Took %sms", endTime - startTime));
 							} catch (Exception e1) {
 								e1.printStackTrace();
 							}
@@ -222,6 +229,7 @@ public class SimonSender extends JFrame {
 				progressBar.setValue(0);
 				bg.clearSelection();
 				l22.setText("");
+				l32.setText("");
 				card.show(c, "fileSelect");
 			}
 			
