@@ -1,2 +1,0 @@
-packetsize:40000
-blastlength:10

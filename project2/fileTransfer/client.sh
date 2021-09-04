@@ -1,1 +1,1 @@
-java -cp target/classes cust.Client
+java -cp target/classes cust.SimonSender

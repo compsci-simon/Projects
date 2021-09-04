@@ -1,2 +1,2 @@
 #bin
-java -cp target/classes cust.Server
+java -cp target/classes cust.SimonReceiver
