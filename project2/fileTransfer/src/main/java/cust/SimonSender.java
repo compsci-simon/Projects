@@ -186,6 +186,7 @@ public class SimonSender extends JFrame {
 							try {
 								l32.setText(String.format("Packet size = %d, blast length = %d", packetSlider.getValue(), blastLengthSlider.getValue()));
 								String[] parts = filePath.split("/");
+								client.setProgress();
 								handleProgressBar();
 						    	final long startTime = System.currentTimeMillis();
 							    client.tcpSend("rbudp "+parts[parts.length-1]+"\n");
@@ -201,6 +202,7 @@ public class SimonSender extends JFrame {
 							try {
 								byte[] file;
 								String[] parts = filePath.split("/");
+								client.setProgress();
 								handleProgressBar();
 						    	final long startTime = System.currentTimeMillis();
 							    client.tcpSend("tcp "+parts[parts.length-1]+"\n");

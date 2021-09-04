@@ -65,7 +65,8 @@ public class Client {
    * For implementing the entire RBUDP protocol to send the file.
    */
   public void rbudpSend (byte[] message, int packetSize, int blastLength) throws Exception {
-    if (!tcpSock.isConnected() || tcpSock.isClosed()) {
+	  progress = 0;
+	  if (!tcpSock.isConnected() || tcpSock.isClosed()) {
       Utils.logger("You must first connect the tcp socket.");
       return;
     }
@@ -247,6 +248,15 @@ public class Client {
 	  try {
 		  lock.lock();
 		  return progress;
+	  } finally {
+		  lock.unlock();
+	  }
+  }
+  
+  public void setProgress() {
+	  try {
+		  lock.lock();
+		  progress = 0;
 	  } finally {
 		  lock.unlock();
 	  }

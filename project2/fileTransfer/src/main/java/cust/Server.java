@@ -58,7 +58,7 @@ public class Server {
    * Used to send files quickly with udp but is also reliable
    */
   public byte[] rbudpRecv () throws Exception {
-	
+	tcpProgress = 0;
 	totalLoops = 0;
     if (tcpSock == null) {
       Utils.logger(String.format("You first need to establish a tcp connection to use this function."));
@@ -272,13 +272,14 @@ public class Server {
 		            is.read(fragments[i], current, (bytesToRead-current));
 		         if(bytesRead >= 0) current += bytesRead;
 			  } while(bytesRead > 0);
-		      tcpProgress += 1/blasts;
+		      tcpProgress += 1.0/ (double) blasts;
 		      syn();
 	      }
 	      int defaultFragSize = fragments[0].length;
 	      for (int i = 0; i < fragments.length; i++) {
 	    	  System.arraycopy(fragments[i], 0, fileBytes, i*defaultFragSize, fragments[i].length);
 	      }
+	      tcpProgress = 0;
 	      return fileBytes;
 	  } catch(Exception e) {
       e.printStackTrace();
