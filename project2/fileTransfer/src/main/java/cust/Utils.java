@@ -1,6 +1,9 @@
 package cust;
 
 import java.io.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 
 /**
  * This class contains some static utility methods that are useful
@@ -8,7 +11,18 @@ import java.io.*;
 public class Utils {
 
   public static void main(String[] args) {
-	  System.out.println(highest_common_denom(12507004));
+	  try {
+		  DatagramSocket s = new DatagramSocket();
+		  
+		  InetAddress ia = InetAddress.getByName("localhost");
+		  DatagramPacket p = new DatagramPacket(new byte[64000], 64000, ia, 30000);
+		  for (int i = 0; i < 10000; i++) {
+			  s.send(p);
+		  }
+	  } catch (Exception e) {
+		  e.printStackTrace();
+	  }
+	  System.out.println("Done");
   }
   
   /*
