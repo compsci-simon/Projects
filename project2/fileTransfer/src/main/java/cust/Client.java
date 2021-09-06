@@ -305,6 +305,7 @@ class SentPackets {
     Packet[] packetsToSend = new Packet[sPackets.length];
     for (int i = 0; i < sPackets.length; i++) {
     	try {
+//    		sPackets[i] = sPackets[i].in
     		packetsToSend[i] = packets[Integer.parseInt(sPackets[i])];
     	} catch (Exception e) {
     		e.printStackTrace();
