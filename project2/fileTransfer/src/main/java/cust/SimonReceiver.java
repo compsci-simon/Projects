@@ -166,7 +166,7 @@ public class SimonReceiver extends JFrame {
 						    if (msg.substring(0, index).equals("rbudp")) {
 						    	l22.setText("Receiving file from rbudp...");
 						    	server.rbudpProgress = 0;
-						    	handleProgressBar();
+						    	handleProgressBarRBUDP();
 							    byte[] fileByte = server.rbudpRecv();
 							    if (fileByte == null)
 							      return;
@@ -176,7 +176,7 @@ public class SimonReceiver extends JFrame {
 						    } else if (msg.substring(0, index).equals("tcp")) {
 						    	l22.setText("Receiving file from tcp...");
 						    	server.tcpProgress = 0;
-						    	handleProgressBar();
+						    	handleProgressBarTCP();
 							    byte[] fileByte = server.tcpReceiveFilev2();
 							    if (fileByte == null)
 							      return;
@@ -197,14 +197,14 @@ public class SimonReceiver extends JFrame {
 		}.start();
 	}
 	
-	private void handleProgressBar() {
+	private void handleProgressBarTCP() {
 		new SwingWorker<Void, Integer>() {
 
 			@Override
 			protected Void doInBackground() throws Exception {
 				// TODO Auto-generated method stub
 				int progress;
-				while (((progress = (int) Math.ceil(server.getProgress()*100)) < 100)) {
+				while (((progress = (int) Math.ceil(server.tcpProgress*100)) < 100)) {
 					publish(progress);
 				}
 				return null;

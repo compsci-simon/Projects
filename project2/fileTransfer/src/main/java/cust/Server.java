@@ -275,9 +275,12 @@ public class Server {
 		            is.read(fragments[i], current, (bytesToRead-current));
 		         if(bytesRead >= 0) current += bytesRead;
 			  } while(bytesRead > 0);
-		      tcpProgress += 1/blasts;
+		      tcpProgress += 1.0/blasts;
+		      Utils.logger(String.format("Progress = %f", tcpProgress));
 		      syn();
 	      }
+	      syn();
+	      Utils.logger("Done TCP receive");
 	      int defaultFragSize = fragments[0].length;
 	      for (int i = 0; i < fragments.length; i++) {
 	    	  System.arraycopy(fragments[i], 0, fileBytes, i*defaultFragSize, fragments[i].length);
