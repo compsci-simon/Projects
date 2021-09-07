@@ -187,6 +187,7 @@ public class Client {
 	        tcpRecv();
 	        progress += 1.0/blasts;
 	    }
+      Utils.logger("Done tcp receive.");
   }
   
   public byte[][] fragmentMessage(byte[] message, int blasts) {

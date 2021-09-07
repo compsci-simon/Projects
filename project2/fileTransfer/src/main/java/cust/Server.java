@@ -112,7 +112,7 @@ public class Server {
       totalLoops++;
       packetBytes = udpRecv(packetSize);
       if (packetBytes == null)
-        break;
+        continue;
       Packet packet = deserializePacket(packetBytes);
       if (packet == null)
         continue;
