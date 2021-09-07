@@ -272,7 +272,7 @@ public class Server {
 		            is.read(fragments[i], current, (bytesToRead-current));
 		         if(bytesRead >= 0) current += bytesRead;
 			  } while(bytesRead > 0);
-		      tcpProgress += 1.0/ (double) blasts;
+		      tcpProgress += 1.0/blasts;
 		      syn();
 	      }
 	      int defaultFragSize = fragments[0].length;
