@@ -26,7 +26,8 @@ public class Server {
   private int udpTimeout;
   private int totalLoops;
   PacketReceiver packetsReceived;
-  private double tcpProgress;
+  double tcpProgress;
+  double rbudpProgress;
   double successRate = 0;
 
   public Server(int udpPort, int tcpPort, int udpTimeout) throws Exception {
@@ -59,6 +60,7 @@ public class Server {
    */
   public byte[] rbudpRecv () throws Exception {
 	
+	rbudpProgress = 0;
 	totalLoops = 0;
     if (tcpSock == null) {
       Utils.logger(String.format("You first need to establish a tcp connection to use this function."));
@@ -87,8 +89,9 @@ public class Server {
       Utils.logger(String.format("Send me packets %s", sendMePackets));
       tcpSend(sendMePackets);
       receiveBlast(blastLength);
-      tcpDataOut.writeDouble(packetsReceived.progress());
-      Utils.logger(String.format("Progress = %f", packetsReceived.progress()));
+      rbudpProgress = packetsReceived.progress();
+      tcpDataOut.writeDouble(rbudpProgress);
+      Utils.logger(String.format("Progress = %f", rbudpProgress));
     }
     tcpSend("\n");
     
@@ -343,7 +346,7 @@ public class Server {
   
   public double getProgress() {
 	  if (packetsReceived == null) {
-		  return tcpProgress*100;
+		  return tcpProgress;
 	  } else {
 		  return packetsReceived.progress();
 	  }
