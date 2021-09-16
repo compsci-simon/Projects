@@ -1,0 +1,5 @@
+package nat;
+
+interface NATProtocol {
+  
+}
