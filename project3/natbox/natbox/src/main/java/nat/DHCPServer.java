@@ -12,7 +12,11 @@ public class DHCPServer {
   }
 
   public void processDHCPPacket(byte[] packet) {
-    
+    DHCP dhcpPacket = new DHCP(packet);
+    if (dhcpPacket.getMessageType() == DHCP.bootRequest) {
+      dhcpPacket.setMessageType(DHCP.bootReply);
+      System.out.println();
+    }
   }
 
   public void handleMessage(byte[] message) {
@@ -25,6 +29,19 @@ public class DHCPServer {
       default:
         break;
     }
+  }
+
+  public int lowestFreeIP() {
+    for (int i = 2; i < 0xff; i++) {
+      int j = 0;
+      for (; j < allocatedIPs.size(); j++) {
+        if (allocatedIPs.get(j) == i)
+          break;
+      }
+      if (j == allocatedIPs.size())
+        return j;
+    }
+    return -1;
   }
 
 }

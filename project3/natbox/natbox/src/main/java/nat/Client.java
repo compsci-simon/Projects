@@ -62,13 +62,17 @@ public class Client {
   }
   
   public void sendDHCPDiscover() {
-    byte[] packetDHCP = dhcpClient.encapDHCPRequest();
+    byte[] packetDHCP = generateDHCPDiscoverPacket();
     byte[] packetUDP = encapsulateUDP(68, 67, packetDHCP);
     byte[] ipsrc = {0, 0, 0, 0};
     byte[] ipdest = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
     byte[] packetIP = encapsulateIP(17, ipdest, ipsrc, packetUDP);
     byte[] frame = encapsulateEthernet(addressMAC, broadcastMAC, packetIP);
     sendFrame(frame);
+  }
+  
+  public byte[] generateDHCPDiscoverPacket() {
+    return DHCP.dhcpPacket(DHCP.bootRequest, transactionIdentifier++, addressMAC);
   }
 
   public byte[] encapsulateEthernet(byte[] destAddr, byte[] sourceAddr, byte[] payload) {
