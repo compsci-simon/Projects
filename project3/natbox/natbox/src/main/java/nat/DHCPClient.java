@@ -11,7 +11,7 @@ public class DHCPClient {
     this.addressMAC = addressMAC;
   }
 
-  public byte[] createDHCPRequest() {
+  public byte[] encapDHCPRequest() {
     byte[] message = new byte[236];
     // Setting operation code
     message[0] = 0x01;
