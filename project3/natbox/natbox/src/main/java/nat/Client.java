@@ -1,6 +1,8 @@
 package nat;
 
+import java.math.BigInteger;
 import java.net.*;
+import java.nio.ByteBuffer;
 
 public class Client {
   private boolean internalClient = true;
@@ -8,11 +10,13 @@ public class Client {
   private long addressMAC;
   private DatagramSocket socket;
   private DatagramPacket packet;
+  private int transactionIdentifier;
+  private DHCPClient dhcpClient;
 
-  public Client(boolean internalClient, String address, int port) {
+  public Client(boolean internalClient, String address) {
     try {
       this.socket = new DatagramSocket();
-      this.packet = new DatagramPacket(new byte[1500], 1500, InetAddress.getByName(address), port);
+      this.packet = new DatagramPacket(new byte[1500], 1500, InetAddress.getByName(address), 10000);
     } catch (Exception e) {
       e.printStackTrace();
       return;
@@ -22,11 +26,13 @@ public class Client {
     }
     this.internalClient = internalClient;
     this.addressMAC = generateRandomMAC();
+    this.transactionIdentifier = 0;
+    this.dhcpClient = new DHCPClient();
   }
 
   public static void main(String[] args) {
-    Client c = new Client(true, "localhost", 5000);
-    c.sendPacquet(args[0]);
+    Client c = new Client(true, "localhost");
+    
   }
 
   private static long generateRandomMAC() {
@@ -47,7 +53,7 @@ public class Client {
     return addressIP;
   }
   
-  public void sendPacquet(String message) {
+  public void sendPacquet(String message, int address) {
     packet.setData(message.getBytes(), 0, message.getBytes().length);
     try {
       socket.send(packet);
@@ -55,5 +61,18 @@ public class Client {
       e.printStackTrace();
     }
   }
+  
+  public void sendDHCPDiscover() {
+    byte[] packetBytes = dhcpClient.createDHCPPacket((byte)0x01, addressMAC);
+    packet.setData(packetBytes);
+    packet.setPort(67);
+    try {
+      socket.send(packet);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  
 
 }
