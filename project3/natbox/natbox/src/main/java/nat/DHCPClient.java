@@ -4,15 +4,17 @@ import java.nio.ByteBuffer;
 
 public class DHCPClient {
   int transactionIdentifier;
+  long addressMAC;
 
-  public DHCPClient() {
+  public DHCPClient(long addressMAC) {
     this.transactionIdentifier = 0;
+    this.addressMAC = addressMAC;
   }
 
-  public byte[] createDHCPPacket(byte opCode, long addressMAC) {
-    byte[] message = new byte[108];
+  public byte[] createDHCPRequest() {
+    byte[] message = new byte[236];
     // Setting operation code
-    message[0] = opCode;
+    message[0] = 0x01;
     // Setting hardware type
     message[1] = 0x01;
     // Setting hardware address length
@@ -28,7 +30,7 @@ public class DHCPClient {
     // Setting the seconds that have elapsed
     message[8] = 0x00;
     message[9] = 0x00;
-    // Setting the Flags bytes
+    // Setting the Flags bytes to 0 for unicast
     message[10] = 0x00;
     message[11] = 0x00;
     // ciAddress is 0 in the beginning
@@ -62,6 +64,9 @@ public class DHCPClient {
     for (int i = 0; i < 10; i++) {
       message[35+i] = 0x00;
     }
+
+    // 64 0x00 bytes for server address
+    // 128 0x00 bytes for boot file name
     return message;
   }
 }
