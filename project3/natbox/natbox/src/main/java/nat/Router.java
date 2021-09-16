@@ -3,6 +3,7 @@ package nat;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import nat.Constants;
 
 public class Router {
   private DatagramSocket serverSock;
@@ -11,9 +12,6 @@ public class Router {
   private DHCPServer dhcpServer;
   private byte[] addressMAC;
   private byte[] addressIP = {(byte) 0xC0, (byte) 0xA8, 0, 1};
-  private static byte[] broadcastIP = {(byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff};
-  private static byte[] broadcastMAC = {(byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, 
-    (byte) 0xff, (byte) 0xff};
 
   public Router (int portNum) {
     connectedHosts = new ArrayList<Integer>();
@@ -22,8 +20,6 @@ public class Router {
       this.serverSock = new DatagramSocket(portNum);
       packet = new DatagramPacket(new byte[1500], 1500);
       dhcpServer = new DHCPServer();
-      dhcpServer.start();
-      addPortToArrayList(67);
       handleConnections();
     } catch (Exception e) {
       e.printStackTrace();
@@ -58,11 +54,12 @@ public class Router {
 
   private boolean handleFrame(byte[] frame) {
     if (frame.length < 14)
-      return false;
+      return true;
     byte[] destAddr = new byte[6];
     System.arraycopy(frame, 0, destAddr, 0, 6);
     byte[] broadcastMAC = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
-    if (Arrays.equals(addressMAC, destAddr) || Arrays.equals(broadcastMAC, destAddr)) {
+    // Router MAC address of broadcast addressed frame are accepted
+    if (Arrays.equals(addressMAC, destAddr) || Arrays.equals(Constants.broadcastMAC, destAddr)) {
       byte[] packet = new byte[frame.length - 14];
       System.arraycopy(frame, 14, packet, 0, packet.length);
       handleIPPacket(packet);
@@ -77,15 +74,25 @@ public class Router {
     System.arraycopy(packet, 12, destIP, 0, 4);
     System.arraycopy(packet, 16, sourceIP, 0, 4);
     
-    if (Arrays.equals(broadcastIP, destIP)) {
+    if (Arrays.equals(Constants.broadcastIP, destIP)) {
       broadcastFrame(packet);
       if (protocol == 17) {
-        // pass to UDP
+        // pass to UDP on router... Dont know what packets the router would receive yet...
+        byte[] payload = new byte[packet.length - 20];
+        System.arraycopy(packet, 20, payload, 0, payload.length);
+        handleUDPPacket(payload);
       }
     } else if (Arrays.equals(addressIP, destIP)) {
       System.out.println("Received packet destined for router");
     }
     return false;
+  }
+
+  public void handleUDPPacket(byte[] packet) {
+    UDP udpPacket = new UDP(packet);
+    if (udpPacket.demuxPort() == Constants.demuxPortDHCP) {
+      dhcpServer.processDHCPPacket(udpPacket.payload());
+    }
   }
 
   public static void printIP(byte[] ipaddr) {
@@ -109,9 +116,9 @@ public class Router {
   }
 
   public void broadcastIP(byte[] packet) {
-    System.arraycopy(packet, 12, broadcastIP, 0, 4);
+    System.arraycopy(packet, 12, Constants.broadcastIP, 0, 4);
     System.arraycopy(packet, 16, addressIP, 0, 4);
-    byte[] frame = encapsulateEthernet(broadcastMAC, addressMAC, packet);
+    byte[] frame = encapsulateEthernet(Constants.broadcastMAC, addressMAC, packet);
     broadcastFrame(frame);
   }
 
