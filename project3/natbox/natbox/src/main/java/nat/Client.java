@@ -1,18 +1,18 @@
 package nat;
 
-import java.math.BigInteger;
 import java.net.*;
 import java.nio.ByteBuffer;
 
 public class Client {
   private boolean internalClient = true;
-  private int addressIP = 0x7F000001;
-  private long addressMAC;
+  private byte[] addressIP = {0x7F, 0, 0, 1};
+  private byte[] addressMAC;
   private DatagramSocket socket;
   private DatagramPacket packet;
   private int transactionIdentifier;
   private DHCPClient dhcpClient;
   private int packetCount;
+  private static byte[] broadcastMAC = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
 
   public Client(boolean internalClient, String address) {
     try {
@@ -36,20 +36,18 @@ public class Client {
     c.sendDHCPDiscover();
   }
 
-  private static long generateRandomMAC() {
-    long mac = 0;
+  private static byte[] generateRandomMAC() {
+    byte[] mac = new byte[6];
     for (int i = 0; i < 6; i++) {
-      mac = mac<<8;
-      mac = mac | (int) (Math.random()*0xFF);
+      mac[i] = (byte) (Math.random()*0xff);
     }
     return mac;
   }
 
-  private static int generateRandomIP() {
-    int addressIP = 0;
+  private static byte[] generateRandomIP() {
+    byte[] addressIP = new byte[4];
     for (int i = 0; i < 4; i++) {
-      addressIP = addressIP<<8;
-      addressIP = addressIP | (int) (Math.random()*0xFF);
+      addressIP[i] = (byte) (Math.random()*0xFF);
     }
     return addressIP;
   }
@@ -65,19 +63,18 @@ public class Client {
   
   public void sendDHCPDiscover() {
     byte[] packetDHCP = dhcpClient.encapDHCPRequest();
-    byte[] packetUDP = encapsulateEthernet(68, 67, packetDHCP);
-    byte[] packetIP = encapsulateIP(17, 0, 0xffffffff, packetUDP);
-    byte[] frame = encapsulateEthernet(addressMAC, Long.decode("0xffffffffffff"), packetIP);
+    byte[] packetUDP = encapsulateUDP(68, 67, packetDHCP);
+    byte[] ipsrc = {0, 0, 0, 0};
+    byte[] ipdest = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
+    byte[] packetIP = encapsulateIP(17, ipsrc, ipdest, packetUDP);
+    byte[] frame = encapsulateEthernet(addressMAC, broadcastMAC, packetIP);
     sendFrame(frame);
   }
 
-  public byte[] encapsulateEthernet(long sourceAddr, long destAddr, byte[] payload) {
+  public byte[] encapsulateEthernet(byte[] destAddr, byte[] sourceAddr, byte[] payload) {
     byte[] header = new byte[14];
-    ByteBuffer bb = ByteBuffer.allocate(8);
-    bb.putLong(sourceAddr);
-    System.arraycopy(bb.array(), 2, header, 0, 6);
-    bb.putLong(destAddr);
-    System.arraycopy(bb.array(), 2, header, 6, 6);
+    System.arraycopy(sourceAddr, 0, header, 0, 6);
+    System.arraycopy(destAddr, 0, header, 6, 6);
     header[12] = (byte) 0x80;
     header[13] = 0x00;
     
@@ -88,14 +85,17 @@ public class Client {
     return frame;
   }
 
-  public byte[] encapsulateIP(int protocol, int sourceAddr, int destAddr, byte[] payload) {
+  public byte[] encapsulateIP(int protocol, byte[] sourceAddr, byte[] destAddr, byte[] payload) {
     byte[] header = new byte[20];
     header[0] = 0x45;
     ByteBuffer bb = ByteBuffer.allocate(2);
-    bb.putInt(328);
-    System.arraycopy(bb.array(), 0, header, 2, 2);
-    bb.putInt(packetCount);
-    System.arraycopy(bb.array(), 0, header, 4, 2);
+    System.out.println(payload.length + 20);
+    int paylodSize = payload.length + 20;
+    // 2 bytes for the paylodSize of the payload
+    header[2] = (byte) (paylodSize>>4&0xff);
+    header[3] = (byte) (paylodSize&0xff);
+    header[4] = (byte) (packetCount>>4&0xff);
+    header[5] = (byte) (packetCount&0xff);
     // Flags
     header[6] = 0x00;
     // Fragment Offset
@@ -111,12 +111,9 @@ public class Client {
     header[10] = 0x4c;
     header[11] = 0x0d;
     // Source address
-    bb = ByteBuffer.allocate(4);
-    bb.putInt(sourceAddr);
-    System.arraycopy(bb.array(), 0, header, 12, 4);
+    System.arraycopy(sourceAddr, 0, header, 12, 4);
     // Destination address
-    bb.putInt(destAddr);
-    System.arraycopy(bb.array(), 0, header, 16, 4);
+    System.arraycopy(destAddr, 0, header, 16, 4);
 
     byte[] ipPacket = new byte[payload.length + 20];
     System.arraycopy(header, 0, ipPacket, 0, 20);
@@ -126,15 +123,15 @@ public class Client {
   }
 
   private byte[] encapsulateUDP(int sourcePort, int destPort, byte[] payload) {
-    byte[] packet = new byte[payload.length + 4];
+    byte[] udpPacket = new byte[payload.length + 4];
     
-    ByteBuffer bb = ByteBuffer.allocate(2);
-    bb.putInt(sourcePort);
-    System.arraycopy(bb.array(), 0, packet, 0, 2);
-    bb.putInt(destPort);
-    System.arraycopy(bb.array(), 0, packet, 2, 2);
-    System.arraycopy(payload, 0, packet, 4, payload.length);
-    return packet;
+    udpPacket[0] = (byte) (sourcePort>>8);
+    udpPacket[1] = (byte) (sourcePort&0xff);
+    udpPacket[2] = (byte) (destPort>>8);
+    udpPacket[3] = (byte) (destPort&0xff);
+    System.arraycopy(payload, 0, udpPacket, 4, payload.length);
+
+    return udpPacket;
   }
 
 }

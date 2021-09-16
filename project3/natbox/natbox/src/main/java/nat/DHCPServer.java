@@ -7,8 +7,8 @@ import java.util.ArrayList;
 public class DHCPServer extends Thread {
   private DatagramSocket socket;
   private ArrayList<Integer> allocatedIP;
-  private int addressIP = 0xC0A90001;
-  private long addressMAC;
+  private byte[] addressIP = {127, 0, 0, 1};
+  private byte[] addressMAC;
   private DatagramPacket packet;
 
   public DHCPServer() throws Exception {
@@ -52,11 +52,10 @@ public class DHCPServer extends Thread {
     }
   }
 
-  private static long generateRandomMAC() {
-    long mac = 0;
+  private static byte[] generateRandomMAC() {
+    byte[] mac = new byte[6];
     for (int i = 0; i < 6; i++) {
-      mac = mac<<8;
-      mac = mac | (int) (Math.random()*0xFF);
+      mac[i] = (byte) (Math.random()*0xff);
     }
     return mac;
   }

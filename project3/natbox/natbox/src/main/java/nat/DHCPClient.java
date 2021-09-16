@@ -4,9 +4,9 @@ import java.nio.ByteBuffer;
 
 public class DHCPClient {
   int transactionIdentifier;
-  long addressMAC;
+  byte[] addressMAC;
 
-  public DHCPClient(long addressMAC) {
+  public DHCPClient(byte[] addressMAC) {
     this.transactionIdentifier = 0;
     this.addressMAC = addressMAC;
   }
@@ -55,10 +55,7 @@ public class DHCPClient {
     message[28] = 0x00;
     // set chaddr to my MAC address
     // 6 byte MAC address
-    bb = ByteBuffer.allocate(8);
-    bb.putLong(addressMAC);
-    byte[] addressMACByteArray = bb.array();
-    System.arraycopy(addressMACByteArray, 2, message, 29, 6);
+    System.arraycopy(addressMAC, 0, message, 29, 6);
 
     // Client hardware padding
     for (int i = 0; i < 10; i++) {
