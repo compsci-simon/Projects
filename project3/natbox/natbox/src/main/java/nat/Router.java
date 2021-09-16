@@ -2,6 +2,7 @@ package nat;
 
 import java.net.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class Router {
   private DatagramSocket serverSock;
@@ -58,22 +59,33 @@ public class Router {
     for (int i = 0; i < 6; i++) {
       System.out.println(String.format("0x%08x", destAddr[i]&0xff));
     }
-    // if (addressMAC == destAddr || Long.decode("0xffffffffffff") == destAddr) {
-    //   byte[] packet = new byte[frame.length - 14];
-    //   System.arraycopy(frame, 14, packet, 0, packet.length);
-    //   handlePacket(packet);
-    // }
+    byte[] broadcastMAC = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
+    if (Arrays.equals(addressMAC, destAddr) || Arrays.equals(broadcastMAC, destAddr)) {
+      byte[] packet = new byte[frame.length - 14];
+      System.arraycopy(frame, 14, packet, 0, packet.length);
+      handleIPPacket(packet);
+    }
     return true;
   }
 
-  private boolean handlePacket(byte[] packet) {
+  private boolean handleIPPacket(byte[] packet) {
     int protocol = packet[9];
-    int destAddr = 0;
-    for (int i = 0; i < 4; i++) {
-      destAddr = destAddr<<8;
-      destAddr = destAddr | 0xFF&packet[12+i];
-    }
+    byte[] destIP = new byte[4];
+    byte[] sourceIP = new byte[4];
+    System.arraycopy(packet, 12, destIP, 0, 4);
+    System.arraycopy(packet, 16, sourceIP, 0, 4);
+    System.out.println("Dest IP");
+    printIP(destIP);
+    System.out.println("Source IP");
+    printIP(sourceIP);
     return false;
+  }
+
+  public static void printIP(byte[] ipaddr) {
+    if (ipaddr.length != 4)
+      return;
+    String ip = String.format("%d.%d.%d.%d", (int) (ipaddr[0]&0xff), (int) (ipaddr[1]&0xff), (int) (ipaddr[2]&0xff), (int) (ipaddr[3]&0xff));
+    System.out.println(ip);
   }
 
   private void broadcast(byte[] frame) {

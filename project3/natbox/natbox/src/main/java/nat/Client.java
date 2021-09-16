@@ -66,7 +66,7 @@ public class Client {
     byte[] packetUDP = encapsulateUDP(68, 67, packetDHCP);
     byte[] ipsrc = {0, 0, 0, 0};
     byte[] ipdest = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
-    byte[] packetIP = encapsulateIP(17, ipsrc, ipdest, packetUDP);
+    byte[] packetIP = encapsulateIP(17, ipdest, ipsrc, packetUDP);
     byte[] frame = encapsulateEthernet(addressMAC, broadcastMAC, packetIP);
     sendFrame(frame);
   }
@@ -85,11 +85,10 @@ public class Client {
     return frame;
   }
 
-  public byte[] encapsulateIP(int protocol, byte[] sourceAddr, byte[] destAddr, byte[] payload) {
+  public byte[] encapsulateIP(int protocol, byte[] destAddr, byte[] sourceAddr, byte[] payload) {
     byte[] header = new byte[20];
     header[0] = 0x45;
     ByteBuffer bb = ByteBuffer.allocate(2);
-    System.out.println(payload.length + 20);
     int paylodSize = payload.length + 20;
     // 2 bytes for the paylodSize of the payload
     header[2] = (byte) (paylodSize>>4&0xff);
