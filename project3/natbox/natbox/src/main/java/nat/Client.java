@@ -3,11 +3,20 @@ package nat;
 import java.net.*;
 
 public class Client {
-  boolean internalClient = true;
-  int addressIP = 0x7F000001;
-  long addressMAC;
+  private boolean internalClient = true;
+  private int addressIP = 0x7F000001;
+  private long addressMAC;
+  private DatagramSocket socket;
+  private DatagramPacket packet;
 
-  public Client(boolean internalClient) {
+  public Client(boolean internalClient, String address, int port) {
+    try {
+      this.socket = new DatagramSocket();
+      this.packet = new DatagramPacket(new byte[1500], 1500, InetAddress.getByName(address), port);
+    } catch (Exception e) {
+      e.printStackTrace();
+      return;
+    }
     if (!internalClient) {
       this.addressIP = generateRandomIP();
     }
@@ -16,7 +25,8 @@ public class Client {
   }
 
   public static void main(String[] args) {
-    Client c = new Client(true);
+    Client c = new Client(true, "localhost", 5000);
+    c.sendPacquet(args[0]);
   }
 
   private static long generateRandomMAC() {
@@ -37,4 +47,13 @@ public class Client {
     return addressIP;
   }
   
+  public void sendPacquet(String message) {
+    packet.setData(message.getBytes(), 0, message.getBytes().length);
+    try {
+      socket.send(packet);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
 }
