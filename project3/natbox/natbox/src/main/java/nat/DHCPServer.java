@@ -19,6 +19,7 @@ public class DHCPServer extends Thread {
 
   @Override
   public void run() {
+    System.out.println("DHCP server running...");
     handleMessages();
   }
 
@@ -36,7 +37,7 @@ public class DHCPServer extends Thread {
   }
 
   public boolean handlePacket(byte[] packet) {
-    System.out.println("Packet received");
+    System.out.println("Packet received by DHCP server!");
     return false;
   }
 

@@ -110,9 +110,9 @@ public class Client {
     header[10] = 0x4c;
     header[11] = 0x0d;
     // Source address
-    System.arraycopy(sourceAddr, 0, header, 12, 4);
+    System.arraycopy(destAddr, 0, header, 12, 4);
     // Destination address
-    System.arraycopy(destAddr, 0, header, 16, 4);
+    System.arraycopy(sourceAddr, 0, header, 16, 4);
 
     byte[] ipPacket = new byte[payload.length + 20];
     System.arraycopy(header, 0, ipPacket, 0, 20);
