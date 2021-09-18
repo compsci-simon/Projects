@@ -28,8 +28,10 @@ public class DHCP {
   private byte[] chaddr;
   private String hostname;
   private ArrayList<Byte> options;
+  private byte[] packetBytes;
 
   public DHCP(byte[] packet) {
+    this.packetBytes = packet;
     this.messageType = packet[0]&0xff;
     this.hardwareType = packet[1]&0xff;
     this.hardwareAddrLen = packet[2]&0xff;
@@ -59,7 +61,7 @@ public class DHCP {
     this.messageType = messageType;
   }
 
-  public byte[] toBytes() {
+  public byte[] getBytes() {
     ArrayList<Byte> packetBytes = new ArrayList<Byte>();
     // Setting operation code
     packetBytes.add((byte) (messageType&0xff));
@@ -218,4 +220,25 @@ public class DHCP {
   public static byte[] createResponse(DHCP packet) {
     return null;
   }
+
+  public byte[] getCiaddr() {
+    return ciaddr;
+  }
+
+  public byte[] getChaddr() {
+    return chaddr;
+  }
+
+  public void setciaddr(byte[] ip) {
+    if (ip == null || ip.length != 4) {
+      System.err.println("IP format incorrect");
+      return;
+    }
+    this.ciaddr = ip;
+  }
+
+  public void setsiaddr(byte[] ip) {
+    
+  }
+
 }

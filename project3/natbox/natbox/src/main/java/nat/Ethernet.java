@@ -11,6 +11,7 @@ public class Ethernet {
   private int demuxProtocol;
 
   public Ethernet(byte[] destMAC, byte[] sourceMAC, int demuxProtocol, byte[] payload) {
+
     if (destMAC.length != 6 || sourceMAC.length != 6) {
       System.err.println("MAC addresses are 48 bits long");
       return;
@@ -30,6 +31,19 @@ public class Ethernet {
     demuxProtocol = (frame[12]&0xff)<<8 | (frame[13]&0xff);
     System.arraycopy(frame, 14, payload, 0, frame.length - 14);
   }
+
+  public Ethernet(byte[] destMAC, byte[] sourceMAC, int demuxProtocol, IP packet) {
+
+    if (destMAC.length != 6 || sourceMAC.length != 6) {
+      System.err.println("MAC addresses are 48 bits long");
+      return;
+    }
+    this.destMAC = destMAC;
+    this.sourceMAC = sourceMAC;
+    this.payload = packet.payload();
+    this.demuxProtocol = demuxProtocol;
+  }
+
 
   public byte[] getBytes() {
     byte[] header = new byte[14];

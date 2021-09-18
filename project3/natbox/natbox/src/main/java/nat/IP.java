@@ -4,7 +4,8 @@ import java.util.Arrays;
 
 public class IP {
   public static byte[] broadcastIP = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
-  public static byte[] nilIP = {0, 0, 0, 0};
+  public static byte[] relayIP = {0, 0, 0, 0};
+  public static int demuxID;
   private byte[] destIP;
   private byte[] sourceIP;
   private int demuxPort;

@@ -1,6 +1,7 @@
 package nat;
 
 public class UDP {
+  public static int demuxPort = 17;
   private int destPort;
   private int sourcePort;
   private byte[] payload;

@@ -10,16 +10,19 @@ public class Router {
   private DatagramPacket packet;
   private ArrayList<Integer> connectedHosts;
   private DHCPServer dhcpServer;
+  private ARP arp;
   private byte[] addressMAC;
   private byte[] addressIP = {(byte) 0xC0, (byte) 0xA8, 0, 1};
+  private int packetID;
 
   public Router (int portNum) {
+    packetID = 0;
     connectedHosts = new ArrayList<Integer>();
     this.addressMAC = generateRandomMAC();
     try {
       this.serverSock = new DatagramSocket(portNum);
       packet = new DatagramPacket(new byte[1500], 1500);
-      dhcpServer = new DHCPServer();
+      dhcpServer = new DHCPServer(addressIP);
       handleConnections();
     } catch (Exception e) {
       e.printStackTrace();
@@ -72,7 +75,8 @@ public class Router {
     if (ipPacket.isBroadcast()) {
       // This is broadcast IP packets
       System.out.println("Broadcast frame");
-      broadcastFrame(packet);
+      Ethernet frame = new Ethernet(Ethernet.broadcastMAC, addressMAC, Ethernet.demuxIP, ipPacket);
+      sendFrame(frame);
       if (ipPacket.demuxPort() == 17) {
         // pass to UDP on router... Dont know what packets the router would receive yet...
         handleUDPPacket(ipPacket.payload());
@@ -92,7 +96,13 @@ public class Router {
   public void handleUDPPacket(byte[] packet) {
     UDP udpPacket = new UDP(packet);
     if (udpPacket.demuxPort() == DHCP.serverPort) {
-      dhcpServer.processDHCPPacket(udpPacket.payload());
+      DHCP dhcpReq = new DHCP(udpPacket.payload());
+      byte[] response = dhcpServer.generateResponse(dhcpReq);
+      DHCP dhcpResp = new DHCP(response);
+      UDP udpPack = new UDP(68, 67, dhcpResp.getBytes());
+      IP ipPack = new IP(dhcpReq.getCiaddr(), addressIP, UDP.demuxPort, udpPack.getBytes());
+      Ethernet frame = new Ethernet(dhcpReq.getChaddr(), addressMAC, IP.demuxID, ipPack.getBytes(packetID++));
+      sendFrame(frame);
     }
   }
 
@@ -103,9 +113,9 @@ public class Router {
     System.out.println(ip);
   }
 
-  private void broadcastFrame(byte[] frame) {
+  private void sendFrame(Ethernet frame) {
+    this.packet.setData(frame.getBytes());
     for (int i = 0; i < connectedHosts.size(); i++) {
-      this.packet.setData(frame);
       this.packet.setPort(connectedHosts.get(i));
       System.out.println("Broadcasting to host on logical port "+this.packet.getPort());
       try {
@@ -114,13 +124,6 @@ public class Router {
         e.printStackTrace();
       }
     }
-  }
-
-  public void broadcastIP(byte[] packet) {
-    System.arraycopy(packet, 12, Constants.broadcastIP, 0, 4);
-    System.arraycopy(packet, 16, addressIP, 0, 4);
-    byte[] frame = encapsulateEthernet(Constants.broadcastMAC, addressMAC, packet);
-    broadcastFrame(frame);
   }
 
   public byte[] encapsulateEthernet(byte[] destAddr, byte[] sourceAddr, byte[] payload) {

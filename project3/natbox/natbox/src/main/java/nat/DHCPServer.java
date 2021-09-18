@@ -4,19 +4,31 @@ import java.util.ArrayList;
 
 public class DHCPServer {
   private ArrayList<Integer> allocatedIPs;
+  private byte[] routerIP;
 
-  public DHCPServer() {
+  public DHCPServer(byte[] routerIP) {
+    if (routerIP == null || routerIP.length != 4) {
+      System.err.println("Incorrect IP format");
+      return;
+    }
+    this.routerIP = routerIP;
     allocatedIPs = new ArrayList<Integer>();
     allocatedIPs.add(1);
     System.out.println("DHCP server started...");
   }
 
-  public void processDHCPPacket(byte[] packet) {
-    DHCP dhcpPacket = new DHCP(packet);
+  public byte[] generateResponse(DHCP dhcpPacket) {
     if (dhcpPacket.getMessageType() == DHCP.bootRequest) {
       // dhcpPacket.setMessageType(DHCP.bootReply);
       System.out.println("here in dhcp");
+      dhcpPacket.setMessageType(DHCP.bootReply);
+      byte[] newIP = new byte[4];
+      System.arraycopy(routerIP, 0, newIP, 0, 3);
+      newIP[3] = (byte) (lowestFreeIP()&0xff);
+      dhcpPacket.setciaddr(newIP);
+      
     }
+    return null;
   }
 
   public void handleMessage(byte[] message) {

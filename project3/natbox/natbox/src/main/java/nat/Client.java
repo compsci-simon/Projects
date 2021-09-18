@@ -64,7 +64,7 @@ public class Client {
   public void sendDHCPDiscover() {
     byte[] packetDHCP = generateDHCPDiscoverPacket();
     byte[] packetUDP = encapsulateUDP(68, 67, packetDHCP);
-    byte[] packetIP = encapsulateIP(17, IP.broadcastIP, IP.nilIP, packetUDP);
+    byte[] packetIP = encapsulateIP(17, IP.broadcastIP, IP.relayIP, packetUDP);
     byte[] frame = encapsulateEthernet(broadcastMAC, addressMAC, packetIP);
     sendFrame(frame);
   }
