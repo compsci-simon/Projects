@@ -12,6 +12,24 @@ public class UDP {
     System.arraycopy(packet, 4, this.payload, 0, this.payload.length);
   }
 
+  public UDP(int destPort, int sourcePort, byte[] payload) {
+    this.destPort = destPort;
+    this.sourcePort = sourcePort;
+    this.payload = payload;
+  }
+
+  public byte[] getBytes() {
+    byte[] udpPacket = new byte[payload.length + 4];
+    
+    udpPacket[0] = (byte) (sourcePort>>8);
+    udpPacket[1] = (byte) (sourcePort&0xff);
+    udpPacket[2] = (byte) (destPort>>8);
+    udpPacket[3] = (byte) (destPort&0xff);
+    System.arraycopy(payload, 0, udpPacket, 4, payload.length);
+    
+    return udpPacket;
+  }
+
   public int demuxPort() {
     return destPort;
   }

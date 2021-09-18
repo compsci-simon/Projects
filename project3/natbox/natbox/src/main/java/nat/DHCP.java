@@ -159,9 +159,13 @@ public class DHCP {
   }
 
   public static byte[] bootRequest(int transactionIdentifier, byte[] addressMAC) {
+    return createPacket(DHCP.bootRequest, transactionIdentifier, addressMAC);
+  }
+
+  private static byte[] createPacket(int opCode, int transactionIdentifier, byte[] addressMAC) {
     byte[] message = new byte[236];
     // Setting operation code
-    message[0] = (byte) DHCP.bootRequest;
+    message[0] = (byte) opCode;
     // Setting hardware type
     message[1] = 0x01;
     // Setting hardware address length

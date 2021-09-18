@@ -64,9 +64,7 @@ public class Client {
   public void sendDHCPDiscover() {
     byte[] packetDHCP = generateDHCPDiscoverPacket();
     byte[] packetUDP = encapsulateUDP(68, 67, packetDHCP);
-    byte[] ipsrc = {0, 0, 0, 0};
-    byte[] ipdest = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
-    byte[] packetIP = encapsulateIP(17, ipdest, ipsrc, packetUDP);
+    byte[] packetIP = encapsulateIP(17, IP.broadcastIP, IP.nilIP, packetUDP);
     byte[] frame = encapsulateEthernet(addressMAC, broadcastMAC, packetIP);
     sendFrame(frame);
   }
@@ -76,65 +74,15 @@ public class Client {
   }
 
   public byte[] encapsulateEthernet(byte[] destAddr, byte[] sourceAddr, byte[] payload) {
-    byte[] header = new byte[14];
-    System.arraycopy(sourceAddr, 0, header, 0, 6);
-    System.arraycopy(destAddr, 0, header, 6, 6);
-    header[12] = (byte) 0x80;
-    header[13] = 0x00;
-    
-    byte[] frame = new byte[14 + payload.length];
-    System.arraycopy(header, 0, frame, 0, header.length);
-    System.arraycopy(payload, 0, frame, header.length, payload.length);
-
-    return frame;
+    return new Ethernet(payload).getBytes(destAddr, sourceAddr);
   }
 
   public byte[] encapsulateIP(int protocol, byte[] destAddr, byte[] sourceAddr, byte[] payload) {
-    byte[] header = new byte[20];
-    header[0] = 0x45;
-    ByteBuffer bb = ByteBuffer.allocate(2);
-    int paylodSize = payload.length + 20;
-    // 2 bytes for the paylodSize of the payload
-    header[2] = (byte) (paylodSize>>4&0xff);
-    header[3] = (byte) (paylodSize&0xff);
-    header[4] = (byte) (packetCount>>4&0xff);
-    header[5] = (byte) (packetCount&0xff);
-    // Flags
-    header[6] = 0x00;
-    // Fragment Offset
-    header[7] = 0x00;
-    // TTL
-    header[8] = (byte) 0xff;
-    // Protocol
-    if (protocol == 11) {
-      header[9] = 0x11;
-    }
-    header[9] = 0x11;
-    // Header checksum (disabled)
-    header[10] = 0x4c;
-    header[11] = 0x0d;
-    // Source address
-    System.arraycopy(destAddr, 0, header, 12, 4);
-    // Destination address
-    System.arraycopy(sourceAddr, 0, header, 16, 4);
-
-    byte[] ipPacket = new byte[payload.length + 20];
-    System.arraycopy(header, 0, ipPacket, 0, 20);
-    System.arraycopy(payload, 0, ipPacket, 20, payload.length);
-
-    return ipPacket;
+    return new IP(destAddr, sourceAddr, protocol, payload).getBytes(packetCount);
   }
 
-  private byte[] encapsulateUDP(int sourcePort, int destPort, byte[] payload) {
-    byte[] udpPacket = new byte[payload.length + 4];
-    
-    udpPacket[0] = (byte) (sourcePort>>8);
-    udpPacket[1] = (byte) (sourcePort&0xff);
-    udpPacket[2] = (byte) (destPort>>8);
-    udpPacket[3] = (byte) (destPort&0xff);
-    System.arraycopy(payload, 0, udpPacket, 4, payload.length);
-
-    return udpPacket;
+  private byte[] encapsulateUDP(int destPort, int sourcePort, byte[] payload) {
+    return new UDP(destPort, sourcePort, payload).getBytes();
   }
 
 }

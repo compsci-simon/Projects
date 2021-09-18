@@ -1,5 +1,5 @@
 package nat;
 
-public class NAPTBox implements NATProtocol {
+public class NAPT implements NATProtocol {
   
 }
