@@ -80,10 +80,6 @@ public class IP {
     return payload();
   }
 
-  public void setSession(int sessionPort) {
-    this.sessionPort = sessionPort;
-  }
-
   public String toString() {
     String s = "Destination IP = ";
     for (int i = 0; i < 4; i++) {

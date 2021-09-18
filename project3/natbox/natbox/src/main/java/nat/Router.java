@@ -58,7 +58,7 @@ public class Router {
     Ethernet ethernetFrame = new Ethernet(frame);
     // Router MAC address of broadcast addressed frame are accepted
     System.out.println(ethernetFrame.toString());
-    if (Arrays.equals(addressMAC, ethernetFrame.destination()) 
+    if (Arrays.equals(addressMAC, ethernetFrame.destination())
       || ethernetFrame.isBroadcast()) {
       handleIPPacket(ethernetFrame.payload());
     }
@@ -68,7 +68,9 @@ public class Router {
   private boolean handleIPPacket(byte[] packet) {
     IP ipPacket = new IP(packet);
     System.out.println(ipPacket.toString());
+
     if (ipPacket.isBroadcast()) {
+      // This is broadcast IP packets
       System.out.println("Broadcast frame");
       broadcastFrame(packet);
       if (ipPacket.demuxPort() == 17) {
@@ -76,7 +78,13 @@ public class Router {
         handleUDPPacket(ipPacket.payload());
       }
     } else if (Arrays.equals(addressIP, ipPacket.destination())) {
+      // Packets destined for the router
       System.out.println("Received packet destined for router");
+    } else {
+      // Packets that need to be routed
+      // Here we forward packets... Externally as well as internally
+      // Get MAC address of IP from ARP table
+      ipPacket.destination();
     }
     return false;
   }
