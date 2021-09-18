@@ -72,7 +72,7 @@ public class Client {
   }
   
   public byte[] generateDHCPDiscoverPacket() {
-    return DHCP.dhcpPacket(DHCP.bootRequest, transactionIdentifier++, addressMAC);
+    return DHCP.bootRequest(transactionIdentifier++, addressMAC);
   }
 
   public byte[] encapsulateEthernet(byte[] destAddr, byte[] sourceAddr, byte[] payload) {

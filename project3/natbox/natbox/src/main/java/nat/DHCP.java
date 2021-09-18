@@ -158,10 +158,10 @@ public class DHCP {
     return packetB;
   }
 
-  public static byte[] dhcpPacket(int opCode, int transactionIdentifier, byte[] addressMAC) {
+  public static byte[] bootRequest(int transactionIdentifier, byte[] addressMAC) {
     byte[] message = new byte[236];
     // Setting operation code
-    message[0] = (byte) (opCode&0xff);
+    message[0] = (byte) DHCP.bootRequest;
     // Setting hardware type
     message[1] = 0x01;
     // Setting hardware address length
@@ -211,5 +211,9 @@ public class DHCP {
     // 64 0x00 bytes for server address
     // 128 0x00 bytes for boot file name
     return message;
+  }
+
+  public static byte[] createResponse(DHCP packet) {
+    return null;
   }
 }
