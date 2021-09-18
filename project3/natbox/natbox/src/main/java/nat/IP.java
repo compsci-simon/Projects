@@ -1,18 +1,35 @@
 package nat;
 
+import java.util.Arrays;
+
 public class IP {
   public static byte[] broadcastIP = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
   public static byte[] nilIP = {0, 0, 0, 0};
   private byte[] destIP;
-  public byte[] sourceIP;
-  public int demuxPort;
-  public byte[] payload;
+  private byte[] sourceIP;
+  private int demuxPort;
+  private byte[] payload;
+  private int totalLength;
 
   public IP (byte[] destIP, byte[] sourceIP, int demuxPort, byte[] payload) {
     this.destIP = destIP;
     this.sourceIP = sourceIP;
     this.demuxPort = demuxPort;
     this.payload = payload;
+  }
+
+  public IP (byte[] packet) {
+    this.totalLength = (packet[2]&0xff)<<8 | (packet[3]&0xff);
+    this.demuxPort = packet[9];
+    for (int i = 0; i < 4; i ++) {
+      this.destIP[i] = packet[16 + i];
+    }
+    for (int i = 0; i < 4; i ++) {
+      this.sourceIP[i] = sourceIP[12 + i];
+    }
+    System.arraycopy(packet, 16, destIP, 0, 4);
+    System.arraycopy(packet, 12, destIP, 0, 4);
+    System.arraycopy(packet, 20, payload, 0, totalLength - 20);
   }
 
   public byte[] getBytes(int packetCount) {
@@ -49,4 +66,21 @@ public class IP {
 
     return ipPacket;
   }
+
+  public byte[] destination() {
+    return destIP;
+  }
+
+  public int demuxPort() {
+    return demuxPort;
+  }
+
+  public boolean isBroadcast() {
+    return Arrays.equals(destIP, broadcastIP);
+  }
+
+  public byte[] payload() {
+    return payload();
+  }
+
 }

@@ -55,34 +55,25 @@ public class Router {
   private boolean handleFrame(byte[] frame) {
     if (frame.length < 14)
       return true;
-    byte[] destAddr = new byte[6];
-    System.arraycopy(frame, 0, destAddr, 0, 6);
-    byte[] broadcastMAC = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
+    Ethernet ethernetFrame = new Ethernet(frame);
     // Router MAC address of broadcast addressed frame are accepted
-    if (Arrays.equals(addressMAC, destAddr) || Arrays.equals(Constants.broadcastMAC, destAddr)) {
-      byte[] packet = new byte[frame.length - 14];
-      System.arraycopy(frame, 14, packet, 0, packet.length);
-      handleIPPacket(packet);
+    if (Arrays.equals(addressMAC, ethernetFrame.destination()) 
+      || Arrays.equals(Ethernet.broadcastMAC, ethernetFrame.destination())) {
+      handleIPPacket(ethernetFrame.payload());
     }
     return true;
   }
 
   private boolean handleIPPacket(byte[] packet) {
-    int protocol = packet[9];
-    byte[] destIP = new byte[4];
-    byte[] sourceIP = new byte[4];
-    System.arraycopy(packet, 12, destIP, 0, 4);
-    System.arraycopy(packet, 16, sourceIP, 0, 4);
+    IP ipPacket = new IP(packet);
     
-    if (Arrays.equals(Constants.broadcastIP, destIP)) {
+    if (ipPacket.isBroadcast()) {
       broadcastFrame(packet);
-      if (protocol == 17) {
+      if (ipPacket.demuxPort() == 17) {
         // pass to UDP on router... Dont know what packets the router would receive yet...
-        byte[] payload = new byte[packet.length - 20];
-        System.arraycopy(packet, 20, payload, 0, payload.length);
-        handleUDPPacket(payload);
+        handleUDPPacket(ipPacket.payload());
       }
-    } else if (Arrays.equals(addressIP, destIP)) {
+    } else if (Arrays.equals(addressIP, ipPacket.destination())) {
       System.out.println("Received packet destined for router");
     }
     return false;
@@ -90,7 +81,7 @@ public class Router {
 
   public void handleUDPPacket(byte[] packet) {
     UDP udpPacket = new UDP(packet);
-    if (udpPacket.demuxPort() == Constants.demuxPortDHCP) {
+    if (udpPacket.demuxPort() == DHCP.serverPort) {
       dhcpServer.processDHCPPacket(udpPacket.payload());
     }
   }

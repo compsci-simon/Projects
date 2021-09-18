@@ -1,11 +1,17 @@
 package nat;
 
 public class Ethernet {
-  public static byte[] broadcastAddr = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
+  public static byte[] broadcastMAC = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
   private byte[] payload;
+  private byte[] destMAC;
+  private byte[] sourceMAC;
+  private int demuxProtocol;
 
-  public Ethernet(byte[] payload) {
-    this.payload = payload;
+  public Ethernet(byte[] frame) {
+    System.arraycopy(frame, 0, destMAC, 0, 6);
+    System.arraycopy(frame, 6, sourceMAC, 0, 6);
+    demuxProtocol = (frame[12]&0xff)<<8 | (frame[13]&0xff);
+    System.arraycopy(frame, 14, payload, 0, frame.length - 14);
   }
 
   public byte[] getBytes(byte[] destMAC, byte[] sourceMAC) {
@@ -21,5 +27,13 @@ public class Ethernet {
 
     return frame;
   }
-  
+
+  public byte[] destination() {
+    return destMAC;
+  }
+
+  public byte[] payload() {
+    return
+  }
+
 }

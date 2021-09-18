@@ -13,6 +13,7 @@ public class DHCP {
   private static byte requestListItemRouter = 0x03;
   private static byte requestListItemDNS = 0x06;
   private static byte hostnameOption = 0x0c;
+  public static int serverPort = 67;
   private int messageType;
   private int hardwareType;
   private int hardwareAddrLen;
@@ -49,9 +50,6 @@ public class DHCP {
     System.arraycopy(packet, 28, chaddr, 0, 6);
   }
 
-  public DHCP(int opCode, int transactionIdentifier, byte[] addressMAC) {
-
-  }
 
   public int getMessageType() {
     return messageType;
