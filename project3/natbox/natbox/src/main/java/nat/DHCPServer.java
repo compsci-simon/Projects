@@ -14,7 +14,7 @@ public class DHCPServer {
   public void processDHCPPacket(byte[] packet) {
     DHCP dhcpPacket = new DHCP(packet);
     if (dhcpPacket.getMessageType() == DHCP.bootRequest) {
-      dhcpPacket.setMessageType(DHCP.bootReply);
+      // dhcpPacket.setMessageType(DHCP.bootReply);
       System.out.println("here in dhcp");
     }
   }

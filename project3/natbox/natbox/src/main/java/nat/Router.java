@@ -54,11 +54,12 @@ public class Router {
 
   private boolean handleFrame(byte[] frame) {
     if (frame.length < 14)
-      return true;
+      return false;
     Ethernet ethernetFrame = new Ethernet(frame);
     // Router MAC address of broadcast addressed frame are accepted
+    System.out.println(ethernetFrame.toString());
     if (Arrays.equals(addressMAC, ethernetFrame.destination()) 
-      || Arrays.equals(Ethernet.broadcastMAC, ethernetFrame.destination())) {
+      || ethernetFrame.isBroadcast()) {
       handleIPPacket(ethernetFrame.payload());
     }
     return true;
@@ -66,8 +67,9 @@ public class Router {
 
   private boolean handleIPPacket(byte[] packet) {
     IP ipPacket = new IP(packet);
-    
+    System.out.println(ipPacket.toString());
     if (ipPacket.isBroadcast()) {
+      System.out.println("Broadcast frame");
       broadcastFrame(packet);
       if (ipPacket.demuxPort() == 17) {
         // pass to UDP on router... Dont know what packets the router would receive yet...

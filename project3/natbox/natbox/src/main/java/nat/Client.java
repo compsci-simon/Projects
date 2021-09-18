@@ -65,7 +65,7 @@ public class Client {
     byte[] packetDHCP = generateDHCPDiscoverPacket();
     byte[] packetUDP = encapsulateUDP(68, 67, packetDHCP);
     byte[] packetIP = encapsulateIP(17, IP.broadcastIP, IP.nilIP, packetUDP);
-    byte[] frame = encapsulateEthernet(addressMAC, broadcastMAC, packetIP);
+    byte[] frame = encapsulateEthernet(broadcastMAC, addressMAC, packetIP);
     sendFrame(frame);
   }
   
@@ -74,7 +74,7 @@ public class Client {
   }
 
   public byte[] encapsulateEthernet(byte[] destAddr, byte[] sourceAddr, byte[] payload) {
-    return new Ethernet(payload).getBytes(destAddr, sourceAddr);
+    return new Ethernet(destAddr, sourceAddr, Ethernet.demuxIP, payload).getBytes();
   }
 
   public byte[] encapsulateIP(int protocol, byte[] destAddr, byte[] sourceAddr, byte[] payload) {
