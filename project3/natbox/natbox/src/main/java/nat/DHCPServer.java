@@ -19,11 +19,11 @@ public class DHCPServer {
 
   public byte[] generateBootResponse(DHCP dhcpPacket) {
     // dhcpPacket.setMessageType(DHCP.bootReply);
-    System.out.println("here in dhcp");
     dhcpPacket.setMessageType(DHCP.bootReply);
     byte[] newIP = new byte[4];
     System.arraycopy(routerIP, 0, newIP, 0, 3);
     newIP[3] = (byte) (lowestFreeIP()&0xff);
+    System.out.println(String.format("Assigned IP 192.168.0.%d", newIP[3]));
     dhcpPacket.setciaddr(newIP);
     dhcpPacket.setOptions(DHCP.optionDHCPMessageType, (byte) DHCP.bootReply);
     dhcpPacket.setOptions(DHCP.optionDHCPServerIdentifier, Constants.bToB(routerIP));
@@ -52,7 +52,7 @@ public class DHCPServer {
           break;
       }
       if (j == allocatedIPs.size())
-        return j;
+        return i;
     }
     return -1;
   }

@@ -3,8 +3,9 @@ package nat;
 import java.util.Arrays;
 
 public class Ethernet {
-  public static byte[] broadcastMAC = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
-  public static int demuxIP = 2048;
+  public static final byte[] BROADCASTMAC = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
+  public static final byte[] ZEROMAC = {(byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00};
+  public static final int DEMUXIP = 2048;
   private byte[] payload;
   private byte[] destMAC;
   private byte[] sourceMAC;
@@ -68,11 +69,11 @@ public class Ethernet {
   }
 
   public boolean isBroadcast() {
-    return Arrays.equals(destMAC, broadcastMAC);
+    return Arrays.equals(destMAC, BROADCASTMAC);
   }
 
   public String toString() {
-    String s = "Destination MAC = ";
+    String s = "\n\nEthernet toString\nDestination MAC = ";
     for (int i = 0; i < 6; i++) {
       s = String.format("%s%02x:", s, destMAC[i]&0xff);
     }
@@ -82,7 +83,17 @@ public class Ethernet {
       s = String.format("%s%02x:", s, sourceMAC[i]&0xff);
     }
     s = s.substring(0, s.length() - 1);
+    s += "\n";
     return s;
+  }
+
+  public static String macString(byte[] mac) {
+    if (mac.length != 6) {
+      System.err.println("Invalid MAC format");
+      return null;
+    }
+    String m = String.format("%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    return m;
   }
 
 }

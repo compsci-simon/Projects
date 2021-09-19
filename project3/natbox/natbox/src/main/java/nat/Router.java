@@ -77,9 +77,9 @@ public class Router {
     if (ipPacket.isBroadcast()) {
       // This is broadcast IP packets
       System.out.println("Broadcast frame");
-      Ethernet frame = new Ethernet(Ethernet.broadcastMAC, addressMAC, Ethernet.demuxIP, ipPacket);
+      Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, addressMAC, Ethernet.DEMUXIP, ipPacket);
       sendFrame(frame);
-      if (ipPacket.demuxPort() == 17) {
+      if (ipPacket.getDemuxPort() == 17) {
         // pass to UDP on router... Dont know what packets the router would receive yet...
         handleUDPPacket(ipPacket.payload());
       }
@@ -100,19 +100,11 @@ public class Router {
       DHCP dhcpReq = new DHCP(udpPacket.payload());
       byte[] response = dhcpServer.generateBootResponse(dhcpReq);
       DHCP dhcpResp = new DHCP(response);
-      UDP udpPack = new UDP(68, 67, dhcpResp.getBytes());
-      IP ipPack = new IP(dhcpReq.getCiaddr(), addressIP, UDP.demuxPort, udpPack.getBytes());
-      Ethernet frame = new Ethernet(dhcpReq.getChaddr(), addressMAC, IP.demuxID, ipPack.getBytes(packetID++));
+      UDP udpPack = new UDP(DHCP.clientPort, DHCP.serverPort, dhcpResp.getBytes());
+      IP ipPack = new IP(dhcpReq.getCiaddr(), addressIP, UDP.DEMUXPORT, udpPack.getBytes());
+      Ethernet frame = new Ethernet(dhcpResp.getChaddr(), addressMAC, IP.DEMUXPORT, ipPack.getBytes(packetID++));
       sendFrame(frame);
-      System.out.println("Frame sent");
     }
-  }
-
-  public static void printIP(byte[] ipaddr) {
-    if (ipaddr.length != 4)
-      return;
-    String ip = String.format("%d.%d.%d.%d", (int) (ipaddr[0]&0xff), (int) (ipaddr[1]&0xff), (int) (ipaddr[2]&0xff), (int) (ipaddr[3]&0xff));
-    System.out.println(ip);
   }
 
   private void sendFrame(Ethernet frame) {

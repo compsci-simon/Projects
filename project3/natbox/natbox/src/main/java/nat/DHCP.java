@@ -1,68 +1,46 @@
 package nat;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
+
+import io.netty.buffer.ByteBufOutputStream;
+
 import java.util.*;
 
-public class DHCP {
-  public static final int bootRequest = 1;
-  public static final int bootReply = 2;
-  public static final int ethernet = 1;
-  public static final byte optionDHCPMessageType = 0x35;
-  public static final byte optionDHCPServerIdentifier = 0x36;
-  public static final byte optionDHCPSubnetMask = 0x01;
-  public static final byte optionDHCPBroadcastIP = 0x1c;
-  public static final byte optionDHCPEnd = (byte)0xff;
-  private static final byte DHCPRequest = 0x03;
-  private static final byte parameterRequestList = 0x37;
-  private static final byte requestListItemSubnet = 0x01;
-  private static final byte requestListItemRouter = 0x03;
-  private static final byte requestListItemDNS = 0x06;
-  private static final byte hostnameOption = 0x0c;
-  public final static int serverPort = 67;
-  public final static int clientPort = 68;
+public class DHCP implements Serializable {
+  public static final byte BOOT_REQUEST = 1;
+  public static final byte BOOT_REPLY = 2;
+  public static final byte ETHERNET = 1;
+  public static final byte OP_MESSAGE_TYPE = 0x35;
+  public static final byte OP_SERVER_IP = 0x36;
+  public static final byte OP_SUBMASK = 0x01;
+  public static final byte OP_END_MARKER = (byte)0xff;
+  public static final  byte SERVERPORT = 67;
+  public static final byte CLIENTPORT = 68;
   private int messageType;
-  private int hardwareType;
-  private int hardwareAddrLen;
-  private int hops;
   private int transactionID;
-  private int secondsElapsed;
-  private int bootpFlags;
   private byte[] ciaddr;
   private byte[] yiaddr;
   private byte[] siaddr;
   private byte[] giaddr;
   private byte[] chaddr;
-  private String hostname;
-  private Map<Byte, Byte[]> options;
 
-  public DHCP(byte[] packet) {
-    options = new HashMap<Byte, Byte[]>();
-    // parameterRequestListItems = new Hashtable<String, Byte>();
-    // initializeParameterRequestListItems(parameterRequestListItems);
-    this.messageType = packet[0]&0xff;
-    this.hardwareType = packet[1]&0xff;
-    this.hardwareAddrLen = packet[2]&0xff;
-    this.hops = packet[3]&0xff;
-    this.transactionID = (packet[4]&0xff)<<24 | (packet[5]&0xff)<<16 | (packet[6]&0xff)<<8 |
-      packet[7]&0xff;
-    this.secondsElapsed = (packet[8]&0xff)<<8 | (packet[9]&0xff);
-    this.bootpFlags = (packet[10]&0xff)<<8 | (packet[11]&0xff);
-    this.ciaddr = new byte[4];
-    System.arraycopy(packet, 12, ciaddr, 0, 4);
-    this.yiaddr = new byte[4];
-    System.arraycopy(packet, 16, yiaddr, 0, 4);
-    this.siaddr = new byte[4];
-    System.arraycopy(packet, 20, siaddr, 0, 4);
-    this.giaddr = new byte[4];
-    System.arraycopy(packet, 24, giaddr, 0, 4);
-    this.chaddr = new byte[6];
-    System.arraycopy(packet, 28, chaddr, 0, 6);
-    // Read options
-    if (packet.length > 236) {
-      processOptions(packet, options);
-    }
+  public DHCP(int messageType, int transactionID, byte[] chaddr) {
+    this.messageType = messageType;
+    this.transactionID = transactionID;
+    this.chaddr = chaddr;
+  }
+
+  public byte[] serialize() throws Exception {
+    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+    ObjectOutputStream oos = new ObjectOutputStream(bos);
+    oos.writeObject(this);
+    oos.flush();
+    return bos.toByteArray();
   }
 
   public void setOptions(Byte key, Byte[] value) {
@@ -70,30 +48,8 @@ public class DHCP {
   }
 
   public void setOptions(Byte key, Byte value) {
-    Byte[] tmp = {value};
+    Byte[] tmp = { value };
     this.options.put(key, tmp);
-  }
-  
-  private static void processOptions(byte[] packet, Map<Byte, Byte[]> options) {
-    int packetLen = packet.length;
-    int byteNum = 237;
-    // while (packet[byteNum] != optionDHCPEnd) {
-    //   switch (packet[byteNum]) {
-    //   case optionDHCPMessageType:
-    //     byteNum++;
-    //     byteNum++;
-    //     options.put(key, value)
-    //     break;
-    //   case parameterRequestList:
-    //     byteNum++;
-    //     int len = packet[byteNum]&0xff;
-
-    //     break;
-    //   default:
-    //     break;
-    //   }
-    //   byteNum++;
-    // }
   }
 
   public int getMessageType() {
@@ -166,36 +122,15 @@ public class DHCP {
     }
     // Options
 
-    // Boot request options
-    if (this.messageType == DHCP.bootRequest) {
-      // Option (53) message type
-      packetBytes.add(DHCP.optionDHCPMessageType);
-      packetBytes.add((byte) 0x01);
-      packetBytes.add(DHCP.DHCPRequest);
-      // Option (54) parameters
-      packetBytes.add(DHCP.parameterRequestList);
-      packetBytes.add(DHCP.requestListItemSubnet);
-      packetBytes.add(DHCP.requestListItemRouter);
-      packetBytes.add(DHCP.requestListItemDNS);
-      // Option (12) hostname
-      if (this.hostname != null) {
-        packetBytes.add(DHCP.hostnameOption);
-        byte[] hostnameBytes = this.hostname.getBytes();
-        packetBytes.add((byte) (hostnameBytes.length&0xff));
-        for (Byte b : hostnameBytes) {
-          packetBytes.add(b);
-        }
+    System.out.println("here ja");
+    for (Byte key : this.options.keySet()) {
+      packetBytes.add(key);
+      packetBytes.add((byte)options.get(key).length);
+      for (Byte b : this.options.get(key)) {
+        packetBytes.add(b);
       }
-    } else if (this.messageType == DHCP.bootReply) {
-      for (Byte key : this.options.keySet()) {
-        packetBytes.add(key);
-        packetBytes.add((byte)options.get(key).length);
-        for (Byte b : this.options.get(key)) {
-          packetBytes.add(b);
-        }
-      }
-      packetBytes.add(optionDHCPEnd);
     }
+    
     
     int length = packetBytes.size();
     byte[] packetB = new byte[length];
@@ -203,69 +138,6 @@ public class DHCP {
       packetB[i] = packetBytes.get(i);
     }
     return packetB;
-  }
-
-  public static byte[] bootRequest(int transactionIdentifier, byte[] addressMAC) {
-    return createPacket(DHCP.bootRequest, transactionIdentifier, addressMAC);
-  }
-
-  private static byte[] createPacket(int opCode, int transactionIdentifier, byte[] addressMAC) {
-    byte[] message = new byte[236];
-    // Setting operation code
-    message[0] = (byte) opCode;
-    // Setting hardware type
-    message[1] = 0x01;
-    // Setting hardware address length
-    message[2] = 0x06; // 6 bytes
-    // Setting number of hops that have occured to 0
-    message[3] = 0x00;
-    // Setting the transaction identifier for the packet
-    ByteBuffer bb = ByteBuffer.allocate(4);
-    bb.putInt(transactionIdentifier);
-    byte[] transactionIDByteArray = bb.array();
-    System.arraycopy(transactionIDByteArray, 0, message, 4, 4);
-    // Setting the seconds that have elapsed
-    message[8] = 0x00;
-    message[9] = 0x00;
-    // Setting the Bootp flags bytes to 0 for unicast
-    message[10] = 0x00;
-    message[11] = 0x00;
-    // y is 0 in the beginning
-    message[12] = 0x00;
-    message[13] = 0x00;
-    message[14] = 0x00;
-    message[15] = 0x00;
-    // yiAddress is 0 because it needs to be set by the server
-    message[16] = 0x00;
-    message[17] = 0x00;
-    message[18] = 0x00;
-    message[19] = 0x00;
-    // siAddress is 0 because there is no secondary server
-    message[20] = 0x00;
-    message[21] = 0x00;
-    message[22] = 0x00;
-    message[23] = 0x00;
-    // giAddress is 0 because there is no secondary server
-    message[24] = 0x00;
-    message[25] = 0x00;
-    message[26] = 0x00;
-    message[27] = 0x00;
-    // set chaddr to my MAC address
-    // 6 byte MAC address
-    System.arraycopy(addressMAC, 0, message, 28, 6);
-
-    // Client hardware padding
-    for (int i = 0; i < 10; i++) {
-      message[34+i] = 0x00;
-    }
-
-    // 64 0x00 bytes for server address
-    // 128 0x00 bytes for boot file name
-    return message;
-  }
-
-  public static byte[] createResponse(DHCP packet) {
-    return null;
   }
 
   public byte[] getCiaddr() {
@@ -285,7 +157,15 @@ public class DHCP {
   }
 
   public void setsiaddr(byte[] ip) {
+    if (ip == null || ip.length != 4) {
+      System.err.println("IP format incorrect");
+      return;
+    }
+    this.siaddr = ip;
+  }
 
+  public byte[] getGateway() {
+    return siaddr;
   }
 
 }

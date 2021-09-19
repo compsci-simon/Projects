@@ -5,29 +5,30 @@ import java.util.Arrays;
 public class IP {
   public static byte[] broadcastIP = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
   public static byte[] relayIP = {0, 0, 0, 0};
-  public static int demuxID;
+  public static byte[] nilIP = {0, 0, 0, 0};
+  public final static int DEMUXPORT = 2048;
   private byte[] destIP;
   private byte[] sourceIP;
-  private int demuxPort;
+  private int instanceDemuxPort;
   private byte[] payload;
   private int totalLength;
 
   public IP (byte[] destIP, byte[] sourceIP, int demuxPort, byte[] payload) {
     this.destIP = destIP;
     this.sourceIP = sourceIP;
-    this.demuxPort = demuxPort;
+    this.instanceDemuxPort = demuxPort;
     this.payload = payload;
   }
 
   public IP (byte[] packet) {
     this.totalLength = (packet[2]<<8) | (packet[3]&0xff);
-    this.demuxPort = packet[9];
+    this.instanceDemuxPort = packet[9];
     this.destIP = new byte[4];
     this.sourceIP = new byte[4];
     this.payload = new byte[this.totalLength - 20];
     System.arraycopy(packet, 16, destIP, 0, 4);
     System.arraycopy(packet, 12, sourceIP, 0, 4);
-    System.arraycopy(packet, 20, payload, 0, this.totalLength - 20);
+    System.arraycopy(packet, 20, payload, 0, this.totalLength - 21);
   }
 
   public byte[] getBytes(int packetCount) {
@@ -46,7 +47,7 @@ public class IP {
     // TTL
     header[8] = (byte) 0xff;
     // Protocol
-    if (demuxPort == 11) {
+    if (instanceDemuxPort == 11) {
       header[9] = 0x11;
     }
     header[9] = 0x11;
@@ -69,8 +70,8 @@ public class IP {
     return destIP;
   }
 
-  public int demuxPort() {
-    return demuxPort;
+  public int getDemuxPort() {
+    return instanceDemuxPort;
   }
 
   public boolean isBroadcast() {
@@ -82,7 +83,7 @@ public class IP {
   }
 
   public String toString() {
-    String s = "Destination IP = ";
+    String s = "\n\nIP toString\nDestination IP = ";
     for (int i = 0; i < 4; i++) {
       s = String.format("%s%d.", s, destIP[i]&0xff);
     }
@@ -92,8 +93,17 @@ public class IP {
       s = String.format("%s%d.", s, sourceIP[i]&0xff);
     }
     s = s.substring(0, s.length() - 1);
-    s = String.format("%s\nDemux port = %d", s, demuxPort);
+    s = String.format("%s\nDemux port = %d\n", s, instanceDemuxPort);
     return s;
+  }
+
+  public static String ipString(byte[] ip) {
+    if (ip.length != 4) {
+      System.err.println("Invalid IP format");
+      return null;
+    }
+    String i = String.format("%d.%d.%d.%d", ip[0]&0xff, ip[1]&0xff, ip[2]&0xff, ip[3]&0xff);
+    return i;
   }
 
 }

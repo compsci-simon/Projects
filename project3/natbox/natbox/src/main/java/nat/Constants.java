@@ -16,4 +16,18 @@ public class Constants {
     }
     return B;
   }
+
+  public static byte[] bToB(Byte[] B) {
+    byte[] b = new byte[B.length];
+    System.arraycopy(B, 0, b, 0, B.length);
+    return b;
+  }
+
+  public static String bytesToString(byte[] bytes) {
+    String s = "";
+    for (byte b : bytes) {
+      s = String.format("%s %02x", s, b);
+    }
+    return s;
+  }
 }

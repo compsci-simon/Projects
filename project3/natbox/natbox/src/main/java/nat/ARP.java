@@ -1,14 +1,12 @@
 package nat;
 
 public class ARP {
-    public static int demuxARP = 2048;
+    public static int demuxPort = 2048;
     private int opCode;
     private byte[] srcMAC;
     private byte[] destMAC;
     private byte[] srcIP;
     private byte[] destIP;
-    private static byte[] broadcastMAC = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
-    private static byte[] zeroMAC = {(byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00};
 
     public byte[] createPacketARP(int opCode, byte[] srcMAC, byte[] destMAC, byte[] srcIP, byte[] destIP) {
         byte[] message = new byte[28];
@@ -39,13 +37,13 @@ public class ARP {
     }
 
     public void sendRequestARP(byte[] srcMAC, byte[] srcIP, byte[] destIP) {
-        byte[] packetARP = createPacketARP(1, srcMAC, zeroMAC, srcIP, destIP);
+        byte[] packetARP = createPacketARP(1, srcMAC, Ethernet.ZEROMAC, srcIP, destIP);
         //byte[] frame = encapsulateEthernet(broadcastMAC, srcMAC, packetARP);
         //sendFrame(frame);
     }
 
     public void sendResponseARP(byte[] srcMAC, byte[] destMAC, byte[] srcIP, byte[] destIP) {
-        byte[] packetARP = createPacketARP(2, srcMAC, zeroMAC, srcIP, destIP);
+        byte[] packetARP = createPacketARP(2, srcMAC, Ethernet.ZEROMAC, srcIP, destIP);
         //byte[] frame = encapsulateEthernet(destMAC, srcMAC, packetARP);
        // sendFrame(frame);
     }

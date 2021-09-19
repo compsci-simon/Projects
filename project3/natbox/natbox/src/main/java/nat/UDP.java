@@ -1,14 +1,14 @@
 package nat;
 
 public class UDP {
-  public static int demuxPort = 17;
+  public static final int DEMUXPORT = 17;
   private int destPort;
   private int sourcePort;
   private byte[] payload;
 
   public UDP(byte[] packet) {
-    this.destPort = (packet[0]&0xff)<<8 | packet[1]&0xff;
-    this.sourcePort = (packet[2]&0xff)<<8 | packet[3]&0xff;
+    this.sourcePort = (packet[0]&0xff)<<8 | packet[1]&0xff;
+    this.destPort = (packet[2]&0xff)<<8 | packet[3]&0xff;
     this.payload = new byte[packet.length - 4];
     System.arraycopy(packet, 4, this.payload, 0, this.payload.length);
   }
@@ -38,4 +38,14 @@ public class UDP {
   public byte[] payload() {
     return payload;
   }
+
+  public int destinationPort() {
+    return destPort;
+  }
+
+  public String toString() {
+    String s = String.format("UDP toString:\nDest port = %d\nSource port = %d\n", destPort, sourcePort);
+    return s;
+  }
+
 }

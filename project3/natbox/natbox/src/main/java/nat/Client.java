@@ -6,15 +6,14 @@ import java.util.*;
 
 public class Client {
   private boolean internalClient = true;
-  private byte[] addressIP = {0x7F, 0, 0, 1};
+  private byte[] addressIP = {0, 0, 0, 0};
   private byte[] addressMAC;
   private DatagramSocket socket;
   private DatagramPacket packet;
   private int transactionIdentifier;
   private DHCPClient dhcpClient;
   private int packetCount;
-  private static byte[] broadcastMAC = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
-  private static byte[] routerIdentifier;
+  private static byte[] routerIP;
   private static byte[] subnetMask;
   private static byte[] routerBCAddr;
 
@@ -40,7 +39,6 @@ public class Client {
           try {
             socket.receive(packet);
             handleFrame(packet.getData());
-            System.out.println("Received a frame");
           } catch (Exception e) {
             //TODO: handle exception
             e.printStackTrace();
@@ -99,15 +97,16 @@ public class Client {
 
     if (ipPacket.isBroadcast()) {
       // This is broadcast IP packets
-      System.out.println("Broadcast frame");
-      Ethernet frame = new Ethernet(Ethernet.broadcastMAC, addressMAC, Ethernet.demuxIP, ipPacket);
-      if (ipPacket.demuxPort() == 17) {
+      Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, addressMAC, Ethernet.DEMUXIP, ipPacket);
+      if (ipPacket.getDemuxPort() == UDP.DEMUXPORT) {
         // pass to UDP on router... Dont know what packets the router would receive yet...
         handleUDPPacket(ipPacket.payload());
       }
-    } else if (Arrays.equals(addressIP, ipPacket.destination())) {
+    } else if (Arrays.equals(addressIP, ipPacket.destination()) || Arrays.equals(addressIP, IP.nilIP)) {
       // Packets destined for the router
-      System.out.println("Received packet destined for router");
+      if (ipPacket.getDemuxPort() == UDP.DEMUXPORT) {
+        handleUDPPacket(ipPacket.payload());
+      }
     } else {
       // Packets that need to be routed
       // Here we forward packets... Externally as well as internally
@@ -118,20 +117,22 @@ public class Client {
 
   public void handleUDPPacket(byte[] packet) {
     UDP udpPacket = new UDP(packet);
-    if (udpPacket.demuxPort() == DHCP.clientPort) {
+    System.out.println(udpPacket.toString());
+    if (udpPacket.destinationPort() == DHCP.clientPort) {
       DHCP dhcpPacket = new DHCP(udpPacket.payload());
       if (dhcpPacket.getMessageType() == DHCP.bootReply) {
         addressIP = dhcpPacket.getCiaddr();
-        System.out.println("Here");
+        System.out.println(this.toString());
+        System.out.println(IP.ipString(dhcpPacket.getGateway()));
       }
     }
   }
 
   public void sendDHCPDiscover() {
     byte[] packetDHCP = generateDHCPDiscoverPacket();
-    byte[] packetUDP = encapsulateUDP(68, 67, packetDHCP);
+    byte[] packetUDP = encapsulateUDP(DHCP.serverPort, DHCP.clientPort, packetDHCP);
     byte[] packetIP = encapsulateIP(17, IP.broadcastIP, IP.relayIP, packetUDP);
-    byte[] frame = encapsulateEthernet(broadcastMAC, addressMAC, packetIP);
+    byte[] frame = encapsulateEthernet(Ethernet.BROADCASTMAC, addressMAC, packetIP);
     sendFrame(frame);
   }
   
@@ -140,7 +141,7 @@ public class Client {
   }
 
   public byte[] encapsulateEthernet(byte[] destAddr, byte[] sourceAddr, byte[] payload) {
-    return new Ethernet(destAddr, sourceAddr, Ethernet.demuxIP, payload).getBytes();
+    return new Ethernet(destAddr, sourceAddr, Ethernet.DEMUXIP, payload).getBytes();
   }
 
   public byte[] encapsulateIP(int protocol, byte[] destAddr, byte[] sourceAddr, byte[] payload) {
@@ -149,6 +150,21 @@ public class Client {
 
   private byte[] encapsulateUDP(int destPort, int sourcePort, byte[] payload) {
     return new UDP(destPort, sourcePort, payload).getBytes();
+  }
+
+  public String toString() {
+    String routerString = "Not set";
+    String subnetString = "Not set";
+    if (routerIP != null) {
+      routerString = IP.ipString(routerIP);
+    }
+    if (subnetMask != null) {
+      subnetString = IP.ipString(subnetMask);
+    }
+    String s = String.format("Client toString\nMAC = %s\nIP = %s\nGateway = %s" +
+                            "\nSubnet Mask = %s", 
+      Ethernet.macString(addressMAC), IP.ipString(addressIP), routerString, subnetString);
+    return s;
   }
 
 }
