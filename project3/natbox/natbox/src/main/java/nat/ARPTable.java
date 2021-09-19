@@ -1,6 +1,7 @@
 package nat;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class ARPTable {
   HashMap<Integer, Integer> arpTable;
@@ -13,13 +14,13 @@ public class ARPTable {
     arpTable.put(addressIP, addressMAC);
   }
 
-  private Integer getMAC(Integer addressIP) {
-    int result;
-    if (!(result = arpTable.get(addressIP)) {
-      /* pair not in table, send request */
+  private boolean containsMAC(Integer addressIP) {
+    if (arpTable.containsKey(addressIP)) {
+      /* pair not in table */
+      return true;
     } else {
       /* pair in table */
-      return result;
+      return false;
     }
   }
 

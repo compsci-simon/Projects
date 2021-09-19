@@ -11,8 +11,8 @@ public class TCP {
 
     this.destPort = (packet[0]&0xff)<<8 | packet[1]&0xff;
     this.sourcePort = (packet[2]&0xff)<<8 | packet[3]&0xff;
-    this.seqNum = (packet[4]&0xff)<<24 | (packet[5]&0xff)<<16 | (packet[6]&0xff)<<8 | (packet[7]&0xff)
-    this.seqNum = (packet[8]&0xff)<<24 | (packet[9]&0xff)<<16 | (packet[10]&0xff)<<8 | (packet[11]&0xff)
+    this.seqNum = (packet[4]&0xff)<<24 | (packet[5]&0xff)<<16 | (packet[6]&0xff)<<8 | (packet[7]&0xff);
+    this.seqNum = (packet[8]&0xff)<<24 | (packet[9]&0xff)<<16 | (packet[10]&0xff)<<8 | (packet[11]&0xff);
     this.payload = new byte[packet.length - 12];
     System.arraycopy(packet, 12, this.payload, 0, this.payload.length);
   }

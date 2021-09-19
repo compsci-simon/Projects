@@ -34,17 +34,19 @@ public class ARP {
         System.arraycopy(srcIP, 0, message, 15, 4);
         System.arraycopy(destMAC, 0, message, 19, 6);
         System.arraycopy(destIP, 0, message, 25, 4);
+
+        return message;
     }
 
     public void sendRequestARP(byte[] srcMAC, byte[] srcIP, byte[] destIP) {
-        byte[] packetARP = createPacket(1, srcMAC, zeroMAC, srcIP, destIP);
-        byte[] frame = encapsulateEthernet(broadcastMAC, srcMAC, packetARP);
-        sendFrame(frame);
+        byte[] packetARP = createPacketARP(1, srcMAC, zeroMAC, srcIP, destIP);
+        //byte[] frame = encapsulateEthernet(broadcastMAC, srcMAC, packetARP);
+        //sendFrame(frame);
     }
 
     public void sendResponseARP(byte[] srcMAC, byte[] destMAC, byte[] srcIP, byte[] destIP) {
-        byte[] packetARP = createPacket(2, srcMAC, zeroMAC, srcIP, destIP);
-        byte[] frame = encapsulateEthernet(destMAC, srcMAC, packetARP);
-        sendFrame(frame);
+        byte[] packetARP = createPacketARP(2, srcMAC, zeroMAC, srcIP, destIP);
+        //byte[] frame = encapsulateEthernet(destMAC, srcMAC, packetARP);
+       // sendFrame(frame);
     }
 }
