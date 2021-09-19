@@ -1,5 +1,0 @@
-package nat;
-
-interface NATProtocol {
-  
-}
