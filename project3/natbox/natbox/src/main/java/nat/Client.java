@@ -137,7 +137,7 @@ public class Client {
   }
   
   public byte[] generateDHCPDiscoverPacket() {
-    return DHCP.bootRequest(transactionIdentifier++, addressMAC);
+    return DHCP.bootRequest(transactionIdentifier++, addressMAC).getBytes();
   }
 
   public byte[] encapsulateEthernet(byte[] destAddr, byte[] sourceAddr, byte[] payload) {

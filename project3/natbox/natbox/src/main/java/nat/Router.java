@@ -76,7 +76,6 @@ public class Router {
 
     if (ipPacket.isBroadcast()) {
       // This is broadcast IP packets
-      System.out.println("Broadcast frame");
       Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, addressMAC, Ethernet.DEMUXIP, ipPacket);
       sendFrame(frame);
       if (ipPacket.getDemuxPort() == 17) {
@@ -97,7 +96,7 @@ public class Router {
   public void handleUDPPacket(byte[] packet) {
     UDP udpPacket = new UDP(packet);
     if (udpPacket.demuxPort() == DHCP.SERVERPORT) {
-      DHCP dhcpReq = DHCP.deserialize(udpPacket.payload());
+      DHCP dhcpReq = new DHCP(udpPacket.payload());
       DHCP bootReply = dhcpServer.generateBootResponse(dhcpReq);
       try {
         UDP udpPack = new UDP(DHCP.CLIENTPORT, DHCP.SERVERPORT, bootReply.serialize());

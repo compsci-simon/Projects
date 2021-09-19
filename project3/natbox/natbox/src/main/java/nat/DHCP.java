@@ -37,10 +37,27 @@ public class DHCP implements Serializable {
     this.messageType = messageType;
     this.transactionID = transactionID;
     this.chaddr = chaddr;
+    this.ciaddr = new byte[4];
+    this.yiaddr = new byte[4];
+    this.siaddr = new byte[4];
+    this.giaddr = new byte[4];
+    this.chaddr = new byte[6];
   }
 
   public DHCP(byte[] packet) {
-
+    this.messageType = packet[0]&0xff;
+    this.transactionID = (packet[4]&0xff)<<24 | (packet[5]&0xff)<<16 | (packet[6]&0xff)<<8 |
+      packet[7]&0xff;
+    this.ciaddr = new byte[4];
+    System.arraycopy(packet, 12, ciaddr, 0, 4);
+    this.yiaddr = new byte[4];
+    System.arraycopy(packet, 16, yiaddr, 0, 4);
+    this.siaddr = new byte[4];
+    System.arraycopy(packet, 20, siaddr, 0, 4);
+    this.giaddr = new byte[4];
+    System.arraycopy(packet, 24, giaddr, 0, 4);
+    this.chaddr = new byte[6];
+    System.arraycopy(packet, 28, chaddr, 0, 6);
   }
 
   public static DHCP deserialize(byte[] byteStream) {
@@ -56,15 +73,8 @@ public class DHCP implements Serializable {
     }
   }
 
-  public static byte[] bootRequest(int transactionID, byte[] chaddr) {
-    DHCP temp = new DHCP(BOOT_REQUEST, transactionID, chaddr);
-    try {
-      return temp.serialize();      
-    } catch (Exception e) {
-      //TODO: handle exception
-      e.printStackTrace();
-      return null;
-    }
+  public static DHCP bootRequest(int transactionID, byte[] chaddr) {
+    return new DHCP(BOOT_REQUEST, transactionID, chaddr);
   }
 
   public static DHCP bootReply(DHCP bootRequest, byte[] ciaddr, byte[] siaddr) {
