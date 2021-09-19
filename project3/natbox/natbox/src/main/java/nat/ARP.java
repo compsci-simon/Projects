@@ -1,14 +1,37 @@
 package nat;
 
 public class ARP {
-    public static int demuxPort = 2048;
+    public static int demuxARP = 2054;
+    private int hardwareType;
+    private int protocolType;
+    private int hardwareSize;
+    private int protocolSize;
     private int opCode;
     private byte[] srcMAC;
     private byte[] destMAC;
     private byte[] srcIP;
     private byte[] destIP;
+    private static byte[] broadcastMAC = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
+    public static byte[] zeroMAC = {(byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00};
 
-    public byte[] createPacketARP(int opCode, byte[] srcMAC, byte[] destMAC, byte[] srcIP, byte[] destIP) {
+    // HERE
+    public ARP(byte[] packet) {
+        this.hardwareType = (packet[0]&0xff)<<8 | (packet[1]&0xff);
+        this.protocolType = (packet[2]&0xff)<<8 | (packet[3]&0xff);
+        this.hardwareSize = packet[4]&0xff;
+        this.protocolSize = packet[5]&0xff;
+        this.opCode = (packet[6]&0xff)<<8 | (packet[7]&0xff);
+        this.srcMAC = new byte[6];
+        System.arraycopy(packet, 8, srcMAC, 0, 6);
+        this.srcIP = new byte[4];
+        System.arraycopy(packet, 14, srcIP, 0, 4);
+        this.destMAC = new byte[6];
+        System.arraycopy(packet, 18, destMAC, 0, 6);
+        this.destIP = new byte[4];
+        System.arraycopy(packet, 24, destIP, 0, 4);
+    }
+
+    public static byte[] createPacketARP(int opCode, byte[] srcMAC, byte[] srcIP, byte[] destMAC, byte[] destIP) {
         byte[] message = new byte[28];
         /* hardware type (ethernet) */
         message[0] = 0x00;
@@ -25,26 +48,73 @@ public class ARP {
         message[5] = 0x04;
 
         /* opcode */
-        message[7] = 0x00;
-        message[8] = (byte) opCode;
-    
-        System.arraycopy(srcMAC, 0, message, 9, 6);
-        System.arraycopy(srcIP, 0, message, 15, 4);
-        System.arraycopy(destMAC, 0, message, 19, 6);
-        System.arraycopy(destIP, 0, message, 25, 4);
+        message[6] = (byte) 0x00;
+        if (opCode == 1) {
+        	message[7] = (byte) 0x01;
+        } else if (opCode == 2) {
+        	message[7] = (byte) 0x02;
+        }
+        
+        System.arraycopy(srcMAC, 0, message, 8, 6);
+        System.arraycopy(srcIP, 0, message, 14, 4);
+        System.arraycopy(destMAC, 0, message, 18, 6);
+        System.arraycopy(destIP, 0, message, 24, 4);
 
         return message;
     }
-
-    public void sendRequestARP(byte[] srcMAC, byte[] srcIP, byte[] destIP) {
-        byte[] packetARP = createPacketARP(1, srcMAC, Ethernet.ZEROMAC, srcIP, destIP);
-        //byte[] frame = encapsulateEthernet(broadcastMAC, srcMAC, packetARP);
-        //sendFrame(frame);
+    
+    public static void printIP(byte[] address) {
+    	String s = "IP  = ";
+        for (int i = 0; i < 4; i++) {
+          s = String.format("%s%d.", s, address[i]&0xff);
+        }
+        s = s.substring(0, s.length() - 1);
+        System.out.println(s);
     }
 
-    public void sendResponseARP(byte[] srcMAC, byte[] destMAC, byte[] srcIP, byte[] destIP) {
-        byte[] packetARP = createPacketARP(2, srcMAC, Ethernet.ZEROMAC, srcIP, destIP);
-        //byte[] frame = encapsulateEthernet(destMAC, srcMAC, packetARP);
-       // sendFrame(frame);
+    // HERE
+    public int opCode() {
+        return opCode;
     }
+
+    public byte[] srcMAC() {
+        return srcMAC;
+    }
+
+    public byte[] srcIP() {
+        return srcIP;
+    }
+
+    public byte[] destMAC() {
+        return destMAC;
+    }
+
+    public byte[] destIP() {
+        return destIP;
+    }
+
+    public String toString() {
+    String s = "source MAC  = ";
+    for (int i = 0; i < 6; i++) {
+      s = String.format("%s%d.", s, srcMAC[i]&0xff);
+    }
+    s = s.substring(0, s.length() - 1);
+    s = String.format("%s\nSource IP = ", s);
+    for (int i = 0; i < 4; i++) {
+      s = String.format("%s%d.", s, srcIP[i]&0xff);
+    }
+    s = s.substring(0, s.length() - 1);
+    s = String.format("%s\nDest MAC = ", s);
+    for (int i = 0; i < 6; i++) {
+      s = String.format("%s%d.", s, destMAC[i]&0xff);
+    }
+    s = s.substring(0, s.length() - 1);
+    s = String.format("%s\nDest IP = ", s);
+    for (int i = 0; i < 4; i++) {
+      s = String.format("%s%d.", s, destIP[i]&0xff);
+    }
+    s = s.substring(0, s.length() - 1);
+    s = String.format("%s\n opCode = %d", s, opCode);
+    return s;
+  }
 }
