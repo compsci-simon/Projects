@@ -17,19 +17,13 @@ public class DHCPServer {
     System.out.println("DHCP server started...");
   }
 
-  public byte[] generateBootResponse(DHCP dhcpPacket) {
+  public DHCP generateBootResponse(DHCP dhcpPacket) {
     // dhcpPacket.setMessageType(DHCP.bootReply);
-    dhcpPacket.setMessageType(DHCP.bootReply);
     byte[] newIP = new byte[4];
     System.arraycopy(routerIP, 0, newIP, 0, 3);
     newIP[3] = (byte) (lowestFreeIP()&0xff);
     System.out.println(String.format("Assigned IP 192.168.0.%d", newIP[3]));
-    dhcpPacket.setciaddr(newIP);
-    dhcpPacket.setOptions(DHCP.optionDHCPMessageType, (byte) DHCP.bootReply);
-    dhcpPacket.setOptions(DHCP.optionDHCPServerIdentifier, Constants.bToB(routerIP));
-    dhcpPacket.setOptions(DHCP.optionDHCPSubnetMask, Constants.bToB(Router.subnetMask));
-    dhcpPacket.setOptions(DHCP.optionDHCPBroadcastIP, Constants.bToB(Router.broadcastIP));
-    return dhcpPacket.getBytes();
+    return DHCP.bootReply(dhcpPacket, newIP, routerIP);
   }
 
   public void handleMessage(byte[] message) {

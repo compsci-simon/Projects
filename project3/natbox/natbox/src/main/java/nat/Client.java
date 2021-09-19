@@ -118,11 +118,11 @@ public class Client {
   public void handleUDPPacket(byte[] packet) {
     UDP udpPacket = new UDP(packet);
     System.out.println(udpPacket.toString());
-    if (udpPacket.destinationPort() == DHCP.clientPort) {
-      DHCP dhcpPacket = new DHCP(udpPacket.payload());
-      if (dhcpPacket.getMessageType() == DHCP.bootReply) {
+    if (udpPacket.destinationPort() == DHCP.CLIENTPORT) {
+      DHCP dhcpPacket = DHCP.deserialize(udpPacket.payload());
+      if (dhcpPacket.getMessageType() == DHCP.BOOT_REPLY) {
         addressIP = dhcpPacket.getCiaddr();
-        System.out.println(this.toString());
+        routerIP = dhcpPacket.getGateway();
         System.out.println(IP.ipString(dhcpPacket.getGateway()));
       }
     }
@@ -130,7 +130,7 @@ public class Client {
 
   public void sendDHCPDiscover() {
     byte[] packetDHCP = generateDHCPDiscoverPacket();
-    byte[] packetUDP = encapsulateUDP(DHCP.serverPort, DHCP.clientPort, packetDHCP);
+    byte[] packetUDP = encapsulateUDP(DHCP.SERVERPORT, DHCP.CLIENTPORT, packetDHCP);
     byte[] packetIP = encapsulateIP(17, IP.broadcastIP, IP.relayIP, packetUDP);
     byte[] frame = encapsulateEthernet(Ethernet.BROADCASTMAC, addressMAC, packetIP);
     sendFrame(frame);

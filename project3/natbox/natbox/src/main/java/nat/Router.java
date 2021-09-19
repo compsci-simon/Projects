@@ -96,14 +96,18 @@ public class Router {
 
   public void handleUDPPacket(byte[] packet) {
     UDP udpPacket = new UDP(packet);
-    if (udpPacket.demuxPort() == DHCP.serverPort) {
-      DHCP dhcpReq = new DHCP(udpPacket.payload());
-      byte[] response = dhcpServer.generateBootResponse(dhcpReq);
-      DHCP dhcpResp = new DHCP(response);
-      UDP udpPack = new UDP(DHCP.clientPort, DHCP.serverPort, dhcpResp.getBytes());
-      IP ipPack = new IP(dhcpReq.getCiaddr(), addressIP, UDP.DEMUXPORT, udpPack.getBytes());
-      Ethernet frame = new Ethernet(dhcpResp.getChaddr(), addressMAC, IP.DEMUXPORT, ipPack.getBytes(packetID++));
-      sendFrame(frame);
+    if (udpPacket.demuxPort() == DHCP.SERVERPORT) {
+      DHCP dhcpReq = DHCP.deserialize(udpPacket.payload());
+      DHCP bootReply = dhcpServer.generateBootResponse(dhcpReq);
+      try {
+        UDP udpPack = new UDP(DHCP.CLIENTPORT, DHCP.SERVERPORT, bootReply.serialize());
+        IP ipPack = new IP(dhcpReq.getCiaddr(), addressIP, UDP.DEMUXPORT, udpPack.getBytes());
+        Ethernet frame = new Ethernet(bootReply.getChaddr(), addressMAC, IP.DEMUXPORT, ipPack.getBytes(packetID++));
+        sendFrame(frame);        
+      } catch (Exception e) {
+        //TODO: handle exception
+        e.printStackTrace();
+      }
     }
   }
 

@@ -1,5 +1,8 @@
 package nat;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.ObjectInput;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
@@ -7,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
+import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 
 import java.util.*;
@@ -35,21 +39,47 @@ public class DHCP implements Serializable {
     this.chaddr = chaddr;
   }
 
+  public DHCP(byte[] packet) {
+
+  }
+
+  public static DHCP deserialize(byte[] byteStream) {
+    ByteArrayInputStream bis = new ByteArrayInputStream(byteStream);
+    ObjectInput in = null;
+    try {
+      in = new ObjectInputStream(bis);      
+      return (DHCP) in.readObject();
+    } catch (Exception e) {
+      //TODO: handle exception
+      e.printStackTrace();
+      return null;
+    }
+  }
+
+  public static byte[] bootRequest(int transactionID, byte[] chaddr) {
+    DHCP temp = new DHCP(BOOT_REQUEST, transactionID, chaddr);
+    try {
+      return temp.serialize();      
+    } catch (Exception e) {
+      //TODO: handle exception
+      e.printStackTrace();
+      return null;
+    }
+  }
+
+  public static DHCP bootReply(DHCP bootRequest, byte[] ciaddr, byte[] siaddr) {
+    bootRequest.messageType = BOOT_REPLY;
+    bootRequest.ciaddr = ciaddr;
+    bootRequest.siaddr = siaddr;
+    return bootRequest;
+  }
+
   public byte[] serialize() throws Exception {
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     ObjectOutputStream oos = new ObjectOutputStream(bos);
     oos.writeObject(this);
     oos.flush();
     return bos.toByteArray();
-  }
-
-  public void setOptions(Byte key, Byte[] value) {
-    this.options.put(key, value);
-  }
-
-  public void setOptions(Byte key, Byte value) {
-    Byte[] tmp = { value };
-    this.options.put(key, tmp);
   }
 
   public int getMessageType() {
@@ -119,16 +149,6 @@ public class DHCP implements Serializable {
     // Boot file name
     for (int i = 0; i < 128; i++) {
       packetBytes.add((byte) 0x00);
-    }
-    // Options
-
-    System.out.println("here ja");
-    for (Byte key : this.options.keySet()) {
-      packetBytes.add(key);
-      packetBytes.add((byte)options.get(key).length);
-      for (Byte b : this.options.get(key)) {
-        packetBytes.add(b);
-      }
     }
     
     
