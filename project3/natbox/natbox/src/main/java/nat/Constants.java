@@ -9,5 +9,11 @@ public class Constants {
   public static int demuxPortDHCP = 68;
   public static int mTUEthernet = 17;
 
-  
+  public static Byte[] bToB(byte[] b) {
+    Byte[] B = new Byte[b.length];
+    for (int i = 0; i < b.length; i++) {
+      B[i] = Byte.valueOf(b[i]);
+    }
+    return B;
+  }
 }

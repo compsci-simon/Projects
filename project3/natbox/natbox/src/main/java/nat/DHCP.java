@@ -1,19 +1,27 @@
 package nat;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.*;
 
 public class DHCP {
-  public static int bootRequest = 1;
-  public static int bootReply = 2;
-  public static int ethernet = 1;
-  private static byte optionDHCPMessageType = 0x35;
-  private static byte DHCPRequest = 0x03;
-  private static byte parameterRequestList = 0x37;
-  private static byte requestListItemSubnet = 0x01;
-  private static byte requestListItemRouter = 0x03;
-  private static byte requestListItemDNS = 0x06;
-  private static byte hostnameOption = 0x0c;
-  public static int serverPort = 67;
+  public static final int bootRequest = 1;
+  public static final int bootReply = 2;
+  public static final int ethernet = 1;
+  public static final byte optionDHCPMessageType = 0x35;
+  public static final byte optionDHCPServerIdentifier = 0x36;
+  public static final byte optionDHCPSubnetMask = 0x01;
+  public static final byte optionDHCPBroadcastIP = 0x1c;
+  public static final byte optionDHCPEnd = (byte)0xff;
+  private static final byte DHCPRequest = 0x03;
+  private static final byte parameterRequestList = 0x37;
+  private static final byte requestListItemSubnet = 0x01;
+  private static final byte requestListItemRouter = 0x03;
+  private static final byte requestListItemDNS = 0x06;
+  private static final byte hostnameOption = 0x0c;
+  public final static int serverPort = 67;
+  public final static int clientPort = 68;
   private int messageType;
   private int hardwareType;
   private int hardwareAddrLen;
@@ -27,11 +35,12 @@ public class DHCP {
   private byte[] giaddr;
   private byte[] chaddr;
   private String hostname;
-  private ArrayList<Byte> options;
-  private byte[] packetBytes;
+  private Map<Byte, Byte[]> options;
 
   public DHCP(byte[] packet) {
-    this.packetBytes = packet;
+    options = new HashMap<Byte, Byte[]>();
+    // parameterRequestListItems = new Hashtable<String, Byte>();
+    // initializeParameterRequestListItems(parameterRequestListItems);
     this.messageType = packet[0]&0xff;
     this.hardwareType = packet[1]&0xff;
     this.hardwareAddrLen = packet[2]&0xff;
@@ -50,8 +59,42 @@ public class DHCP {
     System.arraycopy(packet, 24, giaddr, 0, 4);
     this.chaddr = new byte[6];
     System.arraycopy(packet, 28, chaddr, 0, 6);
+    // Read options
+    if (packet.length > 236) {
+      processOptions(packet, options);
+    }
   }
 
+  public void setOptions(Byte key, Byte[] value) {
+    this.options.put(key, value);
+  }
+
+  public void setOptions(Byte key, Byte value) {
+    Byte[] tmp = {value};
+    this.options.put(key, tmp);
+  }
+  
+  private static void processOptions(byte[] packet, Map<Byte, Byte[]> options) {
+    int packetLen = packet.length;
+    int byteNum = 237;
+    // while (packet[byteNum] != optionDHCPEnd) {
+    //   switch (packet[byteNum]) {
+    //   case optionDHCPMessageType:
+    //     byteNum++;
+    //     byteNum++;
+    //     options.put(key, value)
+    //     break;
+    //   case parameterRequestList:
+    //     byteNum++;
+    //     int len = packet[byteNum]&0xff;
+
+    //     break;
+    //   default:
+    //     break;
+    //   }
+    //   byteNum++;
+    // }
+  }
 
   public int getMessageType() {
     return messageType;
@@ -143,11 +186,15 @@ public class DHCP {
           packetBytes.add(b);
         }
       }
-    }
-
-    // Boot reply options
-    if (this.messageType == DHCP.bootReply) {
-
+    } else if (this.messageType == DHCP.bootReply) {
+      for (Byte key : this.options.keySet()) {
+        packetBytes.add(key);
+        packetBytes.add((byte)options.get(key).length);
+        for (Byte b : this.options.get(key)) {
+          packetBytes.add(b);
+        }
+      }
+      packetBytes.add(optionDHCPEnd);
     }
     
     int length = packetBytes.size();
@@ -238,7 +285,7 @@ public class DHCP {
   }
 
   public void setsiaddr(byte[] ip) {
-    
+
   }
 
 }

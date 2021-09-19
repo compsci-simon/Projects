@@ -78,7 +78,7 @@ public class IP {
   }
 
   public byte[] payload() {
-    return payload();
+    return payload;
   }
 
   public String toString() {

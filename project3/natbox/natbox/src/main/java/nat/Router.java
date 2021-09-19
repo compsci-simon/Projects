@@ -14,6 +14,8 @@ public class Router {
   private byte[] addressMAC;
   private byte[] addressIP = {(byte) 0xC0, (byte) 0xA8, 0, 1};
   private int packetID;
+  public static final byte[] subnetMask = {(byte)0xff, (byte)0xff, (byte)0xff, 0};
+  public static final byte[] broadcastIP = {(byte) 0xC0, (byte) 0xA8, 0, (byte)0xff};
 
   public Router (int portNum) {
     packetID = 0;
@@ -68,7 +70,7 @@ public class Router {
     return true;
   }
 
-  private boolean handleIPPacket(byte[] packet) {
+  private void handleIPPacket(byte[] packet) {
     IP ipPacket = new IP(packet);
     System.out.println(ipPacket.toString());
 
@@ -90,19 +92,19 @@ public class Router {
       // Get MAC address of IP from ARP table
       ipPacket.destination();
     }
-    return false;
   }
 
   public void handleUDPPacket(byte[] packet) {
     UDP udpPacket = new UDP(packet);
     if (udpPacket.demuxPort() == DHCP.serverPort) {
       DHCP dhcpReq = new DHCP(udpPacket.payload());
-      byte[] response = dhcpServer.generateResponse(dhcpReq);
+      byte[] response = dhcpServer.generateBootResponse(dhcpReq);
       DHCP dhcpResp = new DHCP(response);
       UDP udpPack = new UDP(68, 67, dhcpResp.getBytes());
       IP ipPack = new IP(dhcpReq.getCiaddr(), addressIP, UDP.demuxPort, udpPack.getBytes());
       Ethernet frame = new Ethernet(dhcpReq.getChaddr(), addressMAC, IP.demuxID, ipPack.getBytes(packetID++));
       sendFrame(frame);
+      System.out.println("Frame sent");
     }
   }
 

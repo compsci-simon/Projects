@@ -17,18 +17,19 @@ public class DHCPServer {
     System.out.println("DHCP server started...");
   }
 
-  public byte[] generateResponse(DHCP dhcpPacket) {
-    if (dhcpPacket.getMessageType() == DHCP.bootRequest) {
-      // dhcpPacket.setMessageType(DHCP.bootReply);
-      System.out.println("here in dhcp");
-      dhcpPacket.setMessageType(DHCP.bootReply);
-      byte[] newIP = new byte[4];
-      System.arraycopy(routerIP, 0, newIP, 0, 3);
-      newIP[3] = (byte) (lowestFreeIP()&0xff);
-      dhcpPacket.setciaddr(newIP);
-      
-    }
-    return null;
+  public byte[] generateBootResponse(DHCP dhcpPacket) {
+    // dhcpPacket.setMessageType(DHCP.bootReply);
+    System.out.println("here in dhcp");
+    dhcpPacket.setMessageType(DHCP.bootReply);
+    byte[] newIP = new byte[4];
+    System.arraycopy(routerIP, 0, newIP, 0, 3);
+    newIP[3] = (byte) (lowestFreeIP()&0xff);
+    dhcpPacket.setciaddr(newIP);
+    dhcpPacket.setOptions(DHCP.optionDHCPMessageType, (byte) DHCP.bootReply);
+    dhcpPacket.setOptions(DHCP.optionDHCPServerIdentifier, Constants.bToB(routerIP));
+    dhcpPacket.setOptions(DHCP.optionDHCPSubnetMask, Constants.bToB(Router.subnetMask));
+    dhcpPacket.setOptions(DHCP.optionDHCPBroadcastIP, Constants.bToB(Router.broadcastIP));
+    return dhcpPacket.getBytes();
   }
 
   public void handleMessage(byte[] message) {
