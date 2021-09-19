@@ -41,7 +41,6 @@ public class DHCP implements Serializable {
     this.yiaddr = new byte[4];
     this.siaddr = new byte[4];
     this.giaddr = new byte[4];
-    this.chaddr = new byte[6];
   }
 
   public DHCP(byte[] packet) {
@@ -196,6 +195,15 @@ public class DHCP implements Serializable {
 
   public byte[] getGateway() {
     return siaddr;
+  }
+
+  public String toString() {
+    String s = String.format("DHCP toString:\nMessage Type = %d\n" +
+                            "ciaddr = %s\nyiaddr = %s\nsiaddr = %s\n" +
+                            "giaddr = %s\nchaddr = %s", messageType, IP.ipString(ciaddr), 
+                            IP.ipString(yiaddr), IP.ipString(siaddr), IP.ipString(giaddr), 
+                            Ethernet.macString(chaddr));
+    return s;
   }
 
 }

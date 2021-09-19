@@ -5,17 +5,14 @@ import java.nio.ByteBuffer;
 import java.util.*;
 
 public class Client {
-  private boolean internalClient = true;
   private byte[] addressIP = {0, 0, 0, 0};
   private byte[] addressMAC;
   private DatagramSocket socket;
   private DatagramPacket packet;
   private int transactionIdentifier;
-  private DHCPClient dhcpClient;
   private int packetCount;
   private static byte[] routerIP;
   private static byte[] subnetMask;
-  private static byte[] routerBCAddr;
 
   public Client(boolean internalClient, String address) {
     try {
@@ -28,10 +25,8 @@ public class Client {
     if (!internalClient) {
       this.addressIP = generateRandomIP();
     }
-    this.internalClient = internalClient;
     this.addressMAC = generateRandomMAC();
     this.transactionIdentifier = 0;
-    this.dhcpClient = new DHCPClient(addressMAC);
     new Thread() {
       @Override
       public void run() {
@@ -117,13 +112,12 @@ public class Client {
 
   public void handleUDPPacket(byte[] packet) {
     UDP udpPacket = new UDP(packet);
-    System.out.println(udpPacket.toString());
     if (udpPacket.destinationPort() == DHCP.CLIENTPORT) {
       DHCP dhcpPacket = DHCP.deserialize(udpPacket.payload());
       if (dhcpPacket.getMessageType() == DHCP.BOOT_REPLY) {
         addressIP = dhcpPacket.getCiaddr();
         routerIP = dhcpPacket.getGateway();
-        System.out.println(IP.ipString(dhcpPacket.getGateway()));
+        System.out.println(toString());
       }
     }
   }
@@ -131,7 +125,7 @@ public class Client {
   public void sendDHCPDiscover() {
     byte[] packetDHCP = generateDHCPDiscoverPacket();
     byte[] packetUDP = encapsulateUDP(DHCP.SERVERPORT, DHCP.CLIENTPORT, packetDHCP);
-    byte[] packetIP = encapsulateIP(17, IP.broadcastIP, IP.relayIP, packetUDP);
+    byte[] packetIP = encapsulateIP(IP.UDP_PORT, IP.broadcastIP, IP.relayIP, packetUDP);
     byte[] frame = encapsulateEthernet(Ethernet.BROADCASTMAC, addressMAC, packetIP);
     sendFrame(frame);
   }

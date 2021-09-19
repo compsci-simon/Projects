@@ -6,7 +6,8 @@ public class IP {
   public static byte[] broadcastIP = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
   public static byte[] relayIP = {0, 0, 0, 0};
   public static byte[] nilIP = {0, 0, 0, 0};
-  public final static int DEMUXPORT = 2048;
+  public static final int DEMUXPORT = 2048;
+  public static final int UDP_PORT = 17;
   private byte[] destIP;
   private byte[] sourceIP;
   private int instanceDemuxPort;
