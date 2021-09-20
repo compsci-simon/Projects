@@ -185,7 +185,7 @@ public class Router {
     byte[] header = new byte[14];
     System.arraycopy(sourceAddr, 0, header, 0, 6);
     System.arraycopy(destAddr, 0, header, 6, 6);
-    header[12] = (byte) 0x80;
+    header[12] = (byte) 0x08;
     header[13] = 0x00;
     
     byte[] frame = new byte[14 + payload.length];

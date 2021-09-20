@@ -9,6 +9,7 @@ public class Client {
   private byte[] addressMAC;
   private DatagramSocket socket;
   private DatagramPacket packet;
+  private DatagramPacket packetRec;
   private ARPTable arpTable;
   private int transactionIdentifier;
   private int packetCount;
@@ -19,6 +20,7 @@ public class Client {
     try {
       this.socket = new DatagramSocket();
       this.packet = new DatagramPacket(new byte[1500], 1500, InetAddress.getByName(address), 5000);
+      this.packetRec = new DatagramPacket(new byte[1500], 1500, InetAddress.getByName(address), 5000);
     } catch (Exception e) {
       e.printStackTrace();
       return;
@@ -34,8 +36,8 @@ public class Client {
       public void run() {
         while (true) {
           try {
-            socket.receive(packet);
-            handleFrame(packet.getData());
+            socket.receive(packetRec);
+            handleFrame(packetRec.getData());
           } catch (Exception e) {
             //TODO: handle exception
             e.printStackTrace();
@@ -201,7 +203,7 @@ public class Client {
     byte[] header = new byte[14];
     System.arraycopy(sourceAddr, 0, header, 0, 6);
     System.arraycopy(destAddr, 0, header, 6, 6);
-    header[12] = (byte) 0x80;
+    header[12] = (byte) 0x08;
     header[13] = 0x06;
     
     byte[] frame = new byte[14 + payload.length];
