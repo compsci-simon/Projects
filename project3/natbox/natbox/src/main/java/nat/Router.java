@@ -65,13 +65,14 @@ public class Router {
     Ethernet ethernetFrame = new Ethernet(frame);
     // Router MAC address of broadcast addressed frame are accepted
     System.out.println(ethernetFrame.toString());
-    if (ethernetFrame.protocol() == ARP.DEMUX_PORT) {
-      handleARPPacket(ethernetFrame.payload());
-      return true;
-    }
     if (Arrays.equals(addressMAC, ethernetFrame.destination())
-      || ethernetFrame.isBroadcast()) {
-      handleIPPacket(ethernetFrame.payload());
+    || ethernetFrame.isBroadcast()) {
+      if (ethernetFrame.protocol() == Ethernet.DEMUXARP) {
+        handleARPPacket(ethernetFrame.payload());
+        return true;
+      } else if (ethernetFrame.protocol() == Ethernet.DEMUXIP) {
+        handleIPPacket(ethernetFrame.payload());
+      }
     }
     return true;
   }
@@ -132,8 +133,6 @@ public class Router {
         if (Arrays.equals(arpPacket.destIP(), addressIP)) {
         	System.out.println("ARP request received");
         	sendResponseARP(arpPacket.srcMAC(), arpPacket.srcIP());
-        } else {
-        	return;
         }
       } else if (arpPacket.opCode() == 2) {
     	  System.out.println("ARP response received");
@@ -199,7 +198,7 @@ public class Router {
     byte[] header = new byte[14];
     System.arraycopy(sourceAddr, 0, header, 0, 6);
     System.arraycopy(destAddr, 0, header, 6, 6);
-    header[12] = (byte) 0x80;
+    header[12] = (byte) 0x08;
     header[13] = 0x06;
     
     byte[] frame = new byte[14 + payload.length];

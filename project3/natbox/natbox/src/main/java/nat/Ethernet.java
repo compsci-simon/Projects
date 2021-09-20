@@ -6,6 +6,7 @@ public class Ethernet {
   public static final byte[] BROADCASTMAC = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
   public static final byte[] ZEROMAC = {(byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00};
   public static final int DEMUXIP = 2048;
+  public static final int DEMUXARP = 2054;
   private byte[] payload;
   private byte[] destMAC;
   private byte[] sourceMAC;
@@ -50,8 +51,8 @@ public class Ethernet {
     byte[] header = new byte[14];
     System.arraycopy(destMAC, 0, header, 0, 6);
     System.arraycopy(sourceMAC, 0, header, 6, 6);
-    header[12] = (byte) 0x80;
-    header[13] = 0x00;
+    header[12] = (byte) ((demuxProtocol>>8)&0xff);
+    header[13] = (byte) (demuxProtocol&0xff);
     
     byte[] frame = new byte[14 + payload.length];
     System.arraycopy(header, 0, frame, 0, header.length);
@@ -77,17 +78,9 @@ public class Ethernet {
   }
 
   public String toString() {
-    String s = "\n\nEthernet toString\nDestination MAC = ";
-    for (int i = 0; i < 6; i++) {
-      s = String.format("%s%02x:", s, destMAC[i]&0xff);
-    }
-    s = s.substring(0, s.length() - 1);
-    s = String.format("%s\nSource MAC = ", s);
-    for (int i = 0; i < 6; i++) {
-      s = String.format("%s%02x:", s, sourceMAC[i]&0xff);
-    }
-    s = s.substring(0, s.length() - 1);
-    s += "\n";
+    String s = String.format("\n\nEthernet toString\nDestination MAC = %s" +
+      "\nSource MAC = %s\nDemuxport = %d", 
+      macString(destMAC), macString(sourceMAC), demuxProtocol);
     return s;
   }
 

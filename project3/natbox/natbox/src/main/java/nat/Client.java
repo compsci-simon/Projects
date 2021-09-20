@@ -177,23 +177,32 @@ public class Client {
     byte[] packetDHCP = generateDHCPDiscoverPacket();
     byte[] packetUDP = encapsulateUDP(DHCP.SERVERPORT, DHCP.CLIENTPORT, packetDHCP);
     byte[] packetIP = encapsulateIP(IP.UDP_PORT, IP.broadcastIP, IP.relayIP, packetUDP);
-    byte[] frame = encapsulateEthernet(Ethernet.BROADCASTMAC, addressMAC, packetIP);
+    byte[] frame = encapsulateEthernet(Ethernet.BROADCASTMAC, addressMAC, Ethernet.DEMUXIP, packetIP);
     sendFrame(frame);
   }
   
   public void udpSend(byte[] ip, String message) {
     UDP udpPacket = new UDP(9000, 9000, message.getBytes());
-    IP ipPack = new IP(ip, addressIP, UDP.DEMUXPORT, udpPacket.payload());
-    boolean hasIP = arpTable.containsMAC(ipPack.destination());
-    
+    IP ipPacket = new IP(ip, addressIP, UDP.DEMUXPORT, udpPacket.payload());
+    boolean hasIP = arpTable.containsMAC(ipPacket.destination());
+    while (!hasIP) {
+      System.out.println("Sent ARP request");
+      sendRequestARP(ipPacket.destination());
+      try {
+        Thread.sleep(100);
+      } catch (Exception e) {
+        //TODO: handle exception
+      }
+      hasIP = arpTable.containsMAC(ipPacket.destination());
+    }
   }
 
   public byte[] generateDHCPDiscoverPacket() {
     return DHCP.bootRequest(transactionIdentifier++, addressMAC).getBytes();
   }
 
-  public byte[] encapsulateEthernet(byte[] destAddr, byte[] sourceAddr, byte[] payload) {
-    return new Ethernet(destAddr, sourceAddr, Ethernet.DEMUXIP, payload).getBytes();
+  public byte[] encapsulateEthernet(byte[] destAddr, byte[] sourceAddr, int demuxPort, byte[] payload) {
+    return new Ethernet(destAddr, sourceAddr, demuxPort, payload).getBytes();
   }
 
   public byte[] encapsulateIP(int protocol, byte[] destAddr, byte[] sourceAddr, byte[] payload) {
@@ -208,7 +217,7 @@ public class Client {
     byte[] header = new byte[14];
     System.arraycopy(sourceAddr, 0, header, 0, 6);
     System.arraycopy(destAddr, 0, header, 6, 6);
-    header[12] = (byte) 0x80;
+    header[12] = (byte) 0x08;
     header[13] = 0x06;
     
     byte[] frame = new byte[14 + payload.length];
