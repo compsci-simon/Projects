@@ -52,7 +52,14 @@ public class Client {
 
   public static void main(String[] args) {
     Client c = new Client(true, "localhost");
-    byte[] ip = {0, 0, 0, 0};
+    byte[] testIP = {0, 0, 0, 0};
+    boolean ipNotObtained = Arrays.equals(c.addressIP, testIP);
+    // this is to make sure the client has received an IP
+    while (ipNotObtained) {
+    	ipNotObtained = Arrays.equals(c.addressIP, testIP);
+    	System.out.println(IP.ipString(c.addressIP));
+    }
+    byte[] ip = {(byte) 0xC0, (byte) 0xA8, 0, 1};
     c.udpSend(ip, "Hi there");
   }
 
@@ -81,6 +88,7 @@ public class Client {
     }
   }
   
+  
   private boolean handleFrame(byte[] frame) {
     if (frame.length < 14)
       return false;
@@ -93,6 +101,7 @@ public class Client {
     }
     if (Arrays.equals(addressMAC, ethernetFrame.destination())
       || ethernetFrame.isBroadcast()) {
+    	System.out.println("IP packet received");
       handleIPPacket(ethernetFrame.payload());
     }
     return true;
@@ -198,6 +207,12 @@ public class Client {
       }
       hasIP = arpTable.containsMAC(ipPacket.destination());
     }
+    System.out.println(ipPacket.toString());
+    byte[] destinationMAC = arpTable.getMAC(ipPacket.destination());
+    System.out.println(Ethernet.macString(destinationMAC));
+    Ethernet ethernetPacket = new Ethernet(destinationMAC, addressMAC, IP.DEMUXPORT, ipPacket.getBytes(1));
+    sendFrame(ethernetPacket.getBytes());
+    System.out.println("Sent UDP Packet");
   }
 
   public byte[] generateDHCPDiscoverPacket() {

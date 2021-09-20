@@ -69,7 +69,6 @@ public class Router {
     || ethernetFrame.isBroadcast()) {
       if (ethernetFrame.protocol() == Ethernet.DEMUXARP) {
         handleARPPacket(ethernetFrame.payload());
-        return true;
       } else if (ethernetFrame.protocol() == Ethernet.DEMUXIP) {
         handleIPPacket(ethernetFrame.payload());
       }
@@ -92,6 +91,9 @@ public class Router {
     } else if (Arrays.equals(addressIP, ipPacket.destination())) {
       // Packets destined for the router
       System.out.println("Received packet destined for router");
+      if (ipPacket.getDemuxPort() == 17) {
+          handleUDPPacket(ipPacket.payload());
+      }
     } else {
       // Packets that need to be routed
       // Here we forward packets... Externally as well as internally
@@ -110,6 +112,7 @@ public class Router {
 
   public void handleUDPPacket(byte[] packet) {
     UDP udpPacket = new UDP(packet);
+    System.out.println("Received UDP packet");
     if (udpPacket.demuxPort() == DHCP.SERVERPORT) {
       DHCP dhcpReq = new DHCP(udpPacket.payload());
       DHCP bootReply = dhcpServer.generateBootResponse(dhcpReq);
@@ -123,6 +126,8 @@ public class Router {
         e.printStackTrace();
       }
     }
+    String payload = new String(udpPacket.payload());
+    System.out.println(payload);
   }
 
   private void handleARPPacket(byte[] packet) {
