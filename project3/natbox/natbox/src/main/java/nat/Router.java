@@ -10,7 +10,7 @@ public class Router {
   private DatagramPacket packet;
   private ArrayList<Integer> connectedHosts;
   private DHCPServer dhcpServer;
-  private ARP arp;
+  private ARPTable arpTable;
   private byte[] addressMAC;
   private byte[] addressIP = {(byte) 0xC0, (byte) 0xA8, 0, 1};
   private int packetID;
@@ -25,6 +25,7 @@ public class Router {
       this.serverSock = new DatagramSocket(portNum);
       packet = new DatagramPacket(new byte[1500], 1500);
       dhcpServer = new DHCPServer(addressIP);
+      arpTable = new ARPTable();
       handleConnections();
     } catch (Exception e) {
       e.printStackTrace();
@@ -63,6 +64,10 @@ public class Router {
     Ethernet ethernetFrame = new Ethernet(frame);
     // Router MAC address of broadcast addressed frame are accepted
     System.out.println(ethernetFrame.toString());
+    if (ethernetFrame.protocol() == 2054) {
+      handleARPPacket(ethernetFrame.payload());
+      return true;
+    }
     if (Arrays.equals(addressMAC, ethernetFrame.destination())
       || ethernetFrame.isBroadcast()) {
       handleIPPacket(ethernetFrame.payload());
@@ -89,6 +94,12 @@ public class Router {
       // Packets that need to be routed
       // Here we forward packets... Externally as well as internally
       // Get MAC address of IP from ARP table
+      boolean hasIP = arpTable.containsMAC(ipPacket.destination());
+    	if (hasIP) {
+    		/* forward packet to destination */
+    	} else {
+    		sendRequestARP(ipPacket.destination());
+    	}
       ipPacket.destination();
     }
   }
@@ -110,8 +121,52 @@ public class Router {
     }
   }
 
+  private void handleARPPacket(byte[] packet) {
+      ARP arpPacket = new ARP(packet);
+      System.out.println(arpPacket.toString());
+      
+      if (arpPacket.opCode() == 1) {
+        if (Arrays.equals(arpPacket.destIP(), addressIP)) {
+        	System.out.println("ARP request received");
+        	sendResponseARP(arpPacket.srcMAC(), arpPacket.srcIP());
+        } else {
+        	return;
+        }
+      } else if (arpPacket.opCode() == 2) {
+    	  System.out.println("ARP response received");
+    	  arpTable.addPair(arpPacket.srcMAC(), arpPacket.srcIP());
+      } else {
+    	  System.out.println("Invalid opCode");
+      }
+  }
+
+  private void sendRequestARP(byte[] destIP) {
+    byte[] packet = ARP.createPacketARP(1, addressMAC, addressIP, ARP.zeroMAC, destIP);
+    byte[] frame = encapsulateEthernetARP(addressMAC, ARP.broadcastMAC, packet);
+    sendFrameARP(frame);
+  }
+
+  private void sendResponseARP(byte[] destMAC, byte[] destIP) {
+    byte[] packet = ARP.createPacketARP(2, addressMAC, addressIP, destMAC, destIP);
+    byte[] frame = encapsulateEthernetARP(addressMAC, ARP.broadcastMAC, packet);
+    sendFrameARP(frame);
+  }
+
   private void sendFrame(Ethernet frame) {
     this.packet.setData(frame.getBytes());
+    for (int i = 0; i < connectedHosts.size(); i++) {
+      this.packet.setPort(connectedHosts.get(i));
+      System.out.println("Broadcasting to host on logical port "+this.packet.getPort());
+      try {
+        this.serverSock.send(this.packet);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
+  private void sendFrameARP(byte[] frame) {
+    this.packet.setData(frame);
     for (int i = 0; i < connectedHosts.size(); i++) {
       this.packet.setPort(connectedHosts.get(i));
       System.out.println("Broadcasting to host on logical port "+this.packet.getPort());
@@ -129,6 +184,20 @@ public class Router {
     System.arraycopy(destAddr, 0, header, 6, 6);
     header[12] = (byte) 0x80;
     header[13] = 0x00;
+    
+    byte[] frame = new byte[14 + payload.length];
+    System.arraycopy(header, 0, frame, 0, header.length);
+    System.arraycopy(payload, 0, frame, header.length, payload.length);
+
+    return frame;
+  }
+
+  public byte[] encapsulateEthernetARP(byte[] destAddr, byte[] sourceAddr, byte[] payload) {
+    byte[] header = new byte[14];
+    System.arraycopy(sourceAddr, 0, header, 0, 6);
+    System.arraycopy(destAddr, 0, header, 6, 6);
+    header[12] = (byte) 0x80;
+    header[13] = 0x06;
     
     byte[] frame = new byte[14 + payload.length];
     System.arraycopy(header, 0, frame, 0, header.length);

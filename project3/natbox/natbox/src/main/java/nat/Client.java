@@ -9,6 +9,7 @@ public class Client {
   private byte[] addressMAC;
   private DatagramSocket socket;
   private DatagramPacket packet;
+  private ARPTable arpTable;
   private int transactionIdentifier;
   private int packetCount;
   private static byte[] routerIP;
@@ -27,6 +28,7 @@ public class Client {
     }
     this.addressMAC = generateRandomMAC();
     this.transactionIdentifier = 0;
+    arpTable = new ARPTable();
     new Thread() {
       @Override
       public void run() {
@@ -79,6 +81,10 @@ public class Client {
     Ethernet ethernetFrame = new Ethernet(frame);
     // Router MAC address of broadcast addressed frame are accepted
     System.out.println(ethernetFrame.toString());
+    if (ethernetFrame.protocol() == 2054) {
+      handleARPPacket(ethernetFrame.payload());
+      return true;
+    }
     if (Arrays.equals(addressMAC, ethernetFrame.destination())
       || ethernetFrame.isBroadcast()) {
       handleIPPacket(ethernetFrame.payload());
@@ -106,6 +112,12 @@ public class Client {
       // Packets that need to be routed
       // Here we forward packets... Externally as well as internally
       // Get MAC address of IP from ARP table
+      boolean hasIP = arpTable.containsMAC(ipPacket.destination());
+    	if (hasIP) {
+    		/* forward packet to destination */
+    	} else {
+    		sendRequestARP(ipPacket.destination());
+    	}
       ipPacket.destination();
     }
   }
@@ -120,6 +132,37 @@ public class Client {
         System.out.println(toString());
       }
     }
+  }
+
+  private void handleARPPacket(byte[] packet) {
+      ARP arpPacket = new ARP(packet);
+      System.out.println(arpPacket.toString());
+      
+      if (arpPacket.opCode() == 1) {
+        if (Arrays.equals(arpPacket.destIP(), addressIP)) {
+        	System.out.println("ARP request received");
+        	sendResponseARP(arpPacket.srcMAC(), arpPacket.srcIP());
+        } else {
+        	return;
+        }
+      } else if (arpPacket.opCode() == 2) {
+    	  System.out.println("ARP response received");
+    	  arpTable.addPair(arpPacket.srcMAC(), arpPacket.srcIP());
+      } else {
+    	  System.out.println("Invalid opCode");
+      }
+  }
+
+  private void sendRequestARP(byte[] destIP) {
+    byte[] packet = ARP.createPacketARP(1, addressMAC, addressIP, ARP.zeroMAC, destIP);
+    byte[] frame = encapsulateEthernetARP(addressMAC, ARP.broadcastMAC, packet);
+    sendFrame(frame);
+  }
+
+  private void sendResponseARP(byte[] destMAC, byte[] destIP) {
+    byte[] packet = ARP.createPacketARP(2, addressMAC, addressIP, destMAC, destIP);
+    byte[] frame = encapsulateEthernetARP(addressMAC, ARP.broadcastMAC, packet);
+    sendFrame(frame);
   }
 
   public void sendDHCPDiscover() {
@@ -144,6 +187,20 @@ public class Client {
 
   private byte[] encapsulateUDP(int destPort, int sourcePort, byte[] payload) {
     return new UDP(destPort, sourcePort, payload).getBytes();
+  }
+
+  public byte[] encapsulateEthernetARP(byte[] destAddr, byte[] sourceAddr, byte[] payload) {
+    byte[] header = new byte[14];
+    System.arraycopy(sourceAddr, 0, header, 0, 6);
+    System.arraycopy(destAddr, 0, header, 6, 6);
+    header[12] = (byte) 0x80;
+    header[13] = 0x06;
+    
+    byte[] frame = new byte[14 + payload.length];
+    System.arraycopy(header, 0, frame, 0, header.length);
+    System.arraycopy(payload, 0, frame, header.length, payload.length);
+
+    return frame;
   }
 
   public String toString() {

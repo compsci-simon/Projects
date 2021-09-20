@@ -1,7 +1,7 @@
 package nat;
 
 public class ARP {
-    public static int demuxARP = 2054;
+    public final int demuxARP = 2054;
     private int hardwareType;
     private int protocolType;
     private int hardwareSize;
@@ -11,10 +11,9 @@ public class ARP {
     private byte[] destMAC;
     private byte[] srcIP;
     private byte[] destIP;
-    private static byte[] broadcastMAC = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
+    public static byte[] broadcastMAC = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
     public static byte[] zeroMAC = {(byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00};
 
-    // HERE
     public ARP(byte[] packet) {
         this.hardwareType = (packet[0]&0xff)<<8 | (packet[1]&0xff);
         this.protocolType = (packet[2]&0xff)<<8 | (packet[3]&0xff);
@@ -72,7 +71,6 @@ public class ARP {
         System.out.println(s);
     }
 
-    // HERE
     public int opCode() {
         return opCode;
     }

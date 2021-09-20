@@ -68,6 +68,10 @@ public class Ethernet {
     return payload;
   }
 
+  public int protocol() {
+    return demuxProtocol;
+  }
+
   public boolean isBroadcast() {
     return Arrays.equals(destMAC, BROADCASTMAC);
   }
