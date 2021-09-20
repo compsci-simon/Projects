@@ -92,27 +92,9 @@ public class ARP {
     }
 
     public String toString() {
-    String s = "source MAC  = ";
-    for (int i = 0; i < 6; i++) {
-      s = String.format("%s%d.", s, srcMAC[i]&0xff);
-    }
-    s = s.substring(0, s.length() - 1);
-    s = String.format("%s\nSource IP = ", s);
-    for (int i = 0; i < 4; i++) {
-      s = String.format("%s%d.", s, srcIP[i]&0xff);
-    }
-    s = s.substring(0, s.length() - 1);
-    s = String.format("%s\nDest MAC = ", s);
-    for (int i = 0; i < 6; i++) {
-      s = String.format("%s%d.", s, destMAC[i]&0xff);
-    }
-    s = s.substring(0, s.length() - 1);
-    s = String.format("%s\nDest IP = ", s);
-    for (int i = 0; i < 4; i++) {
-      s = String.format("%s%d.", s, destIP[i]&0xff);
-    }
-    s = s.substring(0, s.length() - 1);
-    s = String.format("%s\n opCode = %d", s, opCode);
-    return s;
-  }
+        String s = String.format("\n\nARP toString\nDestination MAC = %s" +
+          "\nSource MAC = %s\nDestination IP = %s\nSource IP = %s\nopCode = %d", 
+          Ethernet.macString(destMAC), Ethernet.macString(srcMAC), IP.ipString(destIP), IP.ipString(srcIP), opCode);
+        return s;
+      }
 }

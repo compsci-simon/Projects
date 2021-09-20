@@ -29,7 +29,7 @@ public class IP {
     this.payload = new byte[this.totalLength - 20];
     System.arraycopy(packet, 16, destIP, 0, 4);
     System.arraycopy(packet, 12, sourceIP, 0, 4);
-    System.arraycopy(packet, 20, payload, 0, this.totalLength - 21);
+    System.arraycopy(packet, 20, payload, 0, this.totalLength - 20);
   }
 
   public byte[] getBytes(int packetCount) {

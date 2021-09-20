@@ -49,6 +49,7 @@ public class Router {
     try {
       System.out.println("Router started...");
       while (true) {
+    	  packet = new DatagramPacket(new byte[1500], 1500);
         serverSock.receive(packet);
         addPortToArrayList(packet.getPort());
         if (!handleFrame(packet.getData()))
@@ -65,13 +66,15 @@ public class Router {
     Ethernet ethernetFrame = new Ethernet(frame);
     // Router MAC address of broadcast addressed frame are accepted
     System.out.println(ethernetFrame.toString());
+    System.out.println();
+    System.out.println(Constants.bytesToString(frame));
+    System.out.println();
     System.out.println("frame length: " + frame.length);
     if (Arrays.equals(addressMAC, ethernetFrame.destination())
     || ethernetFrame.isBroadcast()) {
       if (ethernetFrame.protocol() == Ethernet.DEMUXARP) {
         handleARPPacket(ethernetFrame.payload());
       } else if (ethernetFrame.protocol() == Ethernet.DEMUXIP) {
-    	  System.out.println("ethernet frame length: " + ethernetFrame.getBytes().length);
         handleIPPacket(ethernetFrame.payload());
       }
     }
@@ -109,7 +112,6 @@ public class Router {
     	} else {
     		sendRequestARP(ipPacket.destination());
     	}
-      ipPacket.destination();
     }
   }
 
@@ -129,7 +131,6 @@ public class Router {
         e.printStackTrace();
       }
     }
-    System.out.println(udpPacket.payload().length);
     String payload = new String(udpPacket.payload());
     System.out.println(payload);
   }
@@ -159,7 +160,7 @@ public class Router {
 
   private void sendResponseARP(byte[] destMAC, byte[] destIP) {
     byte[] packet = ARP.createPacketARP(2, addressMAC, addressIP, destMAC, destIP);
-    byte[] frame = encapsulateEthernetARP(addressMAC, ARP.broadcastMAC, packet);
+    byte[] frame = encapsulateEthernetARP(addressMAC, destMAC, packet);
     sendFrameARP(frame);
   }
 

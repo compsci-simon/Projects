@@ -59,8 +59,13 @@ public class Client {
     	ipNotObtained = Arrays.equals(c.addressIP, testIP);
     	System.out.println(IP.ipString(c.addressIP));
     }
+    try {
+        Thread.sleep(100);
+      } catch (Exception e) {
+        //TODO: handle exception
+      }
     byte[] ip = {(byte) 0xC0, (byte) 0xA8, 0, 1};
-    c.udpSend(ip, "H");
+    c.udpSend(ip, "Hello there my friendo");
   }
 
   private static byte[] generateRandomMAC() {
@@ -95,13 +100,13 @@ public class Client {
     Ethernet ethernetFrame = new Ethernet(frame);
     // Router MAC address of broadcast addressed frame are accepted
     System.out.println(ethernetFrame.toString());
+    System.out.println();
     if (ethernetFrame.protocol() == ARP.DEMUX_PORT) {
       handleARPPacket(ethernetFrame.payload());
       return true;
     }
     if (Arrays.equals(addressMAC, ethernetFrame.destination())
       || ethernetFrame.isBroadcast()) {
-    	System.out.println("IP packet received");
       handleIPPacket(ethernetFrame.payload());
     }
     return true;
@@ -157,6 +162,7 @@ public class Client {
   private void handleARPPacket(byte[] packet) {
       ARP arpPacket = new ARP(packet);
       System.out.println(arpPacket.toString());
+      System.out.println();
       
       if (arpPacket.opCode() == 1) {
         if (Arrays.equals(arpPacket.destIP(), addressIP)) {
@@ -181,7 +187,7 @@ public class Client {
 
   private void sendResponseARP(byte[] destMAC, byte[] destIP) {
     byte[] packet = ARP.createPacketARP(2, addressMAC, addressIP, destMAC, destIP);
-    byte[] frame = encapsulateEthernetARP(addressMAC, ARP.broadcastMAC, packet);
+    byte[] frame = encapsulateEthernetARP(addressMAC, destMAC, packet);
     sendFrame(frame);
   }
 
@@ -210,8 +216,10 @@ public class Client {
     }
     
     System.out.println(ipPacket.toString());
+    System.out.println();
     byte[] destinationMAC = arpTable.getMAC(ipPacket.destination());
     System.out.println(Ethernet.macString(destinationMAC));
+    System.out.println();
     
     Ethernet ethernetPacket = new Ethernet(destinationMAC, addressMAC, IP.DEMUXPORT, ipPacket.getBytes(packetCount));
     sendFrame(ethernetPacket.getBytes());
