@@ -96,7 +96,7 @@ public class Router {
       // Get MAC address of IP from ARP table
       boolean hasIP = arpTable.containsMAC(ipPacket.destination());
     	if (hasIP) {
-        byte[] destinationMAC = getMAC(ipPacket.destination);
+        byte[] destinationMAC = arpTable.getMAC(ipPacket.destination());
     		/* forward packet to destination */
     	} else {
     		sendRequestARP(ipPacket.destination());
