@@ -50,7 +50,8 @@ public class Client {
 
   public static void main(String[] args) {
     Client c = new Client(true, "localhost");
-    c.sendDHCPDiscover();
+    byte[] ip = {0, 0, 0, 0};
+    c.udpSend(ip, "Hi there");
   }
 
   private static byte[] generateRandomMAC() {
