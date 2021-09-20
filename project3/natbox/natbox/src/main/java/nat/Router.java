@@ -92,6 +92,7 @@ public class Router {
       // Packets destined for the router
       System.out.println("Received packet destined for router");
       if (ipPacket.getDemuxPort() == 17) {
+    	  System.out.println(ipPacket.payload().length);
           handleUDPPacket(ipPacket.payload());
       }
     } else {
@@ -126,6 +127,7 @@ public class Router {
         e.printStackTrace();
       }
     }
+    System.out.println(udpPacket.payload().length);
     String payload = new String(udpPacket.payload());
     System.out.println(payload);
   }
