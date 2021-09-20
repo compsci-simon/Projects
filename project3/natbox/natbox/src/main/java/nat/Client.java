@@ -42,7 +42,10 @@ public class Client {
           }
         }
       }
-    }.start();;
+    }.start();
+    if (internalClient) {
+      sendDHCPDiscover();
+    }
   }
 
   public static void main(String[] args) {
@@ -81,7 +84,7 @@ public class Client {
     Ethernet ethernetFrame = new Ethernet(frame);
     // Router MAC address of broadcast addressed frame are accepted
     System.out.println(ethernetFrame.toString());
-    if (ethernetFrame.protocol() == 2054) {
+    if (ethernetFrame.protocol() == ARP.DEMUX_PORT) {
       handleARPPacket(ethernetFrame.payload());
       return true;
     }
@@ -126,12 +129,16 @@ public class Client {
   public void handleUDPPacket(byte[] packet) {
     UDP udpPacket = new UDP(packet);
     if (udpPacket.destinationPort() == DHCP.CLIENTPORT) {
-      DHCP dhcpPacket = DHCP.deserialize(udpPacket.payload());
-      if (dhcpPacket.getMessageType() == DHCP.BOOT_REPLY) {
-        addressIP = dhcpPacket.getCiaddr();
-        routerIP = dhcpPacket.getGateway();
-        System.out.println(toString());
-      }
+      handleDHCPPacket(udpPacket.payload());
+    }
+  }
+
+  public void handleDHCPPacket(byte[] packet) {
+    DHCP dhcpPacket = DHCP.deserialize(packet);
+    if (dhcpPacket.getMessageType() == DHCP.BOOT_REPLY) {
+      addressIP = dhcpPacket.getCiaddr();
+      routerIP = dhcpPacket.getGateway();
+      System.out.println(toString());
     }
   }
 

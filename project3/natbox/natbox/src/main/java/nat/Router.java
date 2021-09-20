@@ -13,6 +13,7 @@ public class Router {
   private ARPTable arpTable;
   private byte[] addressMAC;
   private byte[] addressIP = {(byte) 0xC0, (byte) 0xA8, 0, 1};
+  private byte[] externalIP;
   private int packetID;
   public static final byte[] subnetMask = {(byte)0xff, (byte)0xff, (byte)0xff, 0};
   public static final byte[] broadcastIP = {(byte) 0xC0, (byte) 0xA8, 0, (byte)0xff};
@@ -64,7 +65,7 @@ public class Router {
     Ethernet ethernetFrame = new Ethernet(frame);
     // Router MAC address of broadcast addressed frame are accepted
     System.out.println(ethernetFrame.toString());
-    if (ethernetFrame.protocol() == 2054) {
+    if (ethernetFrame.protocol() == ARP.DEMUX_PORT) {
       handleARPPacket(ethernetFrame.payload());
       return true;
     }
@@ -95,8 +96,9 @@ public class Router {
       // Here we forward packets... Externally as well as internally
       // Get MAC address of IP from ARP table
       boolean hasIP = arpTable.containsMAC(ipPacket.destination());
+      byte[] destinationMAC;
     	if (hasIP) {
-        byte[] destinationMAC = arpTable.getMAC(ipPacket.destination());
+        destinationMAC = arpTable.getMAC(ipPacket.destination());
     		/* forward packet to destination */
     	} else {
     		sendRequestARP(ipPacket.destination());

@@ -107,4 +107,22 @@ public class IP {
     return i;
   }
 
+  public static int toInt(byte[] ip) {
+    if (ip.length != 4) {
+      System.err.println("Invalid IP format");
+      return -1;
+    }
+    int temp = 0;
+    temp = (ip[0]<<24)&0xff | (ip[1]<<16)&0xff | (ip[2]<<8)&0xff | ip[3]&0xff;
+    return temp;
+  }
+
+  public static byte[] generateRandomIP() {
+    byte[] ip = new byte[4];
+    for (int i = 0; i < 4; i++) {
+      ip[i] = (byte) ((int)Math.random()*0xff);
+    }
+    return ip;
+  }
+
 }
