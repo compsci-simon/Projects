@@ -181,6 +181,13 @@ public class Client {
     sendFrame(frame);
   }
   
+  public void udpSend(byte[] ip, String message) {
+    UDP udpPacket = new UDP(9000, 9000, message.getBytes());
+    IP ipPack = new IP(ip, addressIP, UDP.DEMUXPORT, udpPacket.payload());
+    boolean hasIP = arpTable.containsMAC(ipPack.destination());
+    
+  }
+
   public byte[] generateDHCPDiscoverPacket() {
     return DHCP.bootRequest(transactionIdentifier++, addressMAC).getBytes();
   }
