@@ -57,15 +57,15 @@ public class Client {
     // this is to make sure the client has received an IP
     while (ipNotObtained) {
     	ipNotObtained = Arrays.equals(c.addressIP, testIP);
-    	System.out.println(IP.ipString(c.addressIP));
+    	try {
+            Thread.sleep(100);
+          } catch (Exception e) {
+            //TODO: handle exception
+          }
     }
-    try {
-        Thread.sleep(100);
-      } catch (Exception e) {
-        //TODO: handle exception
-      }
     byte[] ip = {(byte) 0xC0, (byte) 0xA8, 0, 1};
     c.udpSend(ip, "Hello there my friendo");
+    c.udpSend(ip, "Another message to my friend");
   }
 
   private static byte[] generateRandomMAC() {
@@ -139,7 +139,6 @@ public class Client {
     	} else {
     		sendRequestARP(ipPacket.destination());
     	}
-      ipPacket.destination();
     }
   }
 
@@ -216,10 +215,7 @@ public class Client {
     }
     
     System.out.println(ipPacket.toString());
-    System.out.println();
     byte[] destinationMAC = arpTable.getMAC(ipPacket.destination());
-    System.out.println(Ethernet.macString(destinationMAC));
-    System.out.println();
     
     Ethernet ethernetPacket = new Ethernet(destinationMAC, addressMAC, IP.DEMUXPORT, ipPacket.getBytes(packetCount));
     sendFrame(ethernetPacket.getBytes());

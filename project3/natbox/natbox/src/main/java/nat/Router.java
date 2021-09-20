@@ -66,10 +66,6 @@ public class Router {
     Ethernet ethernetFrame = new Ethernet(frame);
     // Router MAC address of broadcast addressed frame are accepted
     System.out.println(ethernetFrame.toString());
-    System.out.println();
-    System.out.println(Constants.bytesToString(frame));
-    System.out.println();
-    System.out.println("frame length: " + frame.length);
     if (Arrays.equals(addressMAC, ethernetFrame.destination())
     || ethernetFrame.isBroadcast()) {
       if (ethernetFrame.protocol() == Ethernet.DEMUXARP) {
@@ -97,7 +93,6 @@ public class Router {
       // Packets destined for the router
       System.out.println("Received packet destined for router");
       if (ipPacket.getDemuxPort() == 17) {
-    	  System.out.println(ipPacket.payload().length);
           handleUDPPacket(ipPacket.payload());
       }
     } else {
