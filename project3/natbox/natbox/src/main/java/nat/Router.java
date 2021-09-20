@@ -125,9 +125,10 @@ public class Router {
         //TODO: handle exception
         e.printStackTrace();
       }
+    } else {
+    	String payload = new String(udpPacket.payload());
+    	System.out.println(payload);
     }
-    String payload = new String(udpPacket.payload());
-    System.out.println(payload);
   }
 
   private void handleARPPacket(byte[] packet) {
@@ -148,15 +149,16 @@ public class Router {
   }
 
   private void sendRequestARP(byte[] destIP) {
-    byte[] packet = ARP.createPacketARP(1, addressMAC, addressIP, ARP.zeroMAC, destIP);
-    byte[] frame = encapsulateEthernetARP(addressMAC, ARP.broadcastMAC, packet);
-    sendFrameARP(frame);
+	    ARP arpPacket = new ARP(1, addressMAC, addressIP, ARP.zeroMAC, destIP);
+	    Ethernet frame = encapsulateEthernet(ARP.broadcastMAC, addressMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
+	    sendFrame(frame);
   }
 
   private void sendResponseARP(byte[] destMAC, byte[] destIP) {
-    byte[] packet = ARP.createPacketARP(2, addressMAC, addressIP, destMAC, destIP);
-    byte[] frame = encapsulateEthernetARP(addressMAC, destMAC, packet);
-    sendFrameARP(frame);
+		  ARP arpPacket = new ARP(2, addressMAC, addressIP, destMAC, destIP);
+		  Ethernet frame = encapsulateEthernet(destMAC, addressMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
+		  System.out.println(Constants.bytesToString(arpPacket.getBytes()));
+		  sendFrame(frame);
   }
 
   private void sendFrame(Ethernet frame) {
@@ -171,46 +173,9 @@ public class Router {
       }
     }
   }
-
-  private void sendFrameARP(byte[] frame) {
-    this.packet.setData(frame);
-    for (int i = 0; i < connectedHosts.size(); i++) {
-      this.packet.setPort(connectedHosts.get(i));
-      System.out.println("Broadcasting to host on logical port "+this.packet.getPort());
-      try {
-        this.serverSock.send(this.packet);
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
-  }
-
-  public byte[] encapsulateEthernet(byte[] destAddr, byte[] sourceAddr, byte[] payload) {
-    byte[] header = new byte[14];
-    System.arraycopy(sourceAddr, 0, header, 0, 6);
-    System.arraycopy(destAddr, 0, header, 6, 6);
-    header[12] = (byte) 0x08;
-    header[13] = 0x00;
-    
-    byte[] frame = new byte[14 + payload.length];
-    System.arraycopy(header, 0, frame, 0, header.length);
-    System.arraycopy(payload, 0, frame, header.length, payload.length);
-
-    return frame;
-  }
-
-  public byte[] encapsulateEthernetARP(byte[] destAddr, byte[] sourceAddr, byte[] payload) {
-    byte[] header = new byte[14];
-    System.arraycopy(sourceAddr, 0, header, 0, 6);
-    System.arraycopy(destAddr, 0, header, 6, 6);
-    header[12] = (byte) 0x08;
-    header[13] = 0x06;
-    
-    byte[] frame = new byte[14 + payload.length];
-    System.arraycopy(header, 0, frame, 0, header.length);
-    System.arraycopy(payload, 0, frame, header.length, payload.length);
-
-    return frame;
+  
+  public Ethernet encapsulateEthernet(byte[] destAddr, byte[] sourceAddr, int demuxPort, byte[] payload) {
+	    return new Ethernet(destAddr, sourceAddr, demuxPort, payload);
   }
 
   private void addPortToArrayList(int port) {

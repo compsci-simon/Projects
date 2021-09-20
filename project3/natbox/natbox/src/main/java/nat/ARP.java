@@ -30,8 +30,20 @@ public class ARP {
         System.arraycopy(packet, 24, destIP, 0, 4);
     }
 
-    public static byte[] createPacketARP(int opCode, byte[] srcMAC, byte[] srcIP, byte[] destMAC, byte[] destIP) {
-        byte[] message = new byte[28];
+    public ARP(int opCode, byte[] srcMAC, byte[] srcIP, byte[] destMAC, byte[] destIP) {
+    	this.opCode = opCode;
+    	this.srcMAC = new byte[6];
+        System.arraycopy(srcMAC, 0, this.srcMAC, 0, 6);
+        this.srcIP = new byte[4];
+        System.arraycopy(srcIP, 0, this.srcIP, 0, 4);
+        this.destMAC = new byte[6];
+        System.arraycopy(destMAC, 0, this.destMAC, 0, 6);
+        this.destIP = new byte[4];
+        System.arraycopy(destIP, 0, this.destIP, 0, 4);
+    }
+    
+    public byte[] getBytes() {
+    	byte[] message = new byte[28];
         /* hardware type (ethernet) */
         message[0] = 0x00;
         message[1] = 0x01;
@@ -60,15 +72,6 @@ public class ARP {
         System.arraycopy(destIP, 0, message, 24, 4);
 
         return message;
-    }
-    
-    public static void printIP(byte[] address) {
-    	String s = "IP  = ";
-        for (int i = 0; i < 4; i++) {
-          s = String.format("%s%d.", s, address[i]&0xff);
-        }
-        s = s.substring(0, s.length() - 1);
-        System.out.println(s);
     }
 
     public int opCode() {

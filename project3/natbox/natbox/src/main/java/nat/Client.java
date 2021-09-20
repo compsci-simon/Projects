@@ -179,15 +179,15 @@ public class Client {
   }
 
   private void sendRequestARP(byte[] destIP) {
-    byte[] packet = ARP.createPacketARP(1, addressMAC, addressIP, ARP.zeroMAC, destIP);
-    byte[] frame = encapsulateEthernetARP(addressMAC, ARP.broadcastMAC, packet);
-    sendFrame(frame);
+	  ARP arpPacket = new ARP(1, addressMAC, addressIP, ARP.zeroMAC, destIP);
+	  byte[] frame = encapsulateEthernet(ARP.broadcastMAC, addressMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
+	  sendFrame(frame);
   }
 
   private void sendResponseARP(byte[] destMAC, byte[] destIP) {
-    byte[] packet = ARP.createPacketARP(2, addressMAC, addressIP, destMAC, destIP);
-    byte[] frame = encapsulateEthernetARP(addressMAC, destMAC, packet);
-    sendFrame(frame);
+	  ARP arpPacket = new ARP(2, addressMAC, addressIP, destMAC, destIP);
+	  byte[] frame = encapsulateEthernet(destMAC, addressMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
+	  sendFrame(frame);
   }
 
   public void sendDHCPDiscover() {
@@ -238,19 +238,6 @@ public class Client {
     return new UDP(destPort, sourcePort, payload).getBytes();
   }
 
-  public byte[] encapsulateEthernetARP(byte[] destAddr, byte[] sourceAddr, byte[] payload) {
-    byte[] header = new byte[14];
-    System.arraycopy(sourceAddr, 0, header, 0, 6);
-    System.arraycopy(destAddr, 0, header, 6, 6);
-    header[12] = (byte) 0x08;
-    header[13] = 0x06;
-    
-    byte[] frame = new byte[14 + payload.length];
-    System.arraycopy(header, 0, frame, 0, header.length);
-    System.arraycopy(payload, 0, frame, header.length, payload.length);
-
-    return frame;
-  }
 
   public String toString() {
     String routerString = "Not set";
