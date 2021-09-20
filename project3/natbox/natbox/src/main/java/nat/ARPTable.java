@@ -23,8 +23,8 @@ public class ARPTable {
     }
   }
   
-  public byte[] getMAC(int addressIP) {
-	  return arpTable.get(addressIP);
+  public byte[] getMAC(byte[] addressIP) {
+	  return arpTable.get(toInt(addressIP));
   }
   
   public int toInt(byte[] bytes) {

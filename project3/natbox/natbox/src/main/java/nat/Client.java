@@ -114,6 +114,7 @@ public class Client {
       // Get MAC address of IP from ARP table
       boolean hasIP = arpTable.containsMAC(ipPacket.destination());
     	if (hasIP) {
+        byte[] destinationMAC = getMAC(ipPacket.destination);
     		/* forward packet to destination */
     	} else {
     		sendRequestARP(ipPacket.destination());
@@ -147,7 +148,7 @@ public class Client {
         }
       } else if (arpPacket.opCode() == 2) {
     	  System.out.println("ARP response received");
-    	  arpTable.addPair(arpPacket.srcMAC(), arpPacket.srcIP());
+    	  arpTable.addPair(arpPacket.srcIP(), arpPacket.srcMAC());
       } else {
     	  System.out.println("Invalid opCode");
       }
