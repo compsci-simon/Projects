@@ -60,7 +60,7 @@ public class Client {
     	System.out.println(IP.ipString(c.addressIP));
     }
     byte[] ip = {(byte) 0xC0, (byte) 0xA8, 0, 1};
-    c.udpSend(ip, "Hi trere");
+    c.udpSend(ip, "H");
   }
 
   private static byte[] generateRandomMAC() {
@@ -193,11 +193,10 @@ public class Client {
     sendFrame(frame);
   }
   
+  
   public void udpSend(byte[] ip, String message) {
     UDP udpPacket = new UDP(9000, 9000, message.getBytes());
     IP ipPacket = new IP(ip, addressIP, UDP.DEMUXPORT, udpPacket.getBytes());
-    System.out.println(udpPacket.payload().length);
-    System.out.println(ipPacket.payload().length);
     boolean hasIP = arpTable.containsMAC(ipPacket.destination());
     while (!hasIP) {
       System.out.println("Sent ARP request");
@@ -209,9 +208,11 @@ public class Client {
       }
       hasIP = arpTable.containsMAC(ipPacket.destination());
     }
+    
     System.out.println(ipPacket.toString());
     byte[] destinationMAC = arpTable.getMAC(ipPacket.destination());
     System.out.println(Ethernet.macString(destinationMAC));
+    
     Ethernet ethernetPacket = new Ethernet(destinationMAC, addressMAC, IP.DEMUXPORT, ipPacket.getBytes(packetCount));
     sendFrame(ethernetPacket.getBytes());
     System.out.println("Sent UDP Packet");

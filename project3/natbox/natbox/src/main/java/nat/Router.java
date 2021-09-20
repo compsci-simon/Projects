@@ -65,11 +65,13 @@ public class Router {
     Ethernet ethernetFrame = new Ethernet(frame);
     // Router MAC address of broadcast addressed frame are accepted
     System.out.println(ethernetFrame.toString());
+    System.out.println("frame length: " + frame.length);
     if (Arrays.equals(addressMAC, ethernetFrame.destination())
     || ethernetFrame.isBroadcast()) {
       if (ethernetFrame.protocol() == Ethernet.DEMUXARP) {
         handleARPPacket(ethernetFrame.payload());
       } else if (ethernetFrame.protocol() == Ethernet.DEMUXIP) {
+    	  System.out.println("ethernet frame length: " + ethernetFrame.getBytes().length);
         handleIPPacket(ethernetFrame.payload());
       }
     }
