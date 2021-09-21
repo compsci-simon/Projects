@@ -11,10 +11,11 @@ public class Client {
   private DatagramPacket packet;
   private DatagramPacket packetRec;
   private ARPTable arpTable;
-  private int transactionIdentifier;
+  private int ipIdentifier;
   private int packetCount;
   private static byte[] routerIP;
   private static byte[] subnetMask;
+  private byte icmpID;
 
   public Client(boolean internalClient, String address) {
     try {
@@ -26,10 +27,10 @@ public class Client {
       return;
     }
     if (!internalClient) {
-      this.addressIP = generateRandomIP();
+      this.addressIP = IP.generateRandomIP();
     }
-    this.addressMAC = generateRandomMAC();
-    this.transactionIdentifier = 0;
+    this.addressMAC = Ethernet.generateRandomMAC();
+    this.ipIdentifier = 0;
     arpTable = new ARPTable();
     new Thread() {
       @Override
@@ -45,6 +46,7 @@ public class Client {
         }
       }
     }.start();
+    this.icmpID = 0;
     if (internalClient) {
       sendDHCPDiscover();
     }
@@ -52,40 +54,26 @@ public class Client {
 
   public static void main(String[] args) {
     Client c = new Client(true, "localhost");
-    byte[] testIP = {0, 0, 0, 0};
-    boolean ipNotObtained = Arrays.equals(c.addressIP, testIP);
-    // this is to make sure the client has received an IP
-    while (ipNotObtained) {
-    	ipNotObtained = Arrays.equals(c.addressIP, testIP);
-    	try {
-            Thread.sleep(100);
-          } catch (Exception e) {
-            //TODO: handle exception
-          }
+    try {
+      Thread.sleep(200);
+    } catch (Exception e) {
+      //TODO: handle exception
     }
-    byte[] ip = {(byte) 0xC0, (byte) 0xA8, 0, 1};
-    c.udpSend(ip, "Hello there my friendo");
-    c.udpSend(ip, "Another message to my friend");
+    byte[] ip = {(byte) 0xC0, (byte) 0xA8, 0, 2};
+    if (args.length > 0) {
+      try {
+        Thread.sleep(500);
+        System.out.println("Sending ping");
+        c.udpSend(ip, "Howzit my broski");
+      } catch (Exception e) {
+        //TODO: handle exception
+      }
+    }
+    // c.udpSend(ip, "Another message to my friend");
   }
 
-  private static byte[] generateRandomMAC() {
-    byte[] mac = new byte[6];
-    for (int i = 0; i < 6; i++) {
-      mac[i] = (byte) (Math.random()*0xff);
-    }
-    return mac;
-  }
-
-  private static byte[] generateRandomIP() {
-    byte[] addressIP = new byte[4];
-    for (int i = 0; i < 4; i++) {
-      addressIP[i] = (byte) (Math.random()*0xFF);
-    }
-    return addressIP;
-  }
-
-  public void sendFrame(byte[] frame) {
-    this.packet.setData(frame);
+  public void sendFrame(Ethernet frame) {
+    this.packet.setData(frame.getBytes());
     try {
       socket.send(this.packet);
     } catch (Exception e) {
@@ -93,7 +81,11 @@ public class Client {
     }
   }
   
-  
+
+  /***************************************************************************/
+  /**************************** Handling methods *****************************/
+  /***************************************************************************/
+
   private boolean handleFrame(byte[] frame) {
     if (frame.length < 14)
       return false;
@@ -117,8 +109,18 @@ public class Client {
     System.out.println(ipPacket.toString());
 
     if (ipPacket.isBroadcast()) {
-      // This is broadcast IP packets
-      Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, addressMAC, Ethernet.DEMUXIP, ipPacket);
+
+      switch (ipPacket.getDemuxPort()) {
+      case IP.UDP_PORT:
+        handleUDPPacket(ipPacket.payload());
+        break;
+      case IP.ICMP_PORT:
+        handleICMPPacket(ipPacket);
+        break;
+      default:
+        System.err.println("Unknown demux port for IP packet");
+        break;
+      }
       if (ipPacket.getDemuxPort() == UDP.DEMUXPORT) {
         // pass to UDP on router... Dont know what packets the router would receive yet...
         handleUDPPacket(ipPacket.payload());
@@ -142,10 +144,24 @@ public class Client {
     }
   }
 
+  public void handleICMPPacket(IP ipPacket) {
+    ICMP icmpPacket = new ICMP(ipPacket.payload());
+    if (icmpPacket.getType() == ICMP.PING_REQ) {
+      ICMP response = ICMP.pingResponse(icmpPacket);
+      IP ipPack = new IP(ipPacket.source(), addressIP, ipPacket.getIdentifier(), IP.ICMP_PORT, response.getBytes());
+      byte[] destMAC = getMAC(ipPack.destination());
+      Ethernet frame = new Ethernet(destMAC, addressMAC, Ethernet.IP_PORT, ipPack.getBytes());
+      sendFrame(frame);
+    }
+  }
+
   public void handleUDPPacket(byte[] packet) {
     UDP udpPacket = new UDP(packet);
     if (udpPacket.destinationPort() == DHCP.CLIENTPORT) {
       handleDHCPPacket(udpPacket.payload());
+    } else {
+    	String payload = new String(udpPacket.payload());
+    	System.out.println(payload);
     }
   }
 
@@ -165,13 +181,11 @@ public class Client {
       
       if (arpPacket.opCode() == 1) {
         if (Arrays.equals(arpPacket.destIP(), addressIP)) {
-        	System.out.println("ARP request received");
         	sendResponseARP(arpPacket.srcMAC(), arpPacket.srcIP());
         } else {
         	return;
         }
       } else if (arpPacket.opCode() == 2) {
-    	  System.out.println("ARP response received");
     	  arpTable.addPair(arpPacket.srcIP(), arpPacket.srcMAC());
       } else {
     	  System.out.println("Invalid opCode");
@@ -180,50 +194,77 @@ public class Client {
 
   private void sendRequestARP(byte[] destIP) {
 	  ARP arpPacket = new ARP(1, addressMAC, addressIP, ARP.zeroMAC, destIP);
-	  byte[] frame = encapsulateEthernet(ARP.broadcastMAC, addressMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
+	  Ethernet frame = new Ethernet(ARP.broadcastMAC, addressMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
 	  sendFrame(frame);
   }
 
   private void sendResponseARP(byte[] destMAC, byte[] destIP) {
 	  ARP arpPacket = new ARP(2, addressMAC, addressIP, destMAC, destIP);
-	  byte[] frame = encapsulateEthernet(destMAC, addressMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
+    Ethernet frame = new Ethernet(destMAC, addressMAC, Ethernet.ARP_PORT, arpPacket.getBytes());
 	  sendFrame(frame);
   }
+  
+  /***************************************************************************/
+  /**************************** Sending methods ******************************/
+  /***************************************************************************/
 
   public void sendDHCPDiscover() {
     byte[] packetDHCP = generateDHCPDiscoverPacket();
     byte[] packetUDP = encapsulateUDP(DHCP.SERVERPORT, DHCP.CLIENTPORT, packetDHCP);
     byte[] packetIP = encapsulateIP(IP.UDP_PORT, IP.broadcastIP, IP.relayIP, packetUDP);
-    byte[] frame = encapsulateEthernet(Ethernet.BROADCASTMAC, addressMAC, Ethernet.DEMUXIP, packetIP);
+    Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, addressMAC, Ethernet.IP_PORT, packetIP);
     sendFrame(frame);
   }
   
-  
   public void udpSend(byte[] ip, String message) {
     UDP udpPacket = new UDP(9000, 9000, message.getBytes());
-    IP ipPacket = new IP(ip, addressIP, UDP.DEMUXPORT, udpPacket.getBytes());
-    boolean hasIP = arpTable.containsMAC(ipPacket.destination());
-    while (!hasIP) {
+    IP ipPacket = new IP(ip, addressIP, ipIdentifier++, UDP.DEMUXPORT, udpPacket.getBytes());
+    System.out.println(arpTable.toString());
+    if (IP.sameNetwork(addressIP, ip)) {
+      // Do not send frame to router
+    
+      byte[] destinationMAC = getMAC(ipPacket.destination());
+      Ethernet frame = new Ethernet(destinationMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
+      sendFrame(frame);
+    } else {
+      // Send frame to router
+    }
+  }
+
+  public void ping(byte[] ip) {
+    ICMP ping = new ICMP(ICMP.PING_REQ, icmpID++, new byte[1]);
+    IP ipPacket = new IP(ip, addressIP, ipIdentifier++, IP.ICMP_PORT, ping.getBytes());
+    Ethernet frame = new Ethernet(getMAC(ip), addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
+    System.out.println("in ping");
+    System.out.println(ipPacket.toString());
+    sendFrame(frame);
+  }
+
+  public byte[] getMAC(byte[] ip) {
+
+    boolean hasIP = arpTable.containsMAC(ip);
+    int i = 0;
+    for (; i < 2; i++) {
+      if (hasIP)
+        break;
       System.out.println("Sent ARP request");
-      sendRequestARP(ipPacket.destination());
+      sendRequestARP(ip);
       try {
         Thread.sleep(100);
       } catch (Exception e) {
         //TODO: handle exception
       }
-      hasIP = arpTable.containsMAC(ipPacket.destination());
+      hasIP = arpTable.containsMAC(ip);
     }
-    
-    System.out.println(ipPacket.toString());
-    byte[] destinationMAC = arpTable.getMAC(ipPacket.destination());
-    
-    Ethernet ethernetPacket = new Ethernet(destinationMAC, addressMAC, IP.DEMUXPORT, ipPacket.getBytes(packetCount));
-    sendFrame(ethernetPacket.getBytes());
-    System.out.println("Sent UDP Packet");
+    if (i == 2) {
+      System.out.println(String.format("Could not resolve IP: %s to physical address", IP.ipString(ip)));
+      return null;
+    }
+    return arpTable.getMAC(ip);
   }
 
   public byte[] generateDHCPDiscoverPacket() {
-    return DHCP.bootRequest(transactionIdentifier++, addressMAC).getBytes();
+    return DHCP.bootRequest(ipIdentifier++, addressMAC).getBytes();
   }
 
   public byte[] encapsulateEthernet(byte[] destAddr, byte[] sourceAddr, int demuxPort, byte[] payload) {
@@ -231,13 +272,12 @@ public class Client {
   }
 
   public byte[] encapsulateIP(int protocol, byte[] destAddr, byte[] sourceAddr, byte[] payload) {
-    return new IP(destAddr, sourceAddr, protocol, payload).getBytes(packetCount);
+    return new IP(destAddr, sourceAddr, ipIdentifier++, protocol, payload).getBytes();
   }
 
   private byte[] encapsulateUDP(int destPort, int sourcePort, byte[] payload) {
     return new UDP(destPort, sourcePort, payload).getBytes();
   }
-
 
   public String toString() {
     String routerString = "Not set";
@@ -248,8 +288,8 @@ public class Client {
     if (subnetMask != null) {
       subnetString = IP.ipString(subnetMask);
     }
-    String s = String.format("Client toString\nMAC = %s\nIP = %s\nGateway = %s" +
-                            "\nSubnet Mask = %s", 
+    String s = String.format("\nCLIENT toString\n----------------------" + 
+      "\nMAC = %s\nIP = %s\nGateway = %s\nSubnet Mask = %s\n", 
       Ethernet.macString(addressMAC), IP.ipString(addressIP), routerString, subnetString);
     return s;
   }

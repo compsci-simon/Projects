@@ -21,8 +21,9 @@ public class DHCPServer {
     // dhcpPacket.setMessageType(DHCP.bootReply);
     byte[] newIP = new byte[4];
     System.arraycopy(routerIP, 0, newIP, 0, 3);
-    newIP[3] = (byte) (lowestFreeIP()&0xff);
-    System.out.println(String.format("Assigned IP 192.168.0.%d", newIP[3]));
+    int freeIP = lowestFreeIP();
+    allocatedIPs.add(freeIP);
+    newIP[3] = (byte) (freeIP&0xff);
     return DHCP.bootReply(dhcpPacket, newIP, routerIP);
   }
 

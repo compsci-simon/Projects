@@ -6,24 +6,31 @@ public class IP {
   public static byte[] broadcastIP = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
   public static byte[] relayIP = {0, 0, 0, 0};
   public static byte[] nilIP = {0, 0, 0, 0};
-  public static final int DEMUXPORT = 2048;
-  public static final int UDP_PORT = 17;
+  public static final byte UDP_PORT = 17;
+  public static final byte ICMP_PORT = 1;
   private byte[] destIP;
   private byte[] sourceIP;
-  private int instanceDemuxPort;
+  private int identifier;
+  private int demuxPort;
   private byte[] payload;
   private int totalLength;
 
-  public IP (byte[] destIP, byte[] sourceIP, int demuxPort, byte[] payload) {
+  public IP (byte[] destIP, byte[] sourceIP, int identifier, int demuxPort, byte[] payload) {
+    if (destIP.length != 4 || sourceIP.length != 4) {
+      System.err.println("Incorrect IP format!");
+      return;
+    }
     this.destIP = destIP;
     this.sourceIP = sourceIP;
-    this.instanceDemuxPort = demuxPort;
+    this.identifier = identifier;
+    this.demuxPort = demuxPort;
     this.payload = payload;
   }
 
   public IP (byte[] packet) {
     this.totalLength = (packet[2]<<8) | (packet[3]&0xff);
-    this.instanceDemuxPort = packet[9];
+    this.identifier = ((packet[4]&0xff)<<8) | (packet[5]&0xff);
+    this.demuxPort = packet[9];
     this.destIP = new byte[4];
     this.sourceIP = new byte[4];
     this.payload = new byte[this.totalLength - 20];
@@ -32,15 +39,16 @@ public class IP {
     System.arraycopy(packet, 20, payload, 0, this.totalLength - 20);
   }
 
-  public byte[] getBytes(int packetCount) {
+  public byte[] getBytes() {
     byte[] header = new byte[20];
     header[0] = 0x45;
     int payloadSize = payload.length + 20;
     // 2 bytes for the payloadSize of the payload
     header[2] = (byte) ((payloadSize>>8)&0xff);
     header[3] = (byte) (payloadSize&0xff);
-    header[4] = (byte) (packetCount>>8&0xff);
-    header[5] = (byte) (packetCount&0xff);
+    // 2 bytes for the packet identifier
+    header[4] = (byte) ((identifier>>8)&0xff);
+    header[5] = (byte) (identifier&0xff);
     // Flags
     header[6] = 0x00;
     // Fragment Offset
@@ -48,10 +56,7 @@ public class IP {
     // TTL
     header[8] = (byte) 0xff;
     // Protocol
-    if (instanceDemuxPort == 11) {
-      header[9] = 0x11;
-    }
-    header[9] = 0x11;
+    header[9] = (byte) (demuxPort&0xff);
     // Header checksum (disabled)
     header[10] = 0x4c;
     header[11] = 0x0d;
@@ -66,13 +71,21 @@ public class IP {
 
     return ipPacket;
   }
+  
+  public byte[] source() {
+    return sourceIP;
+  }
 
   public byte[] destination() {
     return destIP;
   }
 
+  public int getIdentifier() {
+    return identifier;
+  }
+
   public int getDemuxPort() {
-    return instanceDemuxPort;
+    return demuxPort;
   }
 
   public boolean isBroadcast() {
@@ -84,7 +97,8 @@ public class IP {
   }
 
   public String toString() {
-    String s = "\n\nIP toString\nDestination IP = ";
+    String s = "\n\nIP toString\n----------------------" + 
+    "\nDestination IP = ";
     for (int i = 0; i < 4; i++) {
       s = String.format("%s%d.", s, destIP[i]&0xff);
     }
@@ -94,7 +108,7 @@ public class IP {
       s = String.format("%s%d.", s, sourceIP[i]&0xff);
     }
     s = s.substring(0, s.length() - 1);
-    s = String.format("%s\nDemux port = %d\n", s, instanceDemuxPort);
+    s = String.format("%s\nPacket identifier = %d\nDemux port = %d\n", s, identifier, demuxPort);
     return s;
   }
 
@@ -105,6 +119,11 @@ public class IP {
     }
     String i = String.format("%d.%d.%d.%d", ip[0]&0xff, ip[1]&0xff, ip[2]&0xff, ip[3]&0xff);
     return i;
+  }
+
+  public static String ipString(int ipInt) {
+    byte[] ip = toBytes(ipInt);
+    return String.format("%d.%d.%d.%d", ip[0]&0xff, ip[1]&0xff, ip[2]&0xff, ip[3]&0xff);
   }
 
   public static int toInt(byte[] ip) {
@@ -123,6 +142,33 @@ public class IP {
       ip[i] = (byte) ((int)Math.random()*0xff);
     }
     return ip;
+  }
+
+  public static boolean sameNetwork(byte[] ipA, byte[] ipB) {
+    if (ipA.length != 4 || ipB.length != 4) {
+      System.err.println("Incorrect IP format");
+      return false;
+    }
+    byte[] networkA = new byte[3];
+    byte[] networkB = new byte[3];
+
+    System.arraycopy(ipA, 0, networkA, 0, 3);
+    System.arraycopy(ipB, 0, networkB, 0, 3);
+
+    if (Arrays.equals(networkA, networkB)) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  public static byte[] toBytes(int ip) {
+    byte[] newIP = new byte[4];
+    newIP[0] = (byte) ((ip>>24)&0xff);
+    newIP[1] = (byte) ((ip>>16)&0xff);
+    newIP[2] = (byte) ((ip>>8)&0xff);
+    newIP[3] = (byte) (ip&0xff);
+    return newIP;
   }
 
 }

@@ -5,8 +5,8 @@ import java.util.Arrays;
 public class Ethernet {
   public static final byte[] BROADCASTMAC = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
   public static final byte[] ZEROMAC = {(byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00};
-  public static final int DEMUXIP = 2048;
-  public static final int DEMUXARP = 2054;
+  public static final int IP_PORT = 2048;
+  public static final int ARP_PORT = 2054;
   private byte[] payload;
   private byte[] destMAC;
   private byte[] sourceMAC;
@@ -46,6 +46,13 @@ public class Ethernet {
     this.demuxProtocol = demuxProtocol;
   }
 
+  public static byte[] generateRandomMAC() {
+    byte[] mac = new byte[6];
+    for (int i = 0; i < 6; i++) {
+      mac[i] = (byte) (Math.random()*0xff);
+    }
+    return mac;
+  }
 
   public byte[] getBytes() {
     byte[] header = new byte[14];
@@ -65,6 +72,10 @@ public class Ethernet {
     return destMAC;
   }
 
+  public byte[] source() {
+    return sourceMAC;
+  }
+
   public byte[] payload() {
     return payload;
   }
@@ -78,8 +89,8 @@ public class Ethernet {
   }
 
   public String toString() {
-    String s = String.format("\n\nEthernet toString\nDestination MAC = %s" +
-      "\nSource MAC = %s\nDemuxport = %d", 
+    String s = String.format("\nETHERNET toString\n----------------------" + 
+    "\nDestination MAC = %s" + "\nSource MAC = %s\nDemuxport = %d", 
       macString(destMAC), macString(sourceMAC), demuxProtocol);
     return s;
   }

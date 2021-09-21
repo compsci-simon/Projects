@@ -95,9 +95,11 @@ public class ARP {
     }
 
     public String toString() {
-        String s = String.format("\n\nARP toString\nDestination MAC = %s" +
-          "\nSource MAC = %s\nDestination IP = %s\nSource IP = %s\nopCode = %d", 
-          Ethernet.macString(destMAC), Ethernet.macString(srcMAC), IP.ipString(destIP), IP.ipString(srcIP), opCode);
+        String s = String.format("\n\nARP toString\n----------------------" + 
+            "\nDestination MAC = %s\nSource MAC = %s\nDestination IP = %s\n" + 
+            "Source IP = %s\nopCode = %d", Ethernet.macString(destMAC), 
+            Ethernet.macString(srcMAC), IP.ipString(destIP), IP.ipString(srcIP), 
+            opCode);
         return s;
       }
 }

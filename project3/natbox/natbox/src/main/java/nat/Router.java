@@ -3,7 +3,6 @@ package nat;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Arrays;
-import nat.Constants;
 
 public class Router {
   private DatagramSocket serverSock;
@@ -21,7 +20,8 @@ public class Router {
   public Router (int portNum) {
     packetID = 0;
     connectedHosts = new ArrayList<Integer>();
-    this.addressMAC = generateRandomMAC();
+    this.addressMAC = Ethernet.generateRandomMAC();
+    this.externalIP = IP.generateRandomIP();
     try {
       this.serverSock = new DatagramSocket(portNum);
       packet = new DatagramPacket(new byte[1500], 1500);
@@ -35,14 +35,6 @@ public class Router {
 
   public static void main(String[] args) {
     Router router = new Router(5000);
-  }
-  
-  private static byte[] generateRandomMAC() {
-    byte[] mac = new byte[6];
-    for (int i = 0; i < 6; i++) {
-      mac[i] = (byte) (Math.random()*0xff);
-    }
-    return mac;
   }
 
   private void handleConnections() {
@@ -66,13 +58,14 @@ public class Router {
     Ethernet ethernetFrame = new Ethernet(frame);
     // Router MAC address of broadcast addressed frame are accepted
     System.out.println(ethernetFrame.toString());
-    if (Arrays.equals(addressMAC, ethernetFrame.destination())
-    || ethernetFrame.isBroadcast()) {
-      if (ethernetFrame.protocol() == Ethernet.DEMUXARP) {
-        handleARPPacket(ethernetFrame.payload());
-      } else if (ethernetFrame.protocol() == Ethernet.DEMUXIP) {
+    if (Arrays.equals(addressMAC, ethernetFrame.destination()) || ethernetFrame.isBroadcast()) {
+      if (ethernetFrame.protocol() == Ethernet.ARP_PORT) {
+        handleARPPacket(ethernetFrame);
+      } else if (ethernetFrame.protocol() == Ethernet.IP_PORT) {
         handleIPPacket(ethernetFrame.payload());
       }
+    } else {
+      sendFrame(ethernetFrame);
     }
     return true;
   }
@@ -83,17 +76,17 @@ public class Router {
 
     if (ipPacket.isBroadcast()) {
       // This is broadcast IP packets
-      Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, addressMAC, Ethernet.DEMUXIP, ipPacket);
+      Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, addressMAC, Ethernet.IP_PORT, ipPacket);
       sendFrame(frame);
       if (ipPacket.getDemuxPort() == 17) {
         // pass to UDP on router... Dont know what packets the router would receive yet...
-        handleUDPPacket(ipPacket.payload());
+        handleUDPPacket(ipPacket);
       }
     } else if (Arrays.equals(addressIP, ipPacket.destination())) {
       // Packets destined for the router
       System.out.println("Received packet destined for router");
       if (ipPacket.getDemuxPort() == 17) {
-          handleUDPPacket(ipPacket.payload());
+          handleUDPPacket(ipPacket);
       }
     } else {
       // Packets that need to be routed
@@ -110,16 +103,19 @@ public class Router {
     }
   }
 
-  public void handleUDPPacket(byte[] packet) {
-    UDP udpPacket = new UDP(packet);
-    System.out.println("Received UDP packet");
+  public void handleUDPPacket(IP ipPacket) {
+    UDP udpPacket = new UDP(ipPacket.payload());
+    System.out.println(udpPacket.toString());
     if (udpPacket.demuxPort() == DHCP.SERVERPORT) {
       DHCP dhcpReq = new DHCP(udpPacket.payload());
       DHCP bootReply = dhcpServer.generateBootResponse(dhcpReq);
+      System.out.println(String.format("Assigned IP %s to %s", 
+        IP.ipString(bootReply.getCiaddr()), 
+        Ethernet.macString(bootReply.getChaddr())));
       try {
         UDP udpPack = new UDP(DHCP.CLIENTPORT, DHCP.SERVERPORT, bootReply.serialize());
-        IP ipPack = new IP(dhcpReq.getCiaddr(), addressIP, UDP.DEMUXPORT, udpPack.getBytes());
-        Ethernet frame = new Ethernet(bootReply.getChaddr(), addressMAC, IP.DEMUXPORT, ipPack.getBytes(packetID++));
+        IP ipPack = new IP(dhcpReq.getCiaddr(), addressIP, ipPacket.getIdentifier(), UDP.DEMUXPORT, udpPack.getBytes());
+        Ethernet frame = new Ethernet(bootReply.getChaddr(), addressMAC, Ethernet.IP_PORT, ipPack.getBytes());
         sendFrame(frame);        
       } catch (Exception e) {
         //TODO: handle exception
@@ -131,7 +127,9 @@ public class Router {
     }
   }
 
-  private void handleARPPacket(byte[] packet) {
+  private void handleARPPacket(Ethernet ethernetFrame) {
+      byte[] packet = ethernetFrame.payload();
+      byte[] sourceMAC = ethernetFrame.source();
       ARP arpPacket = new ARP(packet);
       System.out.println(arpPacket.toString());
       
@@ -139,6 +137,9 @@ public class Router {
         if (Arrays.equals(arpPacket.destIP(), addressIP)) {
         	System.out.println("ARP request received");
         	sendResponseARP(arpPacket.srcMAC(), arpPacket.srcIP());
+        } else {
+          Ethernet ethernetFrameToForward = new Ethernet(Ethernet.BROADCASTMAC, sourceMAC, Ethernet.ARP_PORT, packet);
+          sendFrame(ethernetFrameToForward);
         }
       } else if (arpPacket.opCode() == 2) {
     	  System.out.println("ARP response received");
@@ -165,7 +166,7 @@ public class Router {
     this.packet.setData(frame.getBytes());
     for (int i = 0; i < connectedHosts.size(); i++) {
       this.packet.setPort(connectedHosts.get(i));
-      System.out.println("Broadcasting to host on logical port "+this.packet.getPort());
+      // System.out.println("Broadcasting to host on logical port "+this.packet.getPort());
       try {
         this.serverSock.send(this.packet);
       } catch (Exception e) {
