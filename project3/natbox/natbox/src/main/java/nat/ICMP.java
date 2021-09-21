@@ -49,4 +49,19 @@ public class ICMP {
     return data;
   }
 
+  public String toString() {
+    String messageType = "";
+    switch (type) {
+      case PING_REQ:
+        messageType = "Ping Request";
+        break;
+      case PING_RES:
+      messageType = "Ping Reply";
+      default:
+        break;
+    }
+    return String.format("\nICMP toString\n----------------------" +
+      "Message Type: %s", messageType);
+  }
+
 }

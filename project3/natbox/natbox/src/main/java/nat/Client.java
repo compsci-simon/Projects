@@ -64,7 +64,7 @@ public class Client {
       try {
         Thread.sleep(500);
         System.out.println("Sending ping");
-        c.udpSend(ip, "Howzit my broski");
+        c.ping(ip);
       } catch (Exception e) {
         //TODO: handle exception
       }
@@ -81,7 +81,6 @@ public class Client {
     }
   }
   
-
   /***************************************************************************/
   /**************************** Handling methods *****************************/
   /***************************************************************************/
@@ -146,6 +145,7 @@ public class Client {
 
   public void handleICMPPacket(IP ipPacket) {
     ICMP icmpPacket = new ICMP(ipPacket.payload());
+    System.out.println(icmpPacket.toString());
     if (icmpPacket.getType() == ICMP.PING_REQ) {
       ICMP response = ICMP.pingResponse(icmpPacket);
       IP ipPack = new IP(ipPacket.source(), addressIP, ipPacket.getIdentifier(), IP.ICMP_PORT, response.getBytes());
