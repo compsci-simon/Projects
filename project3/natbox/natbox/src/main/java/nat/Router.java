@@ -1,13 +1,16 @@
 package nat;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 public class Router {
-  private DatagramSocket serverSock;
+  private DatagramSocket[] internalInterfaces;
+  private DatagramSocket[] externalInterfaces;
   private DatagramPacket packet;
-  private ArrayList<Integer> connectedHosts;
+  private ArrayList<Integer> linkIDs;
   private DHCPServer dhcpServer;
   private ARPTable arpTable;
   private byte[] addressMAC;
@@ -17,16 +20,31 @@ public class Router {
   public static final byte[] subnetMask = {(byte)0xff, (byte)0xff, (byte)0xff, 0};
   public static final byte[] broadcastIP = {(byte) 0xC0, (byte) 0xA8, 0, (byte)0xff};
 
-  public Router (int portNum) {
+  public Router (int[] internalPortNumbers, int[] externalPortNumbers) {
+    if (internalPortNumbers.length != 4 && externalPortNumbers.length != 2) {
+      return;
+    }
     packetID = 0;
-    connectedHosts = new ArrayList<Integer>();
+    this.internalInterfaces = new DatagramSocket[4];
+    linkIDs = new ArrayList<Integer>();
     this.addressMAC = Ethernet.generateRandomMAC();
     this.externalIP = IP.generateRandomIP();
     try {
-      this.serverSock = new DatagramSocket(portNum);
+      for (int i = 0; i < 4; i++) {
+        this.internalInterfaces[i] = new DatagramSocket(internalPortNumbers[i]);
+      }
+      for (int i = 0; i < 2; i++) {
+        this.externalInterfaces[i] = new DatagramSocket(externalPortNumbers[i]);
+      }
       packet = new DatagramPacket(new byte[1500], 1500);
       dhcpServer = new DHCPServer(addressIP);
       arpTable = new ARPTable();
+      new Thread() {
+        @Override
+        public void run() {
+          handleUserInputs();
+        }
+      }.start();
       handleConnections();
     } catch (Exception e) {
       e.printStackTrace();
@@ -34,7 +52,9 @@ public class Router {
   }
 
   public static void main(String[] args) {
-    Router router = new Router(5000);
+    int[] internalPorts = {1234, 1235, 1236, 1237};
+    int[] externalPorts = {1238, 1239};
+    new Router(internalPorts, externalPorts);
   }
 
   private void handleConnections() {
@@ -42,7 +62,7 @@ public class Router {
       System.out.println("Router started...");
       while (true) {
     	  packet = new DatagramPacket(new byte[1500], 1500);
-        serverSock.receive(packet);
+        internalInterface.receive(packet);
         addPortToArrayList(packet.getPort());
         if (!handleFrame(packet.getData()))
           break;
@@ -164,11 +184,11 @@ public class Router {
 
   private void sendFrame(Ethernet frame) {
     this.packet.setData(frame.getBytes());
-    for (int i = 0; i < connectedHosts.size(); i++) {
-      this.packet.setPort(connectedHosts.get(i));
+    for (int i = 0; i < linkIDs.size(); i++) {
+      this.packet.setPort(linkIDs.get(i));
       // System.out.println("Broadcasting to host on logical port "+this.packet.getPort());
       try {
-        this.serverSock.send(this.packet);
+        this.internalInterface.send(this.packet);
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -180,11 +200,36 @@ public class Router {
   }
 
   private void addPortToArrayList(int port) {
-    for (int i = 0; i < connectedHosts.size(); i++) {
-      if (connectedHosts.get(i) == port) {
+    for (int i = 0; i < linkIDs.size(); i++) {
+      if (linkIDs.get(i) == port) {
         return;
       }
     }
-    connectedHosts.add(port);
+    linkIDs.add(port);
   }
+
+  
+  /***************************************************************************/
+  /************************* Interactive methods *****************************/
+  /***************************************************************************/  
+
+  public static void handleUserInputs() {
+    try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
+      String line = "";
+      while ((line = reader.readLine()) != null) {
+        if (line.equals("shut down")) {
+          System.out.println("Shutting down router...");
+          System.exit(0);
+        } else if (line.split(" ")[0].equals("plug") && line.split(" ")[1].equals("into")) {
+          System.out.println("Connect to another router");
+        } else {
+          System.out.println("Unknown command");
+        }
+      }      
+    } catch (Exception e) {
+      e.printStackTrace();
+      System.exit(0);
+    }
+  }
+
 }

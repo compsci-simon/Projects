@@ -1,5 +1,7 @@
 package nat;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -17,7 +19,7 @@ public class Client {
   private static byte[] subnetMask;
   private byte icmpID;
 
-  public Client(boolean internalClient, String address) {
+  public Client(String address) {
     try {
       this.socket = new DatagramSocket();
       this.packet = new DatagramPacket(new byte[1500], 1500, InetAddress.getByName(address), 5000);
@@ -25,9 +27,6 @@ public class Client {
     } catch (Exception e) {
       e.printStackTrace();
       return;
-    }
-    if (!internalClient) {
-      this.addressIP = IP.generateRandomIP();
     }
     this.addressMAC = Ethernet.generateRandomMAC();
     this.ipIdentifier = 0;
@@ -46,14 +45,18 @@ public class Client {
         }
       }
     }.start();
+    new Thread() {
+      @Override
+      public void run() {
+        userInputs();
+      }
+    }.start();
     this.icmpID = 0;
-    if (internalClient) {
-      sendDHCPDiscover();
-    }
+    sendDHCPDiscover();
   }
 
   public static void main(String[] args) {
-    Client c = new Client(true, "localhost");
+    Client c = new Client("localhost");
     try {
       Thread.sleep(200);
     } catch (Exception e) {
@@ -70,15 +73,6 @@ public class Client {
       }
     }
     // c.udpSend(ip, "Another message to my friend");
-  }
-
-  public void sendFrame(Ethernet frame) {
-    this.packet.setData(frame.getBytes());
-    try {
-      socket.send(this.packet);
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
   }
   
   /***************************************************************************/
@@ -107,7 +101,9 @@ public class Client {
     IP ipPacket = new IP(packet);
     System.out.println(ipPacket.toString());
 
-    if (ipPacket.isBroadcast()) {
+    if (ipPacket.isBroadcast() || Arrays.equals(addressIP, ipPacket.destination()) || 
+      Arrays.equals(addressIP, IP.nilIP)) {
+
       switch (ipPacket.getDemuxPort()) {
       case IP.UDP_PORT:
         handleUDPPacket(ipPacket.payload());
@@ -119,30 +115,6 @@ public class Client {
         System.err.println("Unknown demux port for IP packet");
         break;
       }
-    } else if (Arrays.equals(addressIP, ipPacket.destination()) || Arrays.equals(addressIP, IP.nilIP)) {
-      // Packets directed at the client
-      switch (ipPacket.getDemuxPort()) {
-      case IP.UDP_PORT:
-        handleUDPPacket(ipPacket.payload());
-        break;
-      case IP.ICMP_PORT:
-        handleICMPPacket(ipPacket);
-        break;
-      default:
-        System.err.println("Unknown demux port for IP packet");
-        break;
-      }
-    } else {
-      // Packets that need to be routed
-      // Here we forward packets... Externally as well as internally
-      // Get MAC address of IP from ARP table
-      boolean hasIP = arpTable.containsMAC(ipPacket.destination());
-    	if (hasIP) {
-        byte[] destinationMAC = arpTable.getMAC(ipPacket.destination());
-    		/* forward packet to destination */
-    	} else {
-    		sendRequestARP(ipPacket.destination());
-    	}
     }
   }
 
@@ -215,6 +187,15 @@ public class Client {
   /**************************** Sending methods ******************************/
   /***************************************************************************/
 
+  public void sendFrame(Ethernet frame) {
+    this.packet.setData(frame.getBytes());
+    try {
+      socket.send(this.packet);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
   public void sendDHCPDiscover() {
     byte[] packetDHCP = generateDHCPDiscoverPacket();
     byte[] packetUDP = encapsulateUDP(DHCP.SERVERPORT, DHCP.CLIENTPORT, packetDHCP);
@@ -241,10 +222,32 @@ public class Client {
   public void ping(byte[] ip) {
     ICMP ping = new ICMP(ICMP.PING_REQ, icmpID++, new byte[1]);
     IP ipPacket = new IP(ip, addressIP, ipIdentifier++, IP.ICMP_PORT, ping.getBytes());
-    Ethernet frame = new Ethernet(getMAC(ip), addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
-    System.out.println("in ping");
-    System.out.println(ipPacket.toString());
+    byte[] mac = getMAC(ip);
+    if (mac == null) {
+      return;
+    }
+    Ethernet frame = new Ethernet(mac, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
     sendFrame(frame);
+  }
+
+  public void ping(String ipString) {
+    ipString = ipString.strip();
+    byte[] ip = new byte[4];
+    String[] ipStringArray = ipString.split("[.]");
+    if (ipStringArray.length != 4) {
+      System.err.println("Incorrect IP format");
+      return;
+    }
+    for (int i = 0; i < 4; i++) {
+      try {
+        ip[i] = (byte) Integer.parseInt(ipStringArray[i]);
+      } catch (Exception e) {
+        //TODO: handle exception
+        e.printStackTrace();
+        return;
+      }
+    }
+    ping(ip);
   }
 
   public byte[] getMAC(byte[] ip) {
@@ -284,6 +287,29 @@ public class Client {
 
   private byte[] encapsulateUDP(int destPort, int sourcePort, byte[] payload) {
     return new UDP(destPort, sourcePort, payload).getBytes();
+  }
+
+  /***************************************************************************/
+  /****************************** Other methods ******************************/
+  /***************************************************************************/
+
+  public void userInputs() {
+    try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
+      String line = "";
+      while ( (line = reader.readLine()) != null) {
+        System.out.println();
+        if (line.split(" ")[0].equals("ping")) {
+          ping(line.split(" ")[1]);
+        }
+        if (line.equals("shut down")) {
+          System.out.println("Shutting down client...");
+          System.exit(0);
+        }
+      }      
+    } catch (Exception e) {
+      //TODO: handle exception
+      e.printStackTrace();
+    }
   }
 
   public String toString() {
