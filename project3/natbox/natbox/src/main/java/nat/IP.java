@@ -97,7 +97,7 @@ public class IP {
   }
 
   public String toString() {
-    String s = "\n\nIP toString\n----------------------" + 
+    String s = "IP toString\n----------------------" + 
     "\nDestination IP = ";
     for (int i = 0; i < 4; i++) {
       s = String.format("%s%d.", s, destIP[i]&0xff);

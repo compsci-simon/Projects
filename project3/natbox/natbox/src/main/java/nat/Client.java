@@ -108,7 +108,6 @@ public class Client {
     System.out.println(ipPacket.toString());
 
     if (ipPacket.isBroadcast()) {
-
       switch (ipPacket.getDemuxPort()) {
       case IP.UDP_PORT:
         handleUDPPacket(ipPacket.payload());
@@ -120,14 +119,18 @@ public class Client {
         System.err.println("Unknown demux port for IP packet");
         break;
       }
-      if (ipPacket.getDemuxPort() == UDP.DEMUXPORT) {
-        // pass to UDP on router... Dont know what packets the router would receive yet...
-        handleUDPPacket(ipPacket.payload());
-      }
     } else if (Arrays.equals(addressIP, ipPacket.destination()) || Arrays.equals(addressIP, IP.nilIP)) {
-      // Packets destined for the router
-      if (ipPacket.getDemuxPort() == UDP.DEMUXPORT) {
+      // Packets directed at the client
+      switch (ipPacket.getDemuxPort()) {
+      case IP.UDP_PORT:
         handleUDPPacket(ipPacket.payload());
+        break;
+      case IP.ICMP_PORT:
+        handleICMPPacket(ipPacket);
+        break;
+      default:
+        System.err.println("Unknown demux port for IP packet");
+        break;
       }
     } else {
       // Packets that need to be routed
@@ -150,6 +153,11 @@ public class Client {
       ICMP response = ICMP.pingResponse(icmpPacket);
       IP ipPack = new IP(ipPacket.source(), addressIP, ipPacket.getIdentifier(), IP.ICMP_PORT, response.getBytes());
       byte[] destMAC = getMAC(ipPack.destination());
+      if (destMAC == null) {
+        System.err.println(String.format("Could not resolve host MAC for %s", 
+          IP.ipString(ipPack.destination())));
+        return;
+      }
       Ethernet frame = new Ethernet(destMAC, addressMAC, Ethernet.IP_PORT, ipPack.getBytes());
       sendFrame(frame);
     }
@@ -179,13 +187,12 @@ public class Client {
       System.out.println(arpPacket.toString());
       System.out.println();
       
-      if (arpPacket.opCode() == 1) {
+      if (arpPacket.opCode() == ARP.ARP_REQUEST) {
         if (Arrays.equals(arpPacket.destIP(), addressIP)) {
         	sendResponseARP(arpPacket.srcMAC(), arpPacket.srcIP());
-        } else {
-        	return;
+          arpTable.addPair(arpPacket.srcIP(), arpPacket.srcMAC());
         }
-      } else if (arpPacket.opCode() == 2) {
+      } else if (arpPacket.opCode() == ARP.ARP_REPLY) {
     	  arpTable.addPair(arpPacket.srcIP(), arpPacket.srcMAC());
       } else {
     	  System.out.println("Invalid opCode");

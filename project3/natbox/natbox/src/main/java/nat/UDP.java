@@ -44,7 +44,7 @@ public class UDP {
   }
 
   public String toString() {
-    String s = String.format("\nUDP toString\n----------------------" + 
+    String s = String.format("UDP toString\n----------------------" + 
       "\nDest port = %d\nSource port = %d\n", destPort, sourcePort);
     return s;
   }

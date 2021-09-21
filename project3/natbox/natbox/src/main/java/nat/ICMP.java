@@ -60,8 +60,8 @@ public class ICMP {
       default:
         break;
     }
-    return String.format("\nICMP toString\n----------------------" +
-      "Message Type: %s", messageType);
+    return String.format("ICMP toString\n----------------------" +
+      "\nMessage Type: %s\n", messageType);
   }
 
 }

@@ -2,6 +2,8 @@ package nat;
 
 public class ARP {
     public static final int DEMUX_PORT = 2054;
+    public static final int ARP_REQUEST = 1;
+    public static final int ARP_REPLY = 2;
     private int hardwareType;
     private int protocolType;
     private int hardwareSize;
