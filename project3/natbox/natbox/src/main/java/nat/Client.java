@@ -11,73 +11,45 @@ public class Client {
   private byte[] addressMAC;
   private DatagramSocket socket;
   private DatagramPacket packet;
-  private DatagramPacket packetRec;
   private ARPTable arpTable;
   private int ipIdentifier;
-  private int packetCount;
   private static byte[] routerIP;
   private static byte[] subnetMask;
   private byte icmpID;
+  private int portNum = -1;
+  private String address;
 
   public Client(String address) {
-    try {
-      this.socket = new DatagramSocket();
-      this.packet = new DatagramPacket(new byte[1500], 1500, InetAddress.getByName(address), 5000);
-      this.packetRec = new DatagramPacket(new byte[1500], 1500, InetAddress.getByName(address), 5000);
-    } catch (Exception e) {
-      e.printStackTrace();
-      return;
-    }
+    this.address = address;
     this.addressMAC = Ethernet.generateRandomMAC();
     this.ipIdentifier = 0;
     arpTable = new ARPTable();
-    new Thread() {
-      @Override
-      public void run() {
-        while (true) {
-          try {
-            socket.receive(packetRec);
-            handleFrame(packetRec.getData());
-          } catch (Exception e) {
-            //TODO: handle exception
-            e.printStackTrace();
-          }
-        }
-      }
-    }.start();
-    new Thread() {
-      @Override
-      public void run() {
-        userInputs();
-      }
-    }.start();
-    this.icmpID = 0;
-    sendDHCPDiscover();
+    System.out.println("Client started...");
+    userInputs();
   }
 
   public static void main(String[] args) {
-    Client c = new Client("localhost");
-    try {
-      Thread.sleep(200);
-    } catch (Exception e) {
-      //TODO: handle exception
-    }
-    byte[] ip = {(byte) 0xC0, (byte) 0xA8, 0, 2};
-    if (args.length > 0) {
-      try {
-        Thread.sleep(500);
-        System.out.println("Sending ping");
-        c.ping(ip);
-      } catch (Exception e) {
-        //TODO: handle exception
-      }
-    }
-    // c.udpSend(ip, "Another message to my friend");
+    new Client("localhost");
   }
   
   /***************************************************************************/
   /**************************** Handling methods *****************************/
   /***************************************************************************/
+
+  private void handleInterface() {
+    try {
+      socket = new DatagramSocket();
+      packet = new DatagramPacket(new byte[1500], 1500, InetAddress.getByName(address), portNum);
+      while (true) {
+        packet = new DatagramPacket(new byte[1500], 1500);
+        socket.receive(packet);
+        if (!handleFrame(packet.getData()))
+          break;
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
 
   private boolean handleFrame(byte[] frame) {
     if (frame.length < 14)
@@ -172,7 +144,7 @@ public class Client {
   }
 
   private void sendRequestARP(byte[] destIP) {
-	  ARP arpPacket = new ARP(1, addressMAC, addressIP, ARP.zeroMAC, destIP);
+	  ARP arpPacket = new ARP(ARP.ARP_REQUEST, addressMAC, addressIP, ARP.zeroMAC, destIP);
 	  Ethernet frame = new Ethernet(ARP.broadcastMAC, addressMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
 	  sendFrame(frame);
   }
@@ -188,6 +160,15 @@ public class Client {
   /***************************************************************************/
 
   public void sendFrame(Ethernet frame) {
+    if (portNum == -1) {
+      return;
+    }
+    try {
+      this.packet = new DatagramPacket(new byte[1500], 1500, InetAddress.getByName(address), portNum);      
+    } catch (Exception e) {
+      e.printStackTrace();
+      return;
+    }
     this.packet.setData(frame.getBytes());
     try {
       socket.send(this.packet);
@@ -232,6 +213,14 @@ public class Client {
 
   public void ping(String ipString) {
     ipString = ipString.strip();
+    if (ipString.equals("router")) {
+      if (routerIP != null) {
+        ping(routerIP);
+      } else {
+        System.err.println("Router IP not yet set");
+        return;
+      }
+    }
     byte[] ip = new byte[4];
     String[] ipStringArray = ipString.split("[.]");
     if (ipStringArray.length != 4) {
@@ -242,7 +231,6 @@ public class Client {
       try {
         ip[i] = (byte) Integer.parseInt(ipStringArray[i]);
       } catch (Exception e) {
-        //TODO: handle exception
         e.printStackTrace();
         return;
       }
@@ -262,7 +250,7 @@ public class Client {
       try {
         Thread.sleep(100);
       } catch (Exception e) {
-        //TODO: handle exception
+        e.printStackTrace();
       }
       hasIP = arpTable.containsMAC(ip);
     }
@@ -300,14 +288,37 @@ public class Client {
         System.out.println();
         if (line.split(" ")[0].equals("ping")) {
           ping(line.split(" ")[1]);
-        }
-        if (line.equals("shut down")) {
+        } else if (line.equals("shutdown")) {
           System.out.println("Shutting down client...");
           System.exit(0);
+        } else if (line.equals("status")) {
+          System.out.println(toString());
+        } else if (line.equals("connect to router")) {
+          if (portNum != -1) {
+            System.out.println("Already connected to router");
+            continue;
+          }
+          System.out.print("Enter internal interface number: ");
+          line = reader.readLine();
+          try {
+            portNum = Integer.parseInt(line);
+            this.packet = new DatagramPacket(new byte[1500], 1500, InetAddress.getByName(address), portNum);
+            new Thread() {
+              @Override
+              public void run() {
+                handleInterface();
+              }
+            }.start();
+            Thread.sleep(100);
+            sendDHCPDiscover();
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
+        } else {
+          System.out.println("Unknown command");
         }
       }      
     } catch (Exception e) {
-      //TODO: handle exception
       e.printStackTrace();
     }
   }
@@ -315,15 +326,19 @@ public class Client {
   public String toString() {
     String routerString = "Not set";
     String subnetString = "Not set";
+    String interfaceNum = "Not connected";
     if (routerIP != null) {
       routerString = IP.ipString(routerIP);
     }
     if (subnetMask != null) {
       subnetString = IP.ipString(subnetMask);
     }
+    if (socket != null) {
+      interfaceNum = String.format("%d", socket.getLocalPort());
+    }
     String s = String.format("\nCLIENT toString\n----------------------" + 
-      "\nMAC = %s\nIP = %s\nGateway = %s\nSubnet Mask = %s\n", 
-      Ethernet.macString(addressMAC), IP.ipString(addressIP), routerString, subnetString);
+      "\nMAC = %s\nIP = %s\nGateway = %s\nSubnet Mask = %s\nConnected to router on interface %s\n", 
+      Ethernet.macString(addressMAC), IP.ipString(addressIP), routerString, subnetString, interfaceNum);
     return s;
   }
 

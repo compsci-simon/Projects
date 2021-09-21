@@ -139,7 +139,12 @@ public class IP {
   public static byte[] generateRandomIP() {
     byte[] ip = new byte[4];
     for (int i = 0; i < 4; i++) {
-      ip[i] = (byte) ((int)Math.random()*0xff);
+      ip[i] = (byte) ((int)(Math.random()*0xff));
+      if (i == 1 && (ip[0]&0xff) == 192 && (ip[1]&0xff) == 168) {
+        while ((ip[1]&0xff) == 168) {
+          ip[i] = (byte) ((int)(Math.random()*0xff));
+        }
+      }
     }
     return ip;
   }

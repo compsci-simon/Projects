@@ -7,63 +7,67 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class Router {
-  private DatagramSocket[] internalInterfaces;
-  private DatagramSocket[] externalInterfaces;
+  private DatagramSocket internalInterface;
+  private DatagramSocket externalInterface;
   private DatagramPacket packet;
-  private ArrayList<Integer> linkIDs;
+  private ArrayList<Integer> internalLinks;
+  private ArrayList<Integer> externalLinks;
   private DHCPServer dhcpServer;
   private ARPTable arpTable;
   private byte[] addressMAC;
   private byte[] addressIP = {(byte) 0xC0, (byte) 0xA8, 0, 1};
   private byte[] externalIP;
-  private int packetID;
   public static final byte[] subnetMask = {(byte)0xff, (byte)0xff, (byte)0xff, 0};
   public static final byte[] broadcastIP = {(byte) 0xC0, (byte) 0xA8, 0, (byte)0xff};
+  private boolean handleInternal = false;
+  private boolean handleExternal = false;
+  private int internalPort;
+  private int externalPort;
 
-  public Router (int[] internalPortNumbers, int[] externalPortNumbers) {
-    if (internalPortNumbers.length != 4 && externalPortNumbers.length != 2) {
-      return;
-    }
-    packetID = 0;
-    this.internalInterfaces = new DatagramSocket[4];
-    linkIDs = new ArrayList<Integer>();
+  public Router () {
+    internalLinks = new ArrayList<Integer>();
+    externalLinks = new ArrayList<Integer>();
     this.addressMAC = Ethernet.generateRandomMAC();
     this.externalIP = IP.generateRandomIP();
     try {
-      for (int i = 0; i < 4; i++) {
-        this.internalInterfaces[i] = new DatagramSocket(internalPortNumbers[i]);
-      }
-      for (int i = 0; i < 2; i++) {
-        this.externalInterfaces[i] = new DatagramSocket(externalPortNumbers[i]);
-      }
+      
       packet = new DatagramPacket(new byte[1500], 1500);
       dhcpServer = new DHCPServer(addressIP);
       arpTable = new ARPTable();
-      new Thread() {
-        @Override
-        public void run() {
-          handleUserInputs();
-        }
-      }.start();
-      handleConnections();
+
+      System.out.println("Router started...");
+      handleUserInputs();
     } catch (Exception e) {
       e.printStackTrace();
     }
   }
 
   public static void main(String[] args) {
-    int[] internalPorts = {1234, 1235, 1236, 1237};
-    int[] externalPorts = {1238, 1239};
-    new Router(internalPorts, externalPorts);
+    new Router();
   }
 
-  private void handleConnections() {
+  private void handleInternalConnections(int port) {
     try {
-      System.out.println("Router started...");
+      this.internalInterface = new DatagramSocket(port);
       while (true) {
     	  packet = new DatagramPacket(new byte[1500], 1500);
         internalInterface.receive(packet);
-        addPortToArrayList(packet.getPort());
+        addPortToInternalLinks(packet.getPort());
+        if (!handleFrame(packet.getData()))
+          break;
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  private void handleExternalConnections(int port) {
+    try {
+      this.externalInterface = new DatagramSocket(port);
+      while (true) {
+    	  packet = new DatagramPacket(new byte[1500], 1500);
+        externalInterface.receive(packet);
+        addPortToExternalLinks(packet.getPort());
         if (!handleFrame(packet.getData()))
           break;
       }
@@ -73,8 +77,15 @@ public class Router {
   }
 
   private boolean handleFrame(byte[] frame) {
-    if (frame.length < 14)
-      return false;
+    if (frame.length < 14) {
+      String message = new String(frame);
+      if (message.equals("plugged in")) {
+        System.out.println("External router connected via ethernet");
+        return true;
+      } else {
+        return false;
+      }
+    }
     Ethernet ethernetFrame = new Ethernet(frame);
     // Router MAC address of broadcast addressed frame are accepted
     System.out.println(ethernetFrame.toString());
@@ -104,10 +115,17 @@ public class Router {
       }
     } else if (Arrays.equals(addressIP, ipPacket.destination())) {
       // Packets destined for the router
-      System.out.println("Received packet destined for router");
-      if (ipPacket.getDemuxPort() == 17) {
+      switch (ipPacket.getDemuxPort()) {
+        case IP.UDP_PORT:
           handleUDPPacket(ipPacket);
-      }
+          break;
+        case IP.ICMP_PORT:
+          handleICMPPacket(ipPacket);
+          break;
+        default:
+          System.err.println("Unknown demux port for IP packet");
+          break;
+        }
     } else {
       // Packets that need to be routed
       // Here we forward packets... Externally as well as internally
@@ -120,6 +138,23 @@ public class Router {
     	} else {
     		sendRequestARP(ipPacket.destination());
     	}
+    }
+  }
+
+  public void handleICMPPacket(IP ipPacket) {
+    ICMP icmpPacket = new ICMP(ipPacket.payload());
+    System.out.println(icmpPacket.toString());
+    if (icmpPacket.getType() == ICMP.PING_REQ) {
+      ICMP response = ICMP.pingResponse(icmpPacket);
+      IP ipPack = new IP(ipPacket.source(), addressIP, ipPacket.getIdentifier(), IP.ICMP_PORT, response.getBytes());
+      byte[] destMAC = getMAC(ipPack.destination());
+      if (destMAC == null) {
+        System.err.println(String.format("Could not resolve host MAC for %s", 
+          IP.ipString(ipPack.destination())));
+        return;
+      }
+      Ethernet frame = new Ethernet(destMAC, addressMAC, Ethernet.IP_PORT, ipPack.getBytes());
+      sendFrame(frame);
     }
   }
 
@@ -147,45 +182,64 @@ public class Router {
     }
   }
 
+  public byte[] getMAC(byte[] ip) {
+
+    boolean hasIP = arpTable.containsMAC(ip);
+    int i = 0;
+    for (; i < 2; i++) {
+      if (hasIP)
+        break;
+      System.out.println("Sent ARP request");
+      sendRequestARP(ip);
+      try {
+        Thread.sleep(100);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+      hasIP = arpTable.containsMAC(ip);
+    }
+    if (i == 2) {
+      System.out.println(String.format("Could not resolve IP: %s to physical address", IP.ipString(ip)));
+      return null;
+    }
+    return arpTable.getMAC(ip);
+  }
+  
   private void handleARPPacket(Ethernet ethernetFrame) {
       byte[] packet = ethernetFrame.payload();
       byte[] sourceMAC = ethernetFrame.source();
       ARP arpPacket = new ARP(packet);
       System.out.println(arpPacket.toString());
+      System.out.println();
       
-      if (arpPacket.opCode() == 1) {
+      if (arpPacket.opCode() == ARP.ARP_REQUEST) {
         if (Arrays.equals(arpPacket.destIP(), addressIP)) {
-        	System.out.println("ARP request received");
-        	sendResponseARP(arpPacket.srcMAC(), arpPacket.srcIP());
-        } else {
-          Ethernet ethernetFrameToForward = new Ethernet(Ethernet.BROADCASTMAC, sourceMAC, Ethernet.ARP_PORT, packet);
-          sendFrame(ethernetFrameToForward);
+          sendResponseARP(arpPacket.srcMAC(), arpPacket.srcIP());
+          arpTable.addPair(arpPacket.srcIP(), arpPacket.srcMAC());
         }
-      } else if (arpPacket.opCode() == 2) {
-    	  System.out.println("ARP response received");
-    	  arpTable.addPair(arpPacket.srcIP(), arpPacket.srcMAC());
+      } else if (arpPacket.opCode() == ARP.ARP_REPLY) {
+        arpTable.addPair(arpPacket.srcIP(), arpPacket.srcMAC());
       } else {
-    	  System.out.println("Invalid opCode");
+        System.out.println("Invalid opCode");
       }
   }
 
   private void sendRequestARP(byte[] destIP) {
-	    ARP arpPacket = new ARP(1, addressMAC, addressIP, ARP.zeroMAC, destIP);
-	    Ethernet frame = encapsulateEthernet(ARP.broadcastMAC, addressMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
-	    sendFrame(frame);
+	  ARP arpPacket = new ARP(ARP.ARP_REQUEST, addressMAC, addressIP, ARP.zeroMAC, destIP);
+	  Ethernet frame = new Ethernet(ARP.broadcastMAC, addressMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
+	  sendFrame(frame);
   }
 
   private void sendResponseARP(byte[] destMAC, byte[] destIP) {
 		  ARP arpPacket = new ARP(2, addressMAC, addressIP, destMAC, destIP);
 		  Ethernet frame = encapsulateEthernet(destMAC, addressMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
-		  System.out.println(Constants.bytesToString(arpPacket.getBytes()));
 		  sendFrame(frame);
   }
 
   private void sendFrame(Ethernet frame) {
     this.packet.setData(frame.getBytes());
-    for (int i = 0; i < linkIDs.size(); i++) {
-      this.packet.setPort(linkIDs.get(i));
+    for (int i = 0; i < internalLinks.size(); i++) {
+      this.packet.setPort(internalLinks.get(i));
       // System.out.println("Broadcasting to host on logical port "+this.packet.getPort());
       try {
         this.internalInterface.send(this.packet);
@@ -199,13 +253,22 @@ public class Router {
 	    return new Ethernet(destAddr, sourceAddr, demuxPort, payload);
   }
 
-  private void addPortToArrayList(int port) {
-    for (int i = 0; i < linkIDs.size(); i++) {
-      if (linkIDs.get(i) == port) {
+  private void addPortToInternalLinks(int port) {
+    for (int i = 0; i < internalLinks.size(); i++) {
+      if (internalLinks.get(i) == port) {
         return;
       }
     }
-    linkIDs.add(port);
+    internalLinks.add(port);
+  }
+
+  private void addPortToExternalLinks(int port) {
+    for (int i = 0; i < externalLinks.size(); i++) {
+      if (externalLinks.get(i) == port) {
+        return;
+      }
+    }
+    externalLinks.add(port);
   }
 
   
@@ -213,15 +276,64 @@ public class Router {
   /************************* Interactive methods *****************************/
   /***************************************************************************/  
 
-  public static void handleUserInputs() {
+  public void handleUserInputs() {
     try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
       String line = "";
       while ((line = reader.readLine()) != null) {
-        if (line.equals("shut down")) {
+        System.out.println();
+        if (line.equals("shutdown")) {
           System.out.println("Shutting down router...");
           System.exit(0);
         } else if (line.split(" ")[0].equals("plug") && line.split(" ")[1].equals("into")) {
           System.out.println("Connect to another router");
+          if (line.split(" ").length != 3) {
+            System.err.println("Incorrect number of arguments");
+            continue;
+          }
+          int port = Integer.parseInt(line.split(" ")[2]);
+          connectToRouter(port);
+        } else if (line.equals("status")) {
+          System.out.println(toString());
+        } else if (line.equals("open in port") && !handleInternal) {
+
+          System.out.print("Enter a port number: ");
+          line = reader.readLine();
+          internalPort = 0;
+          try {
+            internalPort = Integer.parseInt(line);
+          } catch (Exception e) {
+            e.printStackTrace();
+            return;
+          }
+          handleInternal = true;
+          new Thread() {
+            @Override
+            public void run() {
+              handleInternalConnections(internalPort);
+            }
+          }.start();
+          System.out.println("Internal interface is open on port " + internalPort);
+
+        } else if (line.equals("open ex port") && !handleExternal) {
+
+          System.out.print("Enter a port number: ");
+          line = reader.readLine();
+          externalPort = 0;
+          try {
+            externalPort = Integer.parseInt(line);
+          } catch (Exception e) {
+            e.printStackTrace();
+            return;
+          }
+          handleExternal = true;
+          new Thread() {
+            @Override
+            public void run() {
+              handleExternalConnections(externalPort);
+            }
+          }.start();
+          System.out.println("External interface is open on port " + externalPort);
+
         } else {
           System.out.println("Unknown command");
         }
@@ -230,6 +342,33 @@ public class Router {
       e.printStackTrace();
       System.exit(0);
     }
+  }
+
+  public void connectToRouter(int port) {
+    packet.setData("plugged in".getBytes());
+    packet.setPort(port);
+    try {
+      externalInterface.send(packet);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  public String toString() {
+    String internalInterfacePort = "Closed";
+    String externalInterfacePort = "Closed";
+    if (internalInterface != null) {
+      internalInterfacePort = String.format("%d", internalInterface.getLocalPort());
+    }
+    if (externalInterface != null) {
+      externalInterfacePort = String.format("%d", externalInterface.getLocalPort());
+    }
+    String s = String.format("ROUTER toString\n----------------------" + 
+      "\nMAC Address = %s\nExternal IP = %s\nInternal IP = %s\nInternal" + 
+      " interface port = %s\nExternal interface port = %s", 
+      Ethernet.macString(addressMAC), IP.ipString(externalIP), 
+      IP.ipString(addressIP), internalInterfacePort, externalInterfacePort);
+    return s;
   }
 
 }
