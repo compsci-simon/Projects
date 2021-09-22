@@ -57,7 +57,11 @@ public class ICMP {
         messageType = "Ping Request";
         break;
       case PING_RES:
-      messageType = "Ping Reply";
+        messageType = "Ping Reply";
+        break;
+      case ROUTER_ADVERTISEMENT:
+        messageType = "Router advertisement";
+        break;
       default:
         break;
     }

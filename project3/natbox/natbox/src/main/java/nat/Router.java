@@ -25,10 +25,12 @@ public class Router {
   private int internalPort;
   private int externalPort;
   private String address;
+  private int ipID;
   private int icmpID;
 
   public Router (String address) {
     this.address = address;
+    this.ipID = 0;
     this.icmpID = 0;
     this.internalLinks = new ArrayList<Integer>();
     this.externalLinks = new ArrayList<Integer>();
@@ -51,9 +53,13 @@ public class Router {
     new Router("localhost");
   }
 
+  /***************************************************************************/
+  /**************************** Handling methods *****************************/
+  /***************************************************************************/
+
   private void handleInternalConnections(int port) {
     try {
-      this.internalInterface = new DatagramSocket(port);
+      this.internalInterface = new DatagramSocket(port, InetAddress.getLocalHost());
       while (true) {
     	  packet = new DatagramPacket(new byte[1500], 1500);
         internalInterface.receive(packet);
@@ -68,7 +74,7 @@ public class Router {
 
   private void handleExternalConnections(int port) {
     try {
-      this.externalInterface = new DatagramSocket(port);
+      this.externalInterface = new DatagramSocket(port, InetAddress.getLocalHost());
       while (true) {
     	  packet = new DatagramPacket(new byte[1500], 1500);
         externalInterface.receive(packet);
@@ -82,21 +88,25 @@ public class Router {
   }
 
   private boolean handleFrame(byte[] frame) {
-    String message = new String(frame).strip();
-    System.out.println(message);
-    if (message.equals("hello")) {
-      System.out.println("External router connected via ethernet");
-      return true;
-    }
     Ethernet ethernetFrame = new Ethernet(frame);
     // Router MAC address of broadcast addressed frame are accepted
     System.out.println(ethernetFrame.toString());
-    sendFrame(ethernetFrame, true);
-    // Perhaps check for destination later...
+    
+    boolean internal;
     if (ethernetFrame.protocol() == Ethernet.ARP_PORT) {
+      ARP arpPacket = new ARP(ethernetFrame.payload());
+      internal = IP.sameNetwork(addressIP, arpPacket.destIP());
       handleARPPacket(ethernetFrame);
+      if (internal) {
+        sendFrame(ethernetFrame, internal);
+      }
     } else if (ethernetFrame.protocol() == Ethernet.IP_PORT) {
+      IP ipPacket = new IP(ethernetFrame.payload());
+      internal = IP.sameNetwork(addressIP, ipPacket.source());
       handleIPPacket(ethernetFrame.payload());
+      if (internal) {
+        sendFrame(ethernetFrame, internal);
+      }
     }
     return true;
   }
@@ -105,16 +115,11 @@ public class Router {
     IP ipPacket = new IP(packet);
     System.out.println(ipPacket.toString());
 
-    if (ipPacket.isBroadcast()) {
+    if (ipPacket.isBroadcast() || Arrays.equals(addressIP, ipPacket.destination()) || 
+      Arrays.equals(externalIP, ipPacket.destination())) {
       // This is broadcast IP packets
       Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, addressMAC, Ethernet.IP_PORT, ipPacket);
       sendFrame(frame, true);
-      if (ipPacket.getDemuxPort() == 17) {
-        // pass to UDP on router... Dont know what packets the router would receive yet...
-        handleUDPPacket(ipPacket);
-      }
-    } else if (Arrays.equals(addressIP, ipPacket.destination())) {
-      // Packets destined for the router from private network
       switch (ipPacket.getDemuxPort()) {
         case IP.UDP_PORT:
           handleUDPPacket(ipPacket);
@@ -126,8 +131,6 @@ public class Router {
           System.err.println("Unknown demux port for IP packet");
           break;
         }
-    } else if (Arrays.equals(externalIP, ipPacket.destination())) {
-      // Packet from external router
     } else {
       // Packets that need to be routed
       // Here we forward packets... Externally as well as internally
@@ -209,36 +212,39 @@ public class Router {
   
   private void handleARPPacket(Ethernet ethernetFrame) {
       byte[] packet = ethernetFrame.payload();
-      byte[] sourceMAC = ethernetFrame.source();
       ARP arpPacket = new ARP(packet);
       System.out.println(arpPacket.toString());
-      System.out.println();
       
       if (arpPacket.opCode() == ARP.ARP_REQUEST) {
-        if (Arrays.equals(arpPacket.destIP(), addressIP)) {
+        if (Arrays.equals(arpPacket.destIP(), addressIP) || 
+          Arrays.equals(arpPacket.destIP(), externalIP)) {
+
+          System.out.println(IP.ipString(arpPacket.srcIP()));
           sendResponseARP(arpPacket.srcMAC(), arpPacket.srcIP());
           arpTable.addPair(arpPacket.srcIP(), arpPacket.srcMAC());
         }
       } else if (arpPacket.opCode() == ARP.ARP_REPLY) {
-        arpTable.addPair(arpPacket.srcIP(), arpPacket.srcMAC());
+        if (Arrays.equals(arpPacket.destMAC(), externalMAC) || 
+          Arrays.equals(arpPacket.destMAC(), addressMAC)) {
+
+          arpTable.addPair(arpPacket.srcIP(), arpPacket.srcMAC());
+        }
       } else {
         System.out.println("Invalid opCode");
       }
   }
 
-  private void sendRequestARP(byte[] destIP) {
-	  ARP arpPacket = new ARP(ARP.ARP_REQUEST, addressMAC, addressIP, ARP.zeroMAC, destIP);
-	  Ethernet frame = new Ethernet(ARP.broadcastMAC, addressMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
-	  sendFrame(frame, true);
-  }
-
-  private void sendResponseARP(byte[] destMAC, byte[] destIP) {
-		  ARP arpPacket = new ARP(2, addressMAC, addressIP, destMAC, destIP);
-		  Ethernet frame = encapsulateEthernet(destMAC, addressMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
-		  sendFrame(frame, true);
-  }
-
+  /***************************************************************************/
+  /**************************** Sending methods ******************************/
+  /***************************************************************************/
+  
   private void sendFrame(Ethernet frame, boolean internalInterface) {
+    try {
+      packet.setAddress(InetAddress.getLocalHost());      
+    } catch (Exception e) {
+      e.printStackTrace();
+      return;
+    }
     this.packet.setData(frame.getBytes());
     if (internalInterface) {
       for (int i = 0; i < internalLinks.size(); i++) {
@@ -261,8 +267,30 @@ public class Router {
     }
   }
   
-  public Ethernet encapsulateEthernet(byte[] destAddr, byte[] sourceAddr, int demuxPort, byte[] payload) {
-	    return new Ethernet(destAddr, sourceAddr, demuxPort, payload);
+  private void sendRequestARP(byte[] destIP) {
+    boolean internal = true;
+    if (!IP.sameNetwork(destIP, addressIP)) {
+      internal = false;
+    }
+    byte[] srcIP = internal ? addressIP : externalIP;
+    byte[] srcMAC = internal ? addressMAC : externalMAC;
+
+	  ARP arpPacket = new ARP(ARP.ARP_REQUEST, srcMAC, srcIP, ARP.zeroMAC, destIP);
+	  Ethernet frame = new Ethernet(ARP.broadcastMAC, srcMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
+	  sendFrame(frame, internal);
+  }
+
+  private void sendResponseARP(byte[] destMAC, byte[] destIP) {
+    boolean internal = true;
+    if (!IP.sameNetwork(destIP, addressIP)) {
+      internal = false;
+    }
+    byte[] srcIP = internal ? addressIP : externalIP;
+    byte[] srcMAC = internal ? addressMAC : externalMAC;
+    ARP arpPacket = new ARP(ARP.ARP_REPLY, srcMAC, srcIP, destMAC, destIP);
+    Ethernet frame = new Ethernet(destMAC, addressMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
+    
+    sendFrame(frame, internal);
   }
 
   private void addPortToInternalLinks(int port) {
@@ -283,6 +311,39 @@ public class Router {
     externalLinks.add(port);
   }
 
+  public void ping(byte[] ip) {
+    ICMP ping = new ICMP(ICMP.PING_REQ, (byte) (icmpID++), new byte[1]);
+    IP ipPacket = new IP(ip, addressIP, ipID++, IP.ICMP_PORT, ping.getBytes());
+    byte[] mac = getMAC(ip);
+    if (mac == null) {
+      return;
+    }
+    Ethernet frame = new Ethernet(mac, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
+    boolean internal = true;
+    if (!IP.sameNetwork(ip, addressIP)) {
+      internal = false;
+    }
+    sendFrame(frame, internal);
+  }
+
+  public void ping(String ipString) {
+    ipString = ipString.strip();
+    byte[] ip = new byte[4];
+    String[] ipStringArray = ipString.split("[.]");
+    if (ipStringArray.length != 4) {
+      System.err.println("Incorrect IP format");
+      return;
+    }
+    for (int i = 0; i < 4; i++) {
+      try {
+        ip[i] = (byte) Integer.parseInt(ipStringArray[i]);
+      } catch (Exception e) {
+        e.printStackTrace();
+        return;
+      }
+    }
+    ping(ip);
+  }
   
   /***************************************************************************/
   /************************* Interactive methods *****************************/
@@ -346,6 +407,8 @@ public class Router {
           }.start();
           System.out.println("External interface is open on port " + externalPort);
 
+        } else if (line.split(" ")[0].equals("ping")) {
+          ping(line.split(" ")[1]);
         } else {
           System.out.println("Unknown command");
         }
@@ -357,15 +420,12 @@ public class Router {
   }
 
   public void connectToRouter(int port) {
-    byte[] buf = "hello".getBytes();
+    this.packet.setPort(port);
     ICMP routerAd = new ICMP(ICMP.ROUTER_ADVERTISEMENT, (byte)icmpID++, new byte[1]);
-    try {      
-      packet = new DatagramPacket(buf, buf.length, InetAddress.getByName(address), port);
-      externalInterface.send(packet);
-      addPortToExternalLinks(port);
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
+    IP ipPacket = new IP(IP.broadcastIP, externalIP, ipID++, IP.ICMP_PORT, routerAd.getBytes());
+    Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, externalMAC, Ethernet.IP_PORT, ipPacket.getBytes());
+    addPortToExternalLinks(port);
+    sendFrame(frame, false);
   }
 
   public String toString() {
