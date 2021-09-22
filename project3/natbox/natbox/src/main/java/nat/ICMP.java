@@ -62,6 +62,8 @@ public class ICMP {
         break;
       case ROUTER_ADVERTISEMENT:
         messageType = "Router advertisement";
+      case ROUTER_SOLICITATION:
+          messageType = "Router solicitation";
         break;
       default:
         break;
