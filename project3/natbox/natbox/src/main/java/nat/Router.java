@@ -10,6 +10,7 @@ public class Router {
   private DatagramSocket internalInterface;
   private DatagramSocket externalInterface;
   private DatagramPacket packet;
+  private DatagramPacket packetRec;
   private ArrayList<Integer> internalLinks;
   private ArrayList<Integer> externalLinks;
   private DHCPServer dhcpServer;
@@ -59,7 +60,7 @@ public class Router {
 
   private void handleInternalConnections(int port) {
     try {
-      this.internalInterface = new DatagramSocket(port, InetAddress.getLocalHost());
+      this.internalInterface = new DatagramSocket(port);
       while (true) {
     	  packet = new DatagramPacket(new byte[1500], 1500);
         internalInterface.receive(packet);
@@ -74,12 +75,12 @@ public class Router {
 
   private void handleExternalConnections(int port) {
     try {
-      this.externalInterface = new DatagramSocket(port, InetAddress.getLocalHost());
+      this.externalInterface = new DatagramSocket(port);
       while (true) {
-    	  packet = new DatagramPacket(new byte[1500], 1500);
-        externalInterface.receive(packet);
-        addPortToExternalLinks(packet.getPort());
-        if (!handleFrame(packet.getData()))
+    	  packetRec = new DatagramPacket(new byte[1500], 1500);
+        externalInterface.receive(packetRec);
+        addPortToExternalLinks(packetRec.getPort());
+        if (!handleFrame(packetRec.getData()))
           break;
       }
     } catch (Exception e) {
@@ -239,6 +240,7 @@ public class Router {
   /***************************************************************************/
   
   private void sendFrame(Ethernet frame, boolean internalInterface) {
+	  packet = new DatagramPacket(new byte[1500], 1500);
     try {
       packet.setAddress(InetAddress.getLocalHost());      
     } catch (Exception e) {
@@ -258,6 +260,7 @@ public class Router {
     } else {
       for (int i = 0; i < externalLinks.size(); i++) {
         this.packet.setPort(externalLinks.get(i));
+        System.out.println(externalLinks.get(i));
         try {
           this.externalInterface.send(this.packet);
         } catch (Exception e) {
@@ -420,11 +423,12 @@ public class Router {
   }
 
   public void connectToRouter(int port) {
-    this.packet.setPort(port);
+    //this.packet.setPort(port);
     ICMP routerAd = new ICMP(ICMP.ROUTER_ADVERTISEMENT, (byte)icmpID++, new byte[1]);
     IP ipPacket = new IP(IP.broadcastIP, externalIP, ipID++, IP.ICMP_PORT, routerAd.getBytes());
     Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, externalMAC, Ethernet.IP_PORT, ipPacket.getBytes());
     addPortToExternalLinks(port);
+    System.out.println("Sending Connecting frame to other router");
     sendFrame(frame, false);
   }
 
