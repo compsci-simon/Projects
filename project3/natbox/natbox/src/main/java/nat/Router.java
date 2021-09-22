@@ -161,6 +161,11 @@ public class Router {
       }
       Ethernet frame = new Ethernet(destMAC, addressMAC, Ethernet.IP_PORT, ipPack.getBytes());
       sendFrame(frame, true);
+    } else if (icmpPacket.getType() == ICMP.ROUTER_SOLICITATION) {
+    	ICMP routerAd = new ICMP(ICMP.ROUTER_ADVERTISEMENT, (byte)icmpID++, new byte[1]);
+        IP ipPacketSend = new IP(IP.broadcastIP, externalIP, ipID++, IP.ICMP_PORT, routerAd.getBytes());
+        Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, externalMAC, Ethernet.IP_PORT, ipPacketSend.getBytes());
+        sendFrame(frame, false);
     }
   }
 
@@ -260,7 +265,6 @@ public class Router {
     } else {
       for (int i = 0; i < externalLinks.size(); i++) {
         this.packet.setPort(externalLinks.get(i));
-        System.out.println(externalLinks.get(i));
         try {
           this.externalInterface.send(this.packet);
         } catch (Exception e) {
@@ -423,12 +427,11 @@ public class Router {
   }
 
   public void connectToRouter(int port) {
-    //this.packet.setPort(port);
-    ICMP routerAd = new ICMP(ICMP.ROUTER_ADVERTISEMENT, (byte)icmpID++, new byte[1]);
+    this.packet.setPort(port);
+    ICMP routerAd = new ICMP(ICMP.ROUTER_SOLICITATION, (byte)icmpID++, new byte[1]);
     IP ipPacket = new IP(IP.broadcastIP, externalIP, ipID++, IP.ICMP_PORT, routerAd.getBytes());
     Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, externalMAC, Ethernet.IP_PORT, ipPacket.getBytes());
     addPortToExternalLinks(port);
-    System.out.println("Sending Connecting frame to other router");
     sendFrame(frame, false);
   }
 
