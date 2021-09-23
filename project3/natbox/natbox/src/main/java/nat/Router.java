@@ -201,6 +201,30 @@ public class Router {
         e.printStackTrace();
       }
     } else {
+    	boolean internal = true;
+        if (!IP.sameNetwork(ipPacket.destination(), addressIP)) {
+          internal = false;
+        }
+        byte[] sourceIP = internal ? addressIP : externalIP;
+        byte[] sourceMAC = internal ? addressMAC : externalMAC;
+        
+        if (!internal) {
+        	boolean hasSession = naptTable.containsSession(sourceIP, udpPacket.sourcePort());
+        	if (hasSession) {
+        		// modify frame and send
+        		byte[] combination = naptTable.getSession(sourceIP, udpPacket.sourcePort());
+        		int port = naptTable.getPort(combination);
+        		// have to set source port of UDP I think
+        		IP ipPack = new IP(ipPacket.destination(), sourceIP, ipPacket.getIdentifier(), UDP.DEMUXPORT, udpPacket.getBytes());
+        		byte[] destMAC = getMAC(ipPack.destination());
+        		Ethernet frame = new Ethernet(destMAC, sourceMAC, Ethernet.IP_PORT, ipPack.getBytes());
+        		
+        	} else {
+        		naptTable.addPair(sourceIP, udpPacket.sourcePort());
+        		System.out.println(naptTable.toString());
+        	}
+        }
+        
     	String payload = new String(udpPacket.payload());
     	System.out.println(payload);
     }
@@ -345,9 +369,6 @@ public class Router {
       return;
     }
     Ethernet frame = new Ethernet(destMAC, sourceMAC, Ethernet.IP_PORT, ipPacket.getBytes());
-    // just manually putting it here to check if napt table works 
-    naptTable.addPair(sourceIP, icmpID);
-    System.out.println(naptTable.toString());
     sendFrame(frame, internal);
   }
 

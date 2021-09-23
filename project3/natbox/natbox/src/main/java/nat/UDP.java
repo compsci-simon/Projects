@@ -38,6 +38,10 @@ public class UDP {
   public byte[] payload() {
     return payload;
   }
+  
+  public int sourcePort() {
+	    return destPort;
+	  }
 
   public int destinationPort() {
     return destPort;
