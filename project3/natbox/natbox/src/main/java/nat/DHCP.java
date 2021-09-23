@@ -187,7 +187,7 @@ public class DHCP implements Serializable {
   public String toString() {
     String s = String.format("DHCP toString:\nMessage Type = %d\n" +
                             "ciaddr = %s\nyiaddr = %s\nsiaddr = %s\n" +
-                            "giaddr = %s\nchaddr = %s", messageType, IP.ipString(ciaddr), 
+                            "giaddr = %s\nchaddr = %s\n", messageType, IP.ipString(ciaddr), 
                             IP.ipString(yiaddr), IP.ipString(siaddr), IP.ipString(giaddr), 
                             Ethernet.macString(chaddr));
     return s;

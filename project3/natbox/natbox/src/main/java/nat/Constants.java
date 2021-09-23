@@ -30,4 +30,13 @@ public class Constants {
     }
     return s;
   }
+
+  public static byte[] intToBytes(int number) {
+    byte[] x = new byte[4];
+    x[0] = (byte) ((number >> 24) & 0xff);
+    x[1] = (byte) ((number >> 16) & 0xff);
+    x[2] = (byte) ((number >> 8) & 0xff);
+    x[3] = (byte) (number & 0xff);
+    return x;
+  }
 }

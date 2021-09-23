@@ -7,6 +7,7 @@ public class IP {
   public static byte[] relayIP = {0, 0, 0, 0};
   public static byte[] nilIP = {0, 0, 0, 0};
   public static final byte UDP_PORT = 17;
+  public static final byte TCP_PORT = 11;
   public static final byte ICMP_PORT = 1;
   private byte[] destIP;
   private byte[] sourceIP;
@@ -74,6 +75,22 @@ public class IP {
   
   public byte[] source() {
     return sourceIP;
+  }
+
+  public void setSource(byte[] ip) {
+    if (ip.length != 4) {
+      System.err.println("Incorrect IP format");
+      return;
+    }
+    sourceIP = ip;
+  }
+
+  public void setDest(byte[] ip) {
+    if (ip.length != 4) {
+      System.err.println("Incorrect IP format");
+      return;
+    }
+    destIP = ip;
   }
 
   public byte[] destination() {

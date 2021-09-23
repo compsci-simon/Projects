@@ -9,8 +9,6 @@ import java.util.Arrays;
 public class Router {
   private DatagramSocket internalInterface;
   private DatagramSocket externalInterface;
-  private DatagramPacket packet;
-  private DatagramPacket packetRec;
   private ArrayList<Integer> internalLinks;
   private ArrayList<Integer> externalLinks;
   private DHCPServer dhcpServer;
@@ -39,12 +37,11 @@ public class Router {
     this.externalIP = IP.generateRandomIP();
     this.externalMAC = Ethernet.generateRandomMAC();
     try {
-      
-      this.packet = new DatagramPacket(new byte[1500], 1500);
       this.dhcpServer = new DHCPServer(addressIP);
       this.arpTable = new ARPTable();
       this.naptTable = new NAPT(externalIP);
       System.out.println("Router started...");
+      internalInterface = new DatagramSocket(5000);
       new Thread() {
         @Override
         public void run() {
@@ -67,13 +64,13 @@ public class Router {
 
   public void handleInternalConnections(int port) {
     try {
-      this.internalInterface = new DatagramSocket(port);
+      DatagramPacket packet;
       while (true) {
     	  packet = new DatagramPacket(new byte[1500], 1500);
         internalInterface.receive(packet);
         addPortToInternalLinks(packet.getPort());
         skipLinkPortNum = packet.getPort();
-        // sendFrame(new Ethernet(packet.getData()), true);
+        sendFrame(new Ethernet(packet.getData()), true);
         skipLinkPortNum = -1;
         if (!handleFrame(packet.getData()))
           break;
@@ -86,11 +83,12 @@ public class Router {
   private void handleExternalConnections(int port) {
     try {
       this.externalInterface = new DatagramSocket(port);
+      DatagramPacket packet;
       while (true) {
-    	  packetRec = new DatagramPacket(new byte[1500], 1500);
-        externalInterface.receive(packetRec);
-        addPortToExternalLinks(packetRec.getPort());
-        if (!handleFrame(packetRec.getData()))
+    	  packet = new DatagramPacket(new byte[1500], 1500);
+        externalInterface.receive(packet);
+        addPortToExternalLinks(packet.getPort());
+        if (!handleFrame(packet.getData()))
           break;
       }
     } catch (Exception e) {
@@ -131,17 +129,9 @@ public class Router {
           break;
         }
     } else {
-      // Packets that need to be routed
-      // Here we forward packets... Externally as well as internally
-      // Get MAC address of IP from ARP table
-      boolean hasIP = arpTable.containsMAC(ipPacket.destination());
-      byte[] destinationMAC;
-    	if (hasIP) {
-        destinationMAC = arpTable.getMAC(ipPacket.destination());
-    		/* forward packet to destination */
-    	} else {
-    		sendRequestARP(ipPacket.destination());
-    	}
+      byte[] destMAC = getMAC(ipPacket.destination());
+      boolean LAN = IP.sameNetwork(ipPacket.destination(), addressIP);
+      
     }
   }
 
@@ -194,34 +184,35 @@ public class Router {
       Ethernet frame = new Ethernet(bootReply.getChaddr(), addressMAC, Ethernet.IP_PORT, ipPack.getBytes());
       sendFrame(frame, true);
       
-    } else {
-    	boolean internal = true;
-        if (!IP.sameNetwork(ipPacket.destination(), addressIP)) {
-          internal = false;
-        }
-        byte[] sourceIP = internal ? addressIP : externalIP;
-        byte[] sourceMAC = internal ? addressMAC : externalMAC;
+    } 
+    // else {
+    // 	boolean internal = true;
+    //     if (!IP.sameNetwork(ipPacket.destination(), addressIP)) {
+    //       internal = false;
+    //     }
+    //     byte[] sourceIP = internal ? addressIP : externalIP;
+    //     byte[] sourceMAC = internal ? addressMAC : externalMAC;
         
-        if (!internal) {
-        	boolean hasSession = naptTable.containsSession(sourceIP, udpPacket.sourcePort());
-        	if (hasSession) {
-        		// modify frame and send
-        		byte[] combination = naptTable.getSession(sourceIP, udpPacket.sourcePort());
-        		int port = naptTable.getPort(combination);
-        		// have to set source port of UDP I think
-        		IP ipPack = new IP(ipPacket.destination(), sourceIP, ipPacket.getIdentifier(), UDP.DEMUXPORT, udpPacket.getBytes());
-        		byte[] destMAC = getMAC(ipPack.destination());
-        		Ethernet frame = new Ethernet(destMAC, sourceMAC, Ethernet.IP_PORT, ipPack.getBytes());
+    //     if (!internal) {
+    //     	boolean hasSession = naptTable.containsSession(sourceIP, udpPacket.sourcePort());
+    //     	if (hasSession) {
+    //     		// modify frame and send
+    //     		byte[] combination = naptTable.getSession(sourceIP, udpPacket.sourcePort());
+    //     		int port = naptTable.getPort(combination);
+    //     		// have to set source port of UDP I think
+    //     		IP ipPack = new IP(ipPacket.destination(), sourceIP, ipPacket.getIdentifier(), UDP.DEMUXPORT, udpPacket.getBytes());
+    //     		byte[] destMAC = getMAC(ipPack.destination());
+    //     		Ethernet frame = new Ethernet(destMAC, sourceMAC, Ethernet.IP_PORT, ipPack.getBytes());
         		
-        	} else {
-        		naptTable.addPair(sourceIP, udpPacket.sourcePort());
-        		System.out.println(naptTable.toString());
-        	}
-        }
+    //     	} else {
+    //     		naptTable.addPair(sourceIP, udpPacket.sourcePort());
+    //     		System.out.println(naptTable.toString());
+    //     	}
+    //     }
         
-    	String payload = new String(udpPacket.payload());
-    	System.out.println(payload);
-    }
+    // 	String payload = new String(udpPacket.payload());
+    // 	System.out.println(payload);
+    // }
   }
 
   public byte[] getMAC(byte[] ip) {
@@ -254,50 +245,55 @@ public class Router {
       
       if (arpPacket.opCode() == ARP.ARP_REQUEST) {
         if (Arrays.equals(arpPacket.destIP(), addressIP) || 
-          Arrays.equals(arpPacket.destIP(), externalIP)) {
+            Arrays.equals(arpPacket.destIP(), externalIP)) {
+
           sendResponseARP(arpPacket.srcMAC(), arpPacket.srcIP());
+          
           arpTable.addPair(arpPacket.srcIP(), arpPacket.srcMAC());
+          System.out.println(arpTable.toString());
         }
       } else if (arpPacket.opCode() == ARP.ARP_REPLY) {
-        if (Arrays.equals(arpPacket.destMAC(), externalMAC) || 
-          Arrays.equals(arpPacket.destMAC(), addressMAC)) {
+        if (Arrays.equals(arpPacket.destIP(), addressIP) || 
+            Arrays.equals(arpPacket.destIP(), externalIP)) {
+
           arpTable.addPair(arpPacket.srcIP(), arpPacket.srcMAC());
+          System.out.println(arpTable.toString());
         }
       } else {
         System.out.println("Invalid opCode");
       }
-      System.out.println(arpTable.toString());
   }
 
   /***************************************************************************/
   /**************************** Sending methods ******************************/
   /***************************************************************************/
   
-  private void sendFrame(Ethernet frame, boolean internalInterface) {
-	  packet = new DatagramPacket(new byte[1500], 1500);
+  private void sendFrame(Ethernet frame, boolean LAN) {
+	  DatagramPacket packet = new DatagramPacket(new byte[1500], 1500);
     try {
       packet.setAddress(InetAddress.getLocalHost());      
     } catch (Exception e) {
       e.printStackTrace();
       return;
     }
-    this.packet.setData(frame.getBytes());
-    if (internalInterface) {
+    packet.setData(frame.getBytes());
+
+    if (LAN) {
       for (int i = 0; i < internalLinks.size(); i++) {
         if (internalLinks.get(i) == skipLinkPortNum)
           continue;
-        this.packet.setPort(internalLinks.get(i));
+        packet.setPort(internalLinks.get(i));
         try {
-          this.internalInterface.send(this.packet);
+          internalInterface.send(packet);
         } catch (Exception e) {
           e.printStackTrace();
         }
       }
     } else {
       for (int i = 0; i < externalLinks.size(); i++) {
-        this.packet.setPort(externalLinks.get(i));
+        packet.setPort(externalLinks.get(i));
         try {
-          this.externalInterface.send(this.packet);
+          externalInterface.send(packet);
         } catch (Exception e) {
           e.printStackTrace();
         }
@@ -467,7 +463,6 @@ public class Router {
   }
 
   public void connectToRouter(int port) {
-    this.packet.setPort(port);
     ICMP routerAd = new ICMP(ICMP.ROUTER_SOLICITATION, (byte)icmpID++, new byte[1]);
     IP ipPacket = new IP(IP.broadcastIP, externalIP, ipID++, IP.ICMP_PORT, routerAd.getBytes());
     Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, externalMAC, Ethernet.IP_PORT, ipPacket.getBytes());

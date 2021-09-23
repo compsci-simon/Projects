@@ -10,7 +10,6 @@ public class Client {
   private byte[] addressIP = {0, 0, 0, 0};
   private byte[] addressMAC;
   private DatagramSocket socket;
-  private DatagramPacket packet;
   private ARPTable arpTable;
   private int ipIdentifier;
   private static byte[] routerIP;
@@ -53,6 +52,7 @@ public class Client {
 
   private void handleInterface() {
     try {
+      DatagramPacket packet;
       socket = new DatagramSocket();
       packet = new DatagramPacket(new byte[1500], 1500, InetAddress.getByName(address), portNum);
       while (true) {
@@ -69,7 +69,6 @@ public class Client {
   private boolean handleFrame(byte[] frame) {
     
     Ethernet ethernetFrame = new Ethernet(frame);
-    
     System.out.println(ethernetFrame.toString());
     if (ethernetFrame.protocol() == Ethernet.ARP_PORT) {
       handleARPPacket(ethernetFrame.payload());
@@ -168,17 +167,14 @@ public class Client {
     if (portNum == -1) {
       return;
     }
+    DatagramPacket packet;
     try {
-      this.packet = new DatagramPacket(new byte[1500], 1500, InetAddress.getByName(address), portNum);      
+      packet = new DatagramPacket(new byte[1500], 1500, InetAddress.getByName(address), portNum);      
+      packet.setData(frame.getBytes());
+      socket.send(packet);
     } catch (Exception e) {
       e.printStackTrace();
       return;
-    }
-    this.packet.setData(frame.getBytes());
-    try {
-      socket.send(this.packet);
-    } catch (Exception e) {
-      e.printStackTrace();
     }
   }
 
@@ -351,7 +347,6 @@ public class Client {
           line = reader.readLine();
           try {
             portNum = Integer.parseInt(line);
-            this.packet = new DatagramPacket(new byte[1500], 1500, InetAddress.getByName(address), portNum);
             new Thread() {
               @Override
               public void run() {

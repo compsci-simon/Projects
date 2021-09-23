@@ -44,8 +44,12 @@ public class TCP {
     return tcpPacket;
   }
 
-  public int demuxPort() {
+  public int destinationPort() {
     return destPort;
+  }
+
+  public int sourcePort() {
+    return sourcePort;
   }
 
   public byte[] payload() {
