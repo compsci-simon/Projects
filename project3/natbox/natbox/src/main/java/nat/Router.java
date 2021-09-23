@@ -15,6 +15,7 @@ public class Router {
   private ArrayList<Integer> externalLinks;
   private DHCPServer dhcpServer;
   private ARPTable arpTable;
+  private NAPT naptTable;
   private byte[] addressMAC;
   private byte[] addressIP = {(byte) 0xC0, (byte) 0xA8, 0, 1};
   private byte[] externalIP;
@@ -43,6 +44,7 @@ public class Router {
       this.packet = new DatagramPacket(new byte[1500], 1500);
       this.dhcpServer = new DHCPServer(addressIP);
       this.arpTable = new ARPTable();
+      this.naptTable = new NAPT(externalIP);
       System.out.println("Router started...");
       handleUserInputs();
     } catch (Exception e) {

@@ -1,15 +1,22 @@
 package nat;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class NAPT {
+	byte[] externalIP;
+	private ArrayList<Integer> allocatedPorts;
 	private HashMap<Long, byte[]> naptTable;
 
-	public NAPT() {
+	public NAPT(byte[] externalIP) {
+		this.externalIP = externalIP;
+		allocatedPorts = new ArrayList<Integer>();
 		naptTable = new HashMap<Long, byte[]>();
 	}
 
-	public void addPair(byte[] addressIP, int port, byte[] externalIP, int externalPort) {
+	public void addPair(byte[] addressIP, int port) {
+		int externalPort = lowestFreePort();
+	    allocatedPorts.add(externalPort);
 		naptTable.put(toLong(addressIP, port), toBytes(externalIP, externalPort));
 	}
 	
@@ -17,7 +24,7 @@ public class NAPT {
 		return naptTable.containsKey(toLong(addressIP, port));
 	}
 	  
-	public byte[] getMAC(byte[] addressIP, int port) {
+	public byte[] getSession(byte[] addressIP, int port) {
 		return naptTable.get(toLong(addressIP, port));
 	}
 	
@@ -66,5 +73,9 @@ public class NAPT {
 	public int getPort(byte[] bytes) {
 		return ((bytes[0] & 0xff) << 24) | ((bytes[1] & 0xff) << 16) | 
 		    ((bytes[2] & 0xff) << 8) | (bytes[3] & 0xff);
+	}
+	
+	public int lowestFreePort() {
+		return allocatedPorts.size();
 	}
 }
