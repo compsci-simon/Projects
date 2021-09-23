@@ -345,6 +345,8 @@ public class Router {
       return;
     }
     Ethernet frame = new Ethernet(destMAC, sourceMAC, Ethernet.IP_PORT, ipPacket.getBytes());
+    naptTable.addPair(sourceIP, icmpID);
+    System.out.println(naptTable.toString());
     sendFrame(frame, internal);
   }
 

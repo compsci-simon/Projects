@@ -2,6 +2,8 @@ package nat;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 public class NAPT {
 	byte[] externalIP;
@@ -61,6 +63,20 @@ public class NAPT {
 		return bytes;
 	}
 	
+	public byte[] toBytes(long Long) {
+		byte[] bytes = new byte[8];
+		bytes[0] = (byte) ((Long >> 56) & 0xff);
+		bytes[1] = (byte) ((Long >> 48) & 0xff);
+		bytes[2] = (byte) ((Long >> 40) & 0xff);
+		bytes[3] = (byte) ((Long >> 32) & 0xff);
+		bytes[4] = (byte) ((Long >> 24) & 0xff);
+		bytes[5] = (byte) ((Long >> 16) & 0xff);
+		bytes[6] = (byte) ((Long >> 8) & 0xff);
+		bytes[7] = (byte) (Long & 0xff);
+		
+		return bytes;
+	}
+	
 	public byte[] getAddress(byte[] bytes) {
 		byte[] ipAddress = new byte[4];
 		ipAddress[0] = bytes[4];
@@ -75,7 +91,29 @@ public class NAPT {
 		    ((bytes[2] & 0xff) << 8) | (bytes[3] & 0xff);
 	}
 	
+	public String combinationToString(byte[] bytes) {
+		String ipAddress = IP.ipString(getAddress(bytes));
+		int port = getPort(bytes);
+		return ipAddress + ":" + port;
+	}
+	
 	public int lowestFreePort() {
 		return allocatedPorts.size();
 	}
+	
+	public String toString() {
+	    Iterator<Map.Entry<Long, byte[]>> hmIterator = naptTable.entrySet().iterator();
+	    String s = "\nNAPT TABLE toString\n----------------------";
+	    if (naptTable.size() == 0) {
+	      s += "\nNAPT Table is empty";
+	    } else {
+	      while (hmIterator.hasNext()) {
+	        Map.Entry<Long, byte[]> element = hmIterator.next();
+	        s = String.format("%s\n%s -> %s", s, combinationToString(toBytes(element.getKey())), combinationToString(element.getValue()));
+	      }
+	      s += "\n";
+	    }
+	    return s;
+	  }
+	
 }
