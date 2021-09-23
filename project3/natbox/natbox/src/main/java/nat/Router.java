@@ -28,6 +28,7 @@ public class Router {
   private int externalPort;
   private int ipID;
   private int icmpID;
+  private int skipLinkPortNum = -1;
 
   public Router () {
     this.ipID = 0;
@@ -71,6 +72,9 @@ public class Router {
     	  packet = new DatagramPacket(new byte[1500], 1500);
         internalInterface.receive(packet);
         addPortToInternalLinks(packet.getPort());
+        skipLinkPortNum = packet.getPort();
+        // sendFrame(new Ethernet(packet.getData()), true);
+        skipLinkPortNum = -1;
         if (!handleFrame(packet.getData()))
           break;
       }
@@ -101,16 +105,8 @@ public class Router {
     System.out.println(ethernetFrame.toString());
     
     if (ethernetFrame.protocol() == Ethernet.ARP_PORT) {
-      ARP arpPacket = new ARP(ethernetFrame.payload());
-      if (IP.sameNetwork(arpPacket.destIP(), addressIP)) {
-        sendFrame(ethernetFrame, true);
-      }
       handleARPPacket(ethernetFrame);
     } else if (ethernetFrame.protocol() == Ethernet.IP_PORT) {
-      IP ipPacket = new IP(ethernetFrame.payload());
-      if (IP.sameNetwork(ipPacket.destination(), addressIP)) {
-        sendFrame(ethernetFrame, true);
-      }
       handleIPPacket(ethernetFrame.payload());
     }
     return true;
@@ -123,8 +119,6 @@ public class Router {
     if (ipPacket.isBroadcast() || Arrays.equals(addressIP, ipPacket.destination()) || 
       Arrays.equals(externalIP, ipPacket.destination())) {
       // This is broadcast IP packets
-      Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, addressMAC, Ethernet.IP_PORT, ipPacket);
-      sendFrame(frame, true);
       switch (ipPacket.getDemuxPort()) {
         case IP.UDP_PORT:
           handleUDPPacket(ipPacket);
@@ -190,6 +184,7 @@ public class Router {
     System.out.println(udpPacket.toString());
     if (udpPacket.demuxPort() == DHCP.SERVER_PORT) {
       DHCP dhcpReq = new DHCP(udpPacket.payload());
+      System.out.println(dhcpReq.toString());
       DHCP bootReply = dhcpServer.generateBootResponse(dhcpReq);
       System.out.println(String.format("Assigned IP %s to %s\n", 
                         IP.ipString(bootReply.getCiaddr()), 
@@ -289,6 +284,8 @@ public class Router {
     this.packet.setData(frame.getBytes());
     if (internalInterface) {
       for (int i = 0; i < internalLinks.size(); i++) {
+        if (internalLinks.get(i) == skipLinkPortNum)
+          continue;
         this.packet.setPort(internalLinks.get(i));
         try {
           this.internalInterface.send(this.packet);

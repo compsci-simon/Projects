@@ -70,21 +70,15 @@ public class Client {
     
     Ethernet ethernetFrame = new Ethernet(frame);
     
-    // if (Arrays.equals(ethernetFrame.source(), addressMAC)) {
-    //   System.out.println("Here");
-    //   System.out.println(ethernetFrame.toString());
-    //   return true;
-    // }
-    if (Arrays.equals(ethernetFrame.source(), addressMAC))
-      return true;
     System.out.println(ethernetFrame.toString());
-    if (ethernetFrame.protocol() == ARP.DEMUX_PORT) {
+    if (ethernetFrame.protocol() == Ethernet.ARP_PORT) {
       handleARPPacket(ethernetFrame.payload());
       return true;
-    }
-    if (Arrays.equals(addressMAC, ethernetFrame.destination())
-                    || ethernetFrame.isBroadcast()) {
-      handleIPPacket(ethernetFrame.payload());
+    } else if (ethernetFrame.protocol() == Ethernet.IP_PORT) {
+      if (Arrays.equals(addressMAC, ethernetFrame.destination())
+                      || ethernetFrame.isBroadcast()) {
+        handleIPPacket(ethernetFrame.payload());
+      }
     }
     return true;
   }
