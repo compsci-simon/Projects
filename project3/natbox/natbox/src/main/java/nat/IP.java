@@ -37,7 +37,14 @@ public class IP {
     this.payload = new byte[this.totalLength - 20];
     System.arraycopy(packet, 16, destIP, 0, 4);
     System.arraycopy(packet, 12, sourceIP, 0, 4);
-    System.arraycopy(packet, 20, payload, 0, this.totalLength - 20);
+    try {
+      System.arraycopy(packet, 20, payload, 0, this.totalLength - 20);      
+    } catch (Exception e) {
+      System.out.println(Constants.bytesToString(packet, 6));
+      System.out.println("total length = " + totalLength);
+      System.out.println("packet.length = " + packet.length);
+      e.printStackTrace();
+    }
   }
 
   public byte[] getBytes() {

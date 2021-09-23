@@ -129,9 +129,21 @@ public class Router {
           break;
         }
     } else {
-      byte[] destMAC = getMAC(ipPacket.destination());
+      // Packets that need to be routed
+
+      ipPacket = naptTable.translate(ipPacket);
+      System.out.println(naptTable.containsSession(packet));
+      if (ipPacket == null) {
+        System.out.println("Could not translate IP packet");
+        return;
+      }
+      System.out.println(IP.ipString(ipPacket.source()));
       boolean LAN = IP.sameNetwork(ipPacket.destination(), addressIP);
+      byte[] destMAC = getMAC(ipPacket.destination());
+      byte[] sourceMAC = LAN ? addressMAC : externalMAC;
+      Ethernet frame = new Ethernet(destMAC, sourceMAC, Ethernet.IP_PORT, ipPacket.getBytes());
       
+      sendFrame(frame, LAN);
     }
   }
 
@@ -180,39 +192,15 @@ public class Router {
                         IP.ipString(bootReply.getCiaddr()), 
                         Ethernet.macString(bootReply.getChaddr())));
       UDP udpPack = new UDP(DHCP.CLIENT_PORT, DHCP.SERVER_PORT, bootReply.getBytes());
-      IP ipPack = new IP(dhcpReq.getCiaddr(), addressIP, ipPacket.getIdentifier(), UDP.DEMUXPORT, udpPack.getBytes());
+      IP ipPack = new IP(dhcpReq.getCiaddr(), addressIP, ipPacket.getIdentifier(), IP.UDP_PORT, udpPack.getBytes());
       Ethernet frame = new Ethernet(bootReply.getChaddr(), addressMAC, Ethernet.IP_PORT, ipPack.getBytes());
       sendFrame(frame, true);
       
-    } 
-    // else {
-    // 	boolean internal = true;
-    //     if (!IP.sameNetwork(ipPacket.destination(), addressIP)) {
-    //       internal = false;
-    //     }
-    //     byte[] sourceIP = internal ? addressIP : externalIP;
-    //     byte[] sourceMAC = internal ? addressMAC : externalMAC;
-        
-    //     if (!internal) {
-    //     	boolean hasSession = naptTable.containsSession(sourceIP, udpPacket.sourcePort());
-    //     	if (hasSession) {
-    //     		// modify frame and send
-    //     		byte[] combination = naptTable.getSession(sourceIP, udpPacket.sourcePort());
-    //     		int port = naptTable.getPort(combination);
-    //     		// have to set source port of UDP I think
-    //     		IP ipPack = new IP(ipPacket.destination(), sourceIP, ipPacket.getIdentifier(), UDP.DEMUXPORT, udpPacket.getBytes());
-    //     		byte[] destMAC = getMAC(ipPack.destination());
-    //     		Ethernet frame = new Ethernet(destMAC, sourceMAC, Ethernet.IP_PORT, ipPack.getBytes());
-        		
-    //     	} else {
-    //     		naptTable.addPair(sourceIP, udpPacket.sourcePort());
-    //     		System.out.println(naptTable.toString());
-    //     	}
-    //     }
-        
-    // 	String payload = new String(udpPacket.payload());
-    // 	System.out.println(payload);
-    // }
+    } else if (udpPacket.demuxPort() == UDP.MESSAGE_PORT) {
+      System.out.println(new String(udpPacket.payload()));
+    } else {
+      System.out.println("Unknown udp port " + udpPacket.demuxPort());
+    }
   }
 
   public byte[] getMAC(byte[] ip) {

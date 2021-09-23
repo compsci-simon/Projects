@@ -31,6 +31,14 @@ public class Constants {
     return s;
   }
 
+  public static String bytesToString(byte[] bytes, int n) {
+    String s = "";
+    for (int i = 0; i < n && i < bytes.length; i++) {
+      s = String.format("%s%02x ", s, bytes[i]);
+    }
+    return s;
+  }
+
   public static byte[] intToBytes(int number) {
     byte[] x = new byte[4];
     x[0] = (byte) ((number >> 24) & 0xff);

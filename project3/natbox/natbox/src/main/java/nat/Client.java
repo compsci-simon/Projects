@@ -187,18 +187,18 @@ public class Client {
   }
   
   public void udpSend(byte[] ip, String message) {
-    UDP udpPacket = new UDP(9000, 9000, message.getBytes());
-    IP ipPacket = new IP(ip, addressIP, ipIdentifier++, UDP.DEMUXPORT, udpPacket.getBytes());
-    System.out.println(arpTable.toString());
+    UDP udpPacket = new UDP(UDP.MESSAGE_PORT, UDP.MESSAGE_PORT, message.getBytes());
+    IP ipPacket = new IP(ip, addressIP, ipIdentifier++, IP.UDP_PORT, udpPacket.getBytes());
     if (IP.sameNetwork(addressIP, ip)) {
       // Do not send frame to router
-    
       byte[] destinationMAC = getMAC(ipPacket.destination());
-      System.out.println(Ethernet.macString(destinationMAC));
       Ethernet frame = new Ethernet(destinationMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
       sendFrame(frame);
     } else {
       // Send frame to router
+      byte[] routerMAC = getMAC(routerIP);
+      Ethernet frame = new Ethernet(routerMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
+      sendFrame(frame);
     }
   }
   
@@ -358,9 +358,11 @@ public class Client {
           } catch (Exception e) {
             e.printStackTrace();
           }
-        } else if (line.split(" ")[0].equals("udp")) {
-        	String ipString = (line.split(" ")[1]);
-        	String message = (line.split(" ")[2]);
+        } else if (line.equals("udp send")) {
+          System.out.print("IP: ");
+          String ipString = reader.readLine();
+          System.out.print("message: ");
+        	String message = reader.readLine();
         	udpSend(ipString, message);
         } else if (line.equals("arp table")) { 
         	arpTable.toString();

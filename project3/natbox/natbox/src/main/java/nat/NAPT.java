@@ -24,20 +24,24 @@ public class NAPT {
 			return null;
 		}
 		if (IP.sameNetwork(internalIP, packet.source())) {
-			if (!containsSession(packet)) {
-				addSession(packet);
+			if (!containsSession(packet, transportLayerPortSource(packet))) {
+				addSession(packet, transportLayerPortSource(packet));
 			}
 			packet.setSource(externalIP);
 			return packet;
 		} else {
-			if (!containsSession(packet)) {
+			if (!containsSession(packet, transportLayerPortDest(packet))) {
 				System.err.println("Cannot forward this packet");
 				return null;
 			} else {
-
+				byte[] value = getExternalSession(packet, transportLayerPortDest(packet));
+				byte[] newIP = new byte[4];
+				packet.setDest(newIP);
+				System.arraycopy(value, 4, newIP, 0, 4);
+				packet.setDest(newIP);
+				return packet;
 			}
 		}
-		return null;
 	}
 
 	public void addPair(byte[] addressIP, int port) {
@@ -46,10 +50,7 @@ public class NAPT {
 		naptTable.put(toLong(addressIP, port), toBytes(externalIP, externalPort));
 	}
 
-	public void addSession(IP packet) {
-		if (containsSession(packet))
-			return;
-		int port = transportLayerPort(packet);
+	public void addSession(IP packet, int port) {
 		if (port == -1)
 			return;
 		byte[] portBytes = Constants.intToBytes(port);
@@ -59,13 +60,12 @@ public class NAPT {
 		Long key = toLong(packet.source(), packet.getDemuxPort());
 		byte[] value = new byte[12];
 		System.arraycopy(portBytes, 0, value, 0, 4);
-		System.arraycopy(sourceIP, 4, value, 8, 4);
-		System.arraycopy(destIP, 8, value, 12, 4);
+		System.arraycopy(sourceIP, 0, value, 4, 4);
+		System.arraycopy(destIP, 0, value, 8, 4);
 		naptTable.put(key, value);
 	}
 	
-	public boolean containsSession(IP packet) {
-		int port = transportLayerPort(packet);
+	public boolean containsSession(IP packet, int port) {
 		if (port == -1)
 			return false;
 		byte[] sourceIP = packet.source();
@@ -89,7 +89,7 @@ public class NAPT {
 		return true;
 	}
 	 
-	public int transportLayerPort(IP packet) {
+	public int transportLayerPortSource(IP packet) {
 		int port;
 		if (packet.getDemuxPort() == IP.UDP_PORT) {
 			UDP udpPack = new UDP(packet.payload());
@@ -102,10 +102,29 @@ public class NAPT {
 			return -1;
 		}
 		return port;
+	}	 
+
+	public int transportLayerPortDest(IP packet) {
+		int port;
+		if (packet.getDemuxPort() == IP.UDP_PORT) {
+			UDP udpPack = new UDP(packet.payload());
+			port = udpPack.destinationPort();
+		} else if (packet.getDemuxPort() == IP.TCP_PORT) {
+			TCP tcpPack = new TCP(packet.payload());
+			port = tcpPack.destinationPort();
+		} else {
+			System.err.println("Unknown demux port " + packet.getDemuxPort());
+			return -1;
+		}
+		return port;
 	}
 
-	public byte[] getSession(byte[] addressIP, int port) {
-		return naptTable.get(toLong(addressIP, port));
+	public byte[] getExternalSession(IP externalPacket, int port) {
+		return naptTable.get(toLong(externalPacket.destination(), port));
+	}
+
+	public byte[] getInternalSession(IP internalPacket, int port) {
+		return naptTable.get(toLong(internalPacket.source(), port));
 	}
 	
 	public long toLong(byte[] ipAddress, int port) {
