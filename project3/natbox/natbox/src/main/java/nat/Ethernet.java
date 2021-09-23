@@ -89,9 +89,9 @@ public class Ethernet {
   }
 
   public String toString() {
-    String s = String.format("-----------------------------------------\n" + 
-    "|***************************************|\n" +
-    "-----------------------------------------\n" +
+    String s = String.format("\n\t-----------------------------------------\n" + 
+    "\t|***************************************|\n" +
+    "\t-----------------------------------------\n\n" +
     "ETHERNET toString\n----------------------\nDestination MAC = %s" + 
     "\nSource MAC = %s\nDemux Port = %d\n", 
       macString(destMAC), macString(sourceMAC), demuxProtocol);

@@ -28,6 +28,7 @@ public class Router {
   private String address;
   private int ipID;
   private int icmpID;
+  private int receivedOnLink = -1;
 
   public Router (String address) {
     this.address = address;
@@ -44,27 +45,28 @@ public class Router {
       this.dhcpServer = new DHCPServer(addressIP);
       this.arpTable = new ARPTable();
       System.out.println("Router started...");
-      handleUserInputs();
     } catch (Exception e) {
       e.printStackTrace();
     }
   }
 
   public static void main(String[] args) {
-    new Router("localhost");
+    Router r = new Router("localhost");
+    r.handleInternalConnections(5000);
   }
 
   /***************************************************************************/
   /**************************** Handling methods *****************************/
   /***************************************************************************/
 
-  private void handleInternalConnections(int port) {
+  public void handleInternalConnections(int port) {
     try {
       this.internalInterface = new DatagramSocket(port);
       while (true) {
     	  packet = new DatagramPacket(new byte[1500], 1500);
         internalInterface.receive(packet);
         addPortToInternalLinks(packet.getPort());
+        receivedOnLink = packet.getPort();
         if (!handleFrame(packet.getData()))
           break;
       }
@@ -183,24 +185,22 @@ public class Router {
   public void handleUDPPacket(IP ipPacket) {
     UDP udpPacket = new UDP(ipPacket.payload());
     System.out.println(udpPacket.toString());
-    if (udpPacket.demuxPort() == DHCP.SERVERPORT) {
+    if (udpPacket.demuxPort() == DHCP.SERVER_PORT) {
       DHCP dhcpReq = new DHCP(udpPacket.payload());
       DHCP bootReply = dhcpServer.generateBootResponse(dhcpReq);
       System.out.println(String.format("Assigned IP %s to %s", 
         IP.ipString(bootReply.getCiaddr()), 
         Ethernet.macString(bootReply.getChaddr())));
       try {
-        UDP udpPack = new UDP(DHCP.CLIENTPORT, DHCP.SERVERPORT, bootReply.serialize());
+        UDP udpPack = new UDP(DHCP.CLIENT_PORT, DHCP.SERVER_PORT, bootReply.getBytes());
         IP ipPack = new IP(dhcpReq.getCiaddr(), addressIP, ipPacket.getIdentifier(), UDP.DEMUXPORT, udpPack.getBytes());
         Ethernet frame = new Ethernet(bootReply.getChaddr(), addressMAC, Ethernet.IP_PORT, ipPack.getBytes());
         sendFrame(frame, true);        
       } catch (Exception e) {
-        //TODO: handle exception
         e.printStackTrace();
       }
     } else {
-    	String payload = new String(udpPacket.payload());
-    	System.out.println(payload);
+      System.out.println("Should not be here");
     }
   }
 
@@ -265,6 +265,8 @@ public class Router {
     this.packet.setData(frame.getBytes());
     if (internalInterface) {
       for (int i = 0; i < internalLinks.size(); i++) {
+        if (internalLinks.get(i) == receivedOnLink)
+          continue;
         this.packet.setPort(internalLinks.get(i));
         try {
           this.internalInterface.send(this.packet);
@@ -272,6 +274,7 @@ public class Router {
           e.printStackTrace();
         }
       }
+      receivedOnLink = -1;
     } else {
       for (int i = 0; i < externalLinks.size(); i++) {
         this.packet.setPort(externalLinks.get(i));

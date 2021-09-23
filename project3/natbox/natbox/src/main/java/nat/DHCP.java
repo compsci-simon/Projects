@@ -23,8 +23,8 @@ public class DHCP implements Serializable {
   public static final byte OP_SERVER_IP = 0x36;
   public static final byte OP_SUBMASK = 0x01;
   public static final byte OP_END_MARKER = (byte)0xff;
-  public static final  byte SERVERPORT = 67;
-  public static final byte CLIENTPORT = 68;
+  public static final  byte SERVER_PORT = 67;
+  public static final byte CLIENT_PORT = 68;
   private int messageType;
   private int transactionID;
   private byte[] ciaddr;
@@ -57,19 +57,6 @@ public class DHCP implements Serializable {
     System.arraycopy(packet, 24, giaddr, 0, 4);
     this.chaddr = new byte[6];
     System.arraycopy(packet, 28, chaddr, 0, 6);
-  }
-
-  public static DHCP deserialize(byte[] byteStream) {
-    ByteArrayInputStream bis = new ByteArrayInputStream(byteStream);
-    ObjectInput in = null;
-    try {
-      in = new ObjectInputStream(bis);      
-      return (DHCP) in.readObject();
-    } catch (Exception e) {
-      //TODO: handle exception
-      e.printStackTrace();
-      return null;
-    }
   }
 
   public static DHCP bootRequest(int transactionID, byte[] chaddr) {

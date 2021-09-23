@@ -25,11 +25,26 @@ public class Client {
     this.ipIdentifier = 0;
     arpTable = new ARPTable();
     System.out.println("Client started...");
-    userInputs();
+
+    try {
+      this.portNum = 5000;
+      new Thread() {
+        @Override
+        public void run() {
+          handleInterface();
+        }
+      }.start();
+      Thread.sleep(100);      
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    sendDHCPDiscover();
+    handleUserInputs();
   }
 
   public static void main(String[] args) {
-    new Client("localhost");
+    Client c = new Client("localhost");
+    c.handleUserInputs();
   }
   
   /***************************************************************************/
@@ -56,6 +71,8 @@ public class Client {
       return false;
     Ethernet ethernetFrame = new Ethernet(frame);
     // Router MAC address of broadcast addressed frame are accepted
+    if (ethernetFrame.source() == addressMAC)
+      return true;
     System.out.println(ethernetFrame.toString());
     System.out.println();
     if (ethernetFrame.protocol() == ARP.DEMUX_PORT) {
@@ -87,6 +104,8 @@ public class Client {
         System.err.println("Unknown demux port for IP packet");
         break;
       }
+    } else {
+      System.out.println("Ignoring packet\n");
     }
   }
 
@@ -109,16 +128,16 @@ public class Client {
 
   public void handleUDPPacket(byte[] packet) {
     UDP udpPacket = new UDP(packet);
-    if (udpPacket.destinationPort() == DHCP.CLIENTPORT) {
+    System.out.println(udpPacket.toString());
+    if (udpPacket.destinationPort() == DHCP.CLIENT_PORT) {
       handleDHCPPacket(udpPacket.payload());
     } else {
-    	String payload = new String(udpPacket.payload());
-    	System.out.println(payload);
+      System.out.println("UDP packet sent to unknown port");
     }
   }
 
   public void handleDHCPPacket(byte[] packet) {
-    DHCP dhcpPacket = DHCP.deserialize(packet);
+    DHCP dhcpPacket =  new DHCP(packet);
     if (dhcpPacket.getMessageType() == DHCP.BOOT_REPLY) {
       addressIP = dhcpPacket.getCiaddr();
       routerIP = dhcpPacket.getGateway();
@@ -168,7 +187,7 @@ public class Client {
 
   public void sendDHCPDiscover() {
     byte[] packetDHCP = generateDHCPDiscoverPacket();
-    byte[] packetUDP = encapsulateUDP(DHCP.SERVERPORT, DHCP.CLIENTPORT, packetDHCP);
+    byte[] packetUDP = encapsulateUDP(DHCP.SERVER_PORT, DHCP.CLIENT_PORT, packetDHCP);
     byte[] packetIP = encapsulateIP(IP.UDP_PORT, IP.broadcastIP, IP.relayIP, packetUDP);
     Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, addressMAC, Ethernet.IP_PORT, packetIP);
     sendFrame(frame);
@@ -251,7 +270,7 @@ public class Client {
       System.out.println("Sent ARP request");
       sendRequestARP(ip);
       try {
-        Thread.sleep(100);
+        Thread.sleep(200);
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -284,7 +303,7 @@ public class Client {
   /****************************** Other methods ******************************/
   /***************************************************************************/
 
-  public void userInputs() {
+  public void handleUserInputs() {
     try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
       String line = "";
       while ( (line = reader.readLine()) != null) {
@@ -343,6 +362,10 @@ public class Client {
       "\nMAC = %s\nIP = %s\nGateway = %s\nSubnet Mask = %s\nConnected to router on interface %s\n", 
       Ethernet.macString(addressMAC), IP.ipString(addressIP), routerString, subnetString, interfaceNum);
     return s;
+  }
+
+  public void setPortNum(int num) {
+    portNum = num;
   }
 
 }
