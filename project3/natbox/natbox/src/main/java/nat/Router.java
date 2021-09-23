@@ -26,13 +26,10 @@ public class Router {
   private boolean handleExternal = false;
   private int internalPort;
   private int externalPort;
-  private String address;
   private int ipID;
   private int icmpID;
-  private int lastReceivedOnLink = -1;
 
-  public Router (String address) {
-    this.address = address;
+  public Router () {
     this.ipID = 0;
     this.icmpID = 0;
     this.internalLinks = new ArrayList<Integer>();
@@ -47,14 +44,20 @@ public class Router {
       this.arpTable = new ARPTable();
       this.naptTable = new NAPT(externalIP);
       System.out.println("Router started...");
+      new Thread() {
+        @Override
+        public void run() {
+          handleInternalConnections(5000);
+        }
+      }.start();
     } catch (Exception e) {
       e.printStackTrace();
     }
   }
 
   public static void main(String[] args) {
-    Router r = new Router("localhost");
-    r.handleInternalConnections(5000);
+    Router r = new Router();
+    r.handleUserInputs();
   }
 
   /***************************************************************************/
@@ -68,7 +71,6 @@ public class Router {
     	  packet = new DatagramPacket(new byte[1500], 1500);
         internalInterface.receive(packet);
         addPortToInternalLinks(packet.getPort());
-        lastReceivedOnLink = packet.getPort();
         if (!handleFrame(packet.getData()))
           break;
       }
@@ -94,23 +96,20 @@ public class Router {
 
   private boolean handleFrame(byte[] frame) {
     Ethernet ethernetFrame = new Ethernet(frame);
-    // Router MAC address of broadcast addressed frame are accepted
+    if (Arrays.equals(ethernetFrame.source(), addressMAC))
+      return true;
     System.out.println(ethernetFrame.toString());
     
-    boolean internal;
     if (ethernetFrame.protocol() == Ethernet.ARP_PORT) {
       ARP arpPacket = new ARP(ethernetFrame.payload());
-      internal = IP.sameNetwork(addressIP, arpPacket.destIP());
-      if (internal) {
-        sendFrame(ethernetFrame, internal);
+      if (IP.sameNetwork(arpPacket.destIP(), addressIP)) {
+        sendFrame(ethernetFrame, true);
       }
       handleARPPacket(ethernetFrame);
     } else if (ethernetFrame.protocol() == Ethernet.IP_PORT) {
       IP ipPacket = new IP(ethernetFrame.payload());
-      internal = IP.sameNetwork(addressIP, ipPacket.source());
-      if (internal) {
-        System.out.println(lastReceivedOnLink);
-        sendFrame(ethernetFrame, internal);
+      if (IP.sameNetwork(ipPacket.destination(), addressIP)) {
+        sendFrame(ethernetFrame, true);
       }
       handleIPPacket(ethernetFrame.payload());
     }
@@ -261,7 +260,6 @@ public class Router {
       if (arpPacket.opCode() == ARP.ARP_REQUEST) {
         if (Arrays.equals(arpPacket.destIP(), addressIP) || 
           Arrays.equals(arpPacket.destIP(), externalIP)) {
-
           sendResponseARP(arpPacket.srcMAC(), arpPacket.srcIP());
           arpTable.addPair(arpPacket.srcIP(), arpPacket.srcMAC());
         }
@@ -291,8 +289,6 @@ public class Router {
     this.packet.setData(frame.getBytes());
     if (internalInterface) {
       for (int i = 0; i < internalLinks.size(); i++) {
-        if (internalLinks.get(i) == lastReceivedOnLink)
-          continue;
         this.packet.setPort(internalLinks.get(i));
         try {
           this.internalInterface.send(this.packet);
@@ -300,7 +296,6 @@ public class Router {
           e.printStackTrace();
         }
       }
-      lastReceivedOnLink = -1;
     } else {
       for (int i = 0; i < externalLinks.size(); i++) {
         this.packet.setPort(externalLinks.get(i));
@@ -335,7 +330,6 @@ public class Router {
     byte[] srcMAC = internal ? addressMAC : externalMAC;
     ARP arpPacket = new ARP(ARP.ARP_REPLY, srcMAC, srcIP, destMAC, destIP);
     Ethernet frame = new Ethernet(destMAC, addressMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
-    
     sendFrame(frame, internal);
   }
 

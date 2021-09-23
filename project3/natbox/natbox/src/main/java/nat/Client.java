@@ -67,10 +67,15 @@ public class Client {
   }
 
   private boolean handleFrame(byte[] frame) {
-    System.out.println("received frame");
+    
     Ethernet ethernetFrame = new Ethernet(frame);
-    // Router MAC address of broadcast addressed frame are accepted
-    if (ethernetFrame.source() == addressMAC)
+    
+    // if (Arrays.equals(ethernetFrame.source(), addressMAC)) {
+    //   System.out.println("Here");
+    //   System.out.println(ethernetFrame.toString());
+    //   return true;
+    // }
+    if (Arrays.equals(ethernetFrame.source(), addressMAC))
       return true;
     System.out.println(ethernetFrame.toString());
     if (ethernetFrame.protocol() == ARP.DEMUX_PORT) {
