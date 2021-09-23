@@ -199,11 +199,41 @@ public class Client {
       // Do not send frame to router
     
       byte[] destinationMAC = getMAC(ipPacket.destination());
+      System.out.println(Ethernet.macString(destinationMAC));
       Ethernet frame = new Ethernet(destinationMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
       sendFrame(frame);
     } else {
       // Send frame to router
     }
+  }
+  
+  public void udpSend(String ipString, String message) {
+	  ipString = ipString.strip();
+	  if (ipString.equals("router")) {
+		  if (routerIP != null) {
+			  ping(routerIP);
+		  } else {
+			  System.err.println("Router IP not yet set");
+			  return;
+		  }
+	  } else {
+		  String[] ipStringArray = ipString.split("[.]");
+		  if (ipStringArray.length != 4) {
+			  System.err.println("Incorrect IP format");
+			  return;
+		  }
+		  byte[] ip = new byte[4];
+  
+		  for (int i = 0; i < 4; i++) {
+			  try {
+				  ip[i] = (byte) Integer.parseInt(ipStringArray[i]);
+			  } catch (Exception e) {
+				  e.printStackTrace();
+				  return;
+			  }
+		  }
+		  udpSend(ip, message);
+	  }
   }
 
   private void sendRequestARP(byte[] destIP) {
@@ -334,6 +364,12 @@ public class Client {
           } catch (Exception e) {
             e.printStackTrace();
           }
+        } else if (line.split(" ")[0].equals("udp")) {
+        	String ipString = (line.split(" ")[1]);
+        	String message = (line.split(" ")[2]);
+        	udpSend(ipString, message);
+        } else if (line.equals("arp table")) { 
+        	arpTable.toString();
         } else {
           System.out.println("Unknown command");
         }
