@@ -181,8 +181,9 @@ public class Router {
       IP ipPacketSend = new IP(IP.broadcastIP, externalIP, ipID++, IP.ICMP_PORT, routerAd.getBytes());
       Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, externalMAC, Ethernet.IP_PORT, ipPacketSend.getBytes());
       sendFrame(frame, false);
-
+    
     }
+
   }
 
   public void handleUDPPacket(IP ipPacket) {
