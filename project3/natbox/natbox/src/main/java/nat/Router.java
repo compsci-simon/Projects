@@ -449,6 +449,13 @@ public class Router {
 
         } else if (line.split(" ")[0].equals("ping")) {
           ping(line.split(" ")[1]);
+          
+        } else if (line.split(" ")[0].equals("napt table")) {
+        	naptTable.toString();
+        	
+        } else if (line.equals("arp table")) { 
+        	arpTable.toString(); 
+        	
         } else {
           System.out.println("Unknown command");
         }
