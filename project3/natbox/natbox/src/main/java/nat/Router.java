@@ -345,6 +345,7 @@ public class Router {
       return;
     }
     Ethernet frame = new Ethernet(destMAC, sourceMAC, Ethernet.IP_PORT, ipPacket.getBytes());
+    // just manually putting it here to check if napt table works 
     naptTable.addPair(sourceIP, icmpID);
     System.out.println(naptTable.toString());
     sendFrame(frame, internal);
