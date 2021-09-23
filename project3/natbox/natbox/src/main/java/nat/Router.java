@@ -15,6 +15,7 @@ public class Router {
   private ArrayList<Integer> externalLinks;
   private DHCPServer dhcpServer;
   private ARPTable arpTable;
+  private NAPT naptTable;
   private byte[] addressMAC;
   private byte[] addressIP = {(byte) 0xC0, (byte) 0xA8, 0, 1};
   private byte[] externalIP;
@@ -44,6 +45,7 @@ public class Router {
       this.packet = new DatagramPacket(new byte[1500], 1500);
       this.dhcpServer = new DHCPServer(addressIP);
       this.arpTable = new ARPTable();
+      this.naptTable = new NAPT(externalIP);
       System.out.println("Router started...");
     } catch (Exception e) {
       e.printStackTrace();
@@ -198,7 +200,32 @@ public class Router {
       sendFrame(frame, true);
       
     } else {
-      System.out.println("Unknown udp service port " + udpPacket.demuxPort());
+    	boolean internal = true;
+        if (!IP.sameNetwork(ipPacket.destination(), addressIP)) {
+          internal = false;
+        }
+        byte[] sourceIP = internal ? addressIP : externalIP;
+        byte[] sourceMAC = internal ? addressMAC : externalMAC;
+        
+        if (!internal) {
+        	boolean hasSession = naptTable.containsSession(sourceIP, udpPacket.sourcePort());
+        	if (hasSession) {
+        		// modify frame and send
+        		byte[] combination = naptTable.getSession(sourceIP, udpPacket.sourcePort());
+        		int port = naptTable.getPort(combination);
+        		// have to set source port of UDP I think
+        		IP ipPack = new IP(ipPacket.destination(), sourceIP, ipPacket.getIdentifier(), UDP.DEMUXPORT, udpPacket.getBytes());
+        		byte[] destMAC = getMAC(ipPack.destination());
+        		Ethernet frame = new Ethernet(destMAC, sourceMAC, Ethernet.IP_PORT, ipPack.getBytes());
+        		
+        	} else {
+        		naptTable.addPair(sourceIP, udpPacket.sourcePort());
+        		System.out.println(naptTable.toString());
+        	}
+        }
+        
+    	String payload = new String(udpPacket.payload());
+    	System.out.println(payload);
     }
   }
 
