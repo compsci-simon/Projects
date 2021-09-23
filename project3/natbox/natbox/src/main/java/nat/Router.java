@@ -28,7 +28,7 @@ public class Router {
   private String address;
   private int ipID;
   private int icmpID;
-  private int receivedOnLink = -1;
+  private int lastReceivedOnLink = -1;
 
   public Router (String address) {
     this.address = address;
@@ -66,7 +66,7 @@ public class Router {
     	  packet = new DatagramPacket(new byte[1500], 1500);
         internalInterface.receive(packet);
         addPortToInternalLinks(packet.getPort());
-        receivedOnLink = packet.getPort();
+        lastReceivedOnLink = packet.getPort();
         if (!handleFrame(packet.getData()))
           break;
       }
@@ -99,17 +99,18 @@ public class Router {
     if (ethernetFrame.protocol() == Ethernet.ARP_PORT) {
       ARP arpPacket = new ARP(ethernetFrame.payload());
       internal = IP.sameNetwork(addressIP, arpPacket.destIP());
-      handleARPPacket(ethernetFrame);
       if (internal) {
         sendFrame(ethernetFrame, internal);
       }
+      handleARPPacket(ethernetFrame);
     } else if (ethernetFrame.protocol() == Ethernet.IP_PORT) {
       IP ipPacket = new IP(ethernetFrame.payload());
       internal = IP.sameNetwork(addressIP, ipPacket.source());
-      handleIPPacket(ethernetFrame.payload());
       if (internal) {
+        System.out.println(lastReceivedOnLink);
         sendFrame(ethernetFrame, internal);
       }
+      handleIPPacket(ethernetFrame.payload());
     }
     return true;
   }
@@ -188,19 +189,16 @@ public class Router {
     if (udpPacket.demuxPort() == DHCP.SERVER_PORT) {
       DHCP dhcpReq = new DHCP(udpPacket.payload());
       DHCP bootReply = dhcpServer.generateBootResponse(dhcpReq);
-      System.out.println(String.format("Assigned IP %s to %s", 
-        IP.ipString(bootReply.getCiaddr()), 
-        Ethernet.macString(bootReply.getChaddr())));
-      try {
-        UDP udpPack = new UDP(DHCP.CLIENT_PORT, DHCP.SERVER_PORT, bootReply.getBytes());
-        IP ipPack = new IP(dhcpReq.getCiaddr(), addressIP, ipPacket.getIdentifier(), UDP.DEMUXPORT, udpPack.getBytes());
-        Ethernet frame = new Ethernet(bootReply.getChaddr(), addressMAC, Ethernet.IP_PORT, ipPack.getBytes());
-        sendFrame(frame, true);        
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
+      System.out.println(String.format("Assigned IP %s to %s\n", 
+                        IP.ipString(bootReply.getCiaddr()), 
+                        Ethernet.macString(bootReply.getChaddr())));
+      UDP udpPack = new UDP(DHCP.CLIENT_PORT, DHCP.SERVER_PORT, bootReply.getBytes());
+      IP ipPack = new IP(dhcpReq.getCiaddr(), addressIP, ipPacket.getIdentifier(), UDP.DEMUXPORT, udpPack.getBytes());
+      Ethernet frame = new Ethernet(bootReply.getChaddr(), addressMAC, Ethernet.IP_PORT, ipPack.getBytes());
+      sendFrame(frame, true);
+      
     } else {
-      System.out.println("Should not be here");
+      System.out.println("Unknown udp service port " + udpPacket.demuxPort());
     }
   }
 
@@ -265,7 +263,7 @@ public class Router {
     this.packet.setData(frame.getBytes());
     if (internalInterface) {
       for (int i = 0; i < internalLinks.size(); i++) {
-        if (internalLinks.get(i) == receivedOnLink)
+        if (internalLinks.get(i) == lastReceivedOnLink)
           continue;
         this.packet.setPort(internalLinks.get(i));
         try {
@@ -274,7 +272,7 @@ public class Router {
           e.printStackTrace();
         }
       }
-      receivedOnLink = -1;
+      lastReceivedOnLink = -1;
     } else {
       for (int i = 0; i < externalLinks.size(); i++) {
         this.packet.setPort(externalLinks.get(i));
@@ -449,6 +447,26 @@ public class Router {
     Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, externalMAC, Ethernet.IP_PORT, ipPacket.getBytes());
     addPortToExternalLinks(port);
     sendFrame(frame, false);
+  }
+
+  public String connectedLinks() {
+    String s = String.format("----------------------\nEXTERNAL LINKS\n");
+    if (externalLinks.size() == 0) {
+      s += "None";
+    } else {
+      for (int i = 0; i < externalLinks.size(); i++) {
+        s = String.format("%s%d ", s, externalLinks.get(i));
+      }
+    }
+    s = String.format("%s\nINTERNAL LINKS\n", s);
+    if (internalLinks.size() == 0) {
+      s += "None";
+    } else {
+      for (int i = 0; i < internalLinks.size(); i++) {
+        s = String.format("%s%d ", s, internalLinks.get(i));
+      }
+    }
+    return s + "\n";
   }
 
   public String toString() {

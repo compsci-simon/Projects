@@ -92,6 +92,10 @@ public class IP {
     return Arrays.equals(destIP, broadcastIP);
   }
 
+  private static boolean isBroadcast(byte[] ip) {
+    return Arrays.equals(ip, broadcastIP);
+  }
+
   public byte[] payload() {
     return payload;
   }
@@ -150,6 +154,10 @@ public class IP {
   }
 
   public static boolean sameNetwork(byte[] ipA, byte[] ipB) {
+    if (isBroadcast(ipA) || isBroadcast(ipB)) 
+      return true;
+    if (Arrays.equals(ipA, nilIP) || Arrays.equals(ipB, nilIP))
+      return true;
     if (ipA.length != 4 || ipB.length != 4) {
       System.err.println("Incorrect IP format");
       return false;

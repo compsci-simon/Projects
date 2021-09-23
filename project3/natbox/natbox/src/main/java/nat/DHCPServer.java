@@ -18,7 +18,6 @@ public class DHCPServer {
   }
 
   public DHCP generateBootResponse(DHCP dhcpPacket) {
-    // dhcpPacket.setMessageType(DHCP.bootReply);
     byte[] newIP = new byte[4];
     System.arraycopy(routerIP, 0, newIP, 0, 3);
     int freeIP = lowestFreeIP();
