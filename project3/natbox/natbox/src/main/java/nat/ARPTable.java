@@ -38,8 +38,8 @@ public class ARPTable {
         Map.Entry<Integer, byte[]> element = hmIterator.next();
         s = String.format("%s\n%s -> %s", s, IP.ipString(element.getKey()), Ethernet.macString(element.getValue()));
       }
-      s += "\n";
     }
+      s += "\n";
     return s;
   }
   

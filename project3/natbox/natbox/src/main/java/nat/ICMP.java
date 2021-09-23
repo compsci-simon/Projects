@@ -39,7 +39,7 @@ public class ICMP {
     return packet;
   }
 
-  public int getType() {
+  public byte getType() {
     return type;
   }
 

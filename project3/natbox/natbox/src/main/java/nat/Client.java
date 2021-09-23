@@ -141,18 +141,7 @@ public class Client {
       } else {
     	  System.out.println("Invalid opCode");
       }
-  }
-
-  private void sendRequestARP(byte[] destIP) {
-	  ARP arpPacket = new ARP(ARP.ARP_REQUEST, addressMAC, addressIP, ARP.zeroMAC, destIP);
-	  Ethernet frame = new Ethernet(ARP.broadcastMAC, addressMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
-	  sendFrame(frame);
-  }
-
-  private void sendResponseARP(byte[] destMAC, byte[] destIP) {
-	  ARP arpPacket = new ARP(2, addressMAC, addressIP, destMAC, destIP);
-    Ethernet frame = new Ethernet(destMAC, addressMAC, Ethernet.ARP_PORT, arpPacket.getBytes());
-	  sendFrame(frame);
+      System.out.println(arpTable.toString());
   }
   
   /***************************************************************************/
@@ -200,6 +189,18 @@ public class Client {
     }
   }
 
+  private void sendRequestARP(byte[] destIP) {
+	  ARP arpPacket = new ARP(ARP.ARP_REQUEST, addressMAC, addressIP, ARP.zeroMAC, destIP);
+	  Ethernet frame = new Ethernet(ARP.broadcastMAC, addressMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
+	  sendFrame(frame);
+  }
+
+  private void sendResponseARP(byte[] destMAC, byte[] destIP) {
+	  ARP arpPacket = new ARP(2, addressMAC, addressIP, destMAC, destIP);
+    Ethernet frame = new Ethernet(destMAC, addressMAC, Ethernet.ARP_PORT, arpPacket.getBytes());
+	  sendFrame(frame);
+  }
+
   public void ping(byte[] ip) {
     ICMP ping = new ICMP(ICMP.PING_REQ, icmpID++, new byte[1]);
     IP ipPacket = new IP(ip, addressIP, ipIdentifier++, IP.ICMP_PORT, ping.getBytes());
@@ -220,22 +221,24 @@ public class Client {
         System.err.println("Router IP not yet set");
         return;
       }
-    }
-    byte[] ip = new byte[4];
-    String[] ipStringArray = ipString.split("[.]");
-    if (ipStringArray.length != 4) {
-      System.err.println("Incorrect IP format");
-      return;
-    }
-    for (int i = 0; i < 4; i++) {
-      try {
-        ip[i] = (byte) Integer.parseInt(ipStringArray[i]);
-      } catch (Exception e) {
-        e.printStackTrace();
+    } else {
+      String[] ipStringArray = ipString.split("[.]");
+      if (ipStringArray.length != 4) {
+        System.err.println("Incorrect IP format");
         return;
       }
+      byte[] ip = new byte[4];
+      
+      for (int i = 0; i < 4; i++) {
+        try {
+          ip[i] = (byte) Integer.parseInt(ipStringArray[i]);
+        } catch (Exception e) {
+          e.printStackTrace();
+          return;
+        }
+      }
+      ping(ip);
     }
-    ping(ip);
   }
 
   public byte[] getMAC(byte[] ip) {

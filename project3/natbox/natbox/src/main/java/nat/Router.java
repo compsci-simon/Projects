@@ -150,22 +150,33 @@ public class Router {
   public void handleICMPPacket(IP ipPacket) {
     ICMP icmpPacket = new ICMP(ipPacket.payload());
     System.out.println(icmpPacket.toString());
+    boolean internal = true;
+    if (!IP.sameNetwork(ipPacket.destination(), addressIP)) {
+      internal = false;
+    }
+    byte[] sourceIP = internal ? addressIP : externalIP;
+    byte[] sourceMAC = internal ? addressMAC : externalMAC;
+
     if (icmpPacket.getType() == ICMP.PING_REQ) {
+
       ICMP response = ICMP.pingResponse(icmpPacket);
-      IP ipPack = new IP(ipPacket.source(), addressIP, ipPacket.getIdentifier(), IP.ICMP_PORT, response.getBytes());
+      IP ipPack = new IP(ipPacket.source(), sourceIP, ipPacket.getIdentifier(), IP.ICMP_PORT, response.getBytes());
       byte[] destMAC = getMAC(ipPack.destination());
       if (destMAC == null) {
         System.err.println(String.format("Could not resolve host MAC for %s", 
           IP.ipString(ipPack.destination())));
         return;
       }
-      Ethernet frame = new Ethernet(destMAC, addressMAC, Ethernet.IP_PORT, ipPack.getBytes());
-      sendFrame(frame, true);
+      Ethernet frame = new Ethernet(destMAC, sourceMAC, Ethernet.IP_PORT, ipPack.getBytes());
+      sendFrame(frame, internal);
+
     } else if (icmpPacket.getType() == ICMP.ROUTER_SOLICITATION) {
+
     	ICMP routerAd = new ICMP(ICMP.ROUTER_ADVERTISEMENT, (byte)icmpID++, new byte[1]);
-        IP ipPacketSend = new IP(IP.broadcastIP, externalIP, ipID++, IP.ICMP_PORT, routerAd.getBytes());
-        Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, externalMAC, Ethernet.IP_PORT, ipPacketSend.getBytes());
-        sendFrame(frame, false);
+      IP ipPacketSend = new IP(IP.broadcastIP, externalIP, ipID++, IP.ICMP_PORT, routerAd.getBytes());
+      Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, externalMAC, Ethernet.IP_PORT, ipPacketSend.getBytes());
+      sendFrame(frame, false);
+
     }
   }
 
@@ -200,7 +211,7 @@ public class Router {
     for (; i < 2; i++) {
       if (hasIP)
         break;
-      System.out.println("Sent ARP request");
+      System.out.println("Sent ARP request\n");
       sendRequestARP(ip);
       try {
         Thread.sleep(100);
@@ -210,7 +221,7 @@ public class Router {
       hasIP = arpTable.containsMAC(ip);
     }
     if (i == 2) {
-      System.out.println(String.format("Could not resolve IP: %s to physical address", IP.ipString(ip)));
+      System.out.println(String.format("Could not resolve IP: %s to physical address\n", IP.ipString(ip)));
       return null;
     }
     return arpTable.getMAC(ip);
@@ -225,19 +236,18 @@ public class Router {
         if (Arrays.equals(arpPacket.destIP(), addressIP) || 
           Arrays.equals(arpPacket.destIP(), externalIP)) {
 
-          System.out.println(IP.ipString(arpPacket.srcIP()));
           sendResponseARP(arpPacket.srcMAC(), arpPacket.srcIP());
           arpTable.addPair(arpPacket.srcIP(), arpPacket.srcMAC());
         }
       } else if (arpPacket.opCode() == ARP.ARP_REPLY) {
         if (Arrays.equals(arpPacket.destMAC(), externalMAC) || 
           Arrays.equals(arpPacket.destMAC(), addressMAC)) {
-
           arpTable.addPair(arpPacket.srcIP(), arpPacket.srcMAC());
         }
       } else {
         System.out.println("Invalid opCode");
       }
+      System.out.println(arpTable.toString());
   }
 
   /***************************************************************************/
@@ -319,17 +329,20 @@ public class Router {
   }
 
   public void ping(byte[] ip) {
-    ICMP ping = new ICMP(ICMP.PING_REQ, (byte) (icmpID++), new byte[1]);
-    IP ipPacket = new IP(ip, addressIP, ipID++, IP.ICMP_PORT, ping.getBytes());
-    byte[] mac = getMAC(ip);
-    if (mac == null) {
-      return;
-    }
-    Ethernet frame = new Ethernet(mac, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
     boolean internal = true;
     if (!IP.sameNetwork(ip, addressIP)) {
       internal = false;
     }
+    byte[] sourceIP = internal ? addressIP : externalIP;
+    byte[] sourceMAC = internal ? addressMAC : externalMAC;
+
+    ICMP ping = new ICMP(ICMP.PING_REQ, (byte) (icmpID++), new byte[1]);
+    IP ipPacket = new IP(ip, sourceIP, ipID++, IP.ICMP_PORT, ping.getBytes());
+    byte[] destMAC = getMAC(ip);
+    if (destMAC == null) {
+      return;
+    }
+    Ethernet frame = new Ethernet(destMAC, sourceMAC, Ethernet.IP_PORT, ipPacket.getBytes());
     sendFrame(frame, internal);
   }
 
