@@ -47,6 +47,7 @@ public class NAPT {
 				byte[] newIP = new byte[4];
 				System.arraycopy(value, 4, newIP, 0, 4);
 				packet.setDest(newIP);
+				System.out.println(packet.toString());
 				return packet;
 			}
 		}
