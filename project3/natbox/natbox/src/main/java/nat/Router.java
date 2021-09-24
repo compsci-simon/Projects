@@ -131,7 +131,7 @@ public class Router {
     } else if (Arrays.equals(externalIP, ipPacket.destination())) {
       // Packets from external interface
       ipPacket = naptTable.translate(ipPacket);
-      if (!Arrays.equals(ipPacket.destination(), addressIP)) {
+      if (IP.sameNetwork(ipPacket.destination(), addressIP)) {
         byte[] lanMAC = getMAC(ipPacket.destination());
         Ethernet frame = new Ethernet(lanMAC, addressMAC, ipPacket.getDemuxPort(), ipPacket.getBytes());
         sendFrame(frame, true);
