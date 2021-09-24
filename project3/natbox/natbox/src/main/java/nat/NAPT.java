@@ -12,6 +12,8 @@ public class NAPT {
 	private ArrayList<Integer> allocatedPorts;
 	private HashMap<Long, byte[]> naptTable;
 	/**
+	 * key = 
+	 * 
 	 * value[] Structure = {
 	 * 			port, port, port, port, 
 	 * 			destIP, destIP, destIP, destIP, 
@@ -77,7 +79,7 @@ public class NAPT {
 		if (!IP.isNilIP(sourceIP)) {
 			// This conditional checks that we dont put the nil IP in the destination
 			// when port forwarding
-			key = toLong(sourceIP, port);
+			key = toLong(destIP, port);
 			System.arraycopy(portBytes, 0, value2, 0, 4);
 			System.arraycopy(sourceIP, 0, value2, 4, 4);
 			System.arraycopy(destIP, 0, value2, 8, 4);
@@ -88,39 +90,28 @@ public class NAPT {
 	}
 	
 	public boolean containsSession(IP packet, int port) {
-		System.out.println(port);
-		if (port == -1)
+		if (port == -1) {
+			System.out.println("Invalid port");
 			return false;
+		}
 		byte[] sourceIP = packet.source();
 		byte[] destIP = packet.destination();
+		byte[] value = naptTable.get(toLong(sourceIP, port));
+		byte[] portBytes = Constants.intToBytes(port);
 		if (!IP.sameNetwork(packet.source(), internalIP)) {
 			// Sessions bound from WAN to LAN
 			if (naptTable.containsKey(toLong(IP.nilIP, port))) {
 				System.out.println("Nil source matched in the NAT table");
 				return true;
 			}
-			if (!naptTable.containsKey(toLong(sourceIP, port)))
+			if (!naptTable.containsKey(toLong(sourceIP, port))) {
+				System.out.println("Source : Port combo not contained in table");
 				return false;
+			}
 		} else {
 			// Sessions bound from LAN to WAN
 			if (!naptTable.containsKey(toLong(sourceIP, port)))
 				return false;
-		}
-		byte[] value = naptTable.get(toLong(sourceIP, port));
-		byte[] portBytes = Constants.intToBytes(port);
-		for (int i = 0; i < 4; i++) {
-			if (portBytes[i] != value[i]) 
-				return false;
-		}
-		for (int i = 0; i < 4; i++) {
-			if (destIP[i] != value[i + 8]) 
-			return false;
-		}
-		if (nilSource(value))
-			return true;
-		for (int i = 0; i < 4; i++) {
-			if (sourceIP[i] != value[i + 4]) 
-			return false;
 		}
 		return true;
 	}
@@ -268,10 +259,12 @@ public class NAPT {
     return -1;
 	}
 
-	public String valueToString(byte[] value) {
+	public String valueToString(byte[] value, Long key) {
 		String s = String.format("Destination IP = %d.%d.%d.%d, " 
-				+ "Source IP = %d.%d.%d.%d, port number = %d", 
-				value[4]&0xff, value[5]&0xff, value[6]&0xff, value[7]&0xff, value[8]&0xff, value[9]&0xff, value[10]&0xff, value[11]&0xff, getPort(value));
+				+ "Source IP = %d.%d.%d.%d, port number = %d, key = %016x", 
+				value[4]&0xff, value[5]&0xff, value[6]&0xff, value[7]&0xff, 
+				value[8]&0xff, value[9]&0xff, value[10]&0xff, value[11]&0xff, 
+				getPort(value), key);
 		return s;
 	}
 	
@@ -283,7 +276,7 @@ public class NAPT {
 	    } else {
 	      while (hmIterator.hasNext()) {
 	        Map.Entry<Long, byte[]> element = hmIterator.next();
-	        s = String.format("%s\n%s", s, valueToString(element.getValue()));
+	        s = String.format("%s\n%s", s, valueToString(element.getValue(), element.getKey()));
 	      }
 	    }
 	    s += "\n";

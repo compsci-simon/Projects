@@ -372,6 +372,8 @@ public class Client {
           System.out.print("message: ");
         	String message = reader.readLine();
         	udpSend(ipString, message);
+        } else if (line.equals("disconnect")) {
+          portNum = -1;
         } else if (line.equals("arp table")) { 
         	arpTable.toString();
         } else {

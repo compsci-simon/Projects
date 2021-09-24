@@ -140,7 +140,6 @@ public class Router {
       // Packets from external interface
 
       ipPacket = naptTable.translate(ipPacket);
-      System.out.println("\n\nReceieved packet on external interface\n\n");
       if (IP.sameNetwork(ipPacket.destination(), addressIP)) {
         byte[] lanMAC = getMAC(ipPacket.destination());
         Ethernet frame = new Ethernet(lanMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
@@ -159,7 +158,7 @@ public class Router {
           }
       }
     } else {
-      // Packets that need to be routed
+      // Packets that need to be routed form the router
 
       ipPacket = naptTable.translate(ipPacket);
       //System.out.println(naptTable.containsSession(packet));
@@ -167,7 +166,6 @@ public class Router {
         System.out.println("Could not translate IP packet");
         return;
       }
-      System.out.println(IP.ipString(ipPacket.source()));
       boolean LAN = IP.sameNetwork(ipPacket.destination(), addressIP);
       byte[] destMAC = getMAC(ipPacket.destination());
       if (destMAC == null)
@@ -178,6 +176,12 @@ public class Router {
       sendFrame(frame, LAN);
     }
   }
+
+  // Client A - 192.168.0.2 -> 234.56.12.200
+  // Router A - 78.205.67.2 - > 234.56.12.200
+  // Ext Client - 192.168.0.2
+  // Router B - 234.56.12.200 receives the packet from 78.205.67.2
+  // NBNBNBNBNB Port forward source 0.0.0.0 -> 192.168.0.2
 
   public void handleICMPPacket(IP ipPacket) {
     ICMP icmpPacket = new ICMP(ipPacket.payload());
