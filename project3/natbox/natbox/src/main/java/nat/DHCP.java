@@ -18,6 +18,7 @@ import java.util.*;
 public class DHCP implements Serializable {
   public static final byte BOOT_REQUEST = 1;
   public static final byte BOOT_REPLY = 2;
+  public static final byte ADDRESS_RELEASE = 2;
   public static final byte ETHERNET = 1;
   public static final byte OP_MESSAGE_TYPE = 0x35;
   public static final byte OP_SERVER_IP = 0x36;

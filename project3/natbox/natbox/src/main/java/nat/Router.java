@@ -37,7 +37,7 @@ public class Router {
     this.externalIP = IP.generateRandomIP();
     this.externalMAC = Ethernet.generateRandomMAC();
     try {
-      this.dhcpServer = new DHCPServer(addressIP);
+      this.dhcpServer = new DHCPServer(addressIP, 5);
       this.arpTable = new ARPTable();
       this.naptTable = new NAPT(externalIP);
       System.out.println("Router started...");
@@ -57,6 +57,7 @@ public class Router {
           handleExternalConnections();
         }
       }.start();
+      expireDHCP();
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -224,9 +225,7 @@ public class Router {
       DHCP dhcpReq = new DHCP(udpPacket.payload());
       System.out.println(dhcpReq.toString());
       DHCP bootReply = dhcpServer.generateBootResponse(dhcpReq);
-      System.out.println(String.format("Assigned IP %s to %s\n", 
-                        IP.ipString(bootReply.getCiaddr()), 
-                        Ethernet.macString(bootReply.getChaddr())));
+      System.out.println(dhcpServer.toString());
       UDP udpPack = new UDP(DHCP.CLIENT_PORT, DHCP.SERVER_PORT, bootReply.getBytes());
       IP ipPack = new IP(dhcpReq.getCiaddr(), addressIP, ipPacket.getIdentifier(), IP.UDP_PORT, udpPack.getBytes());
       Ethernet frame = new Ethernet(bootReply.getChaddr(), addressMAC, Ethernet.IP_PORT, ipPack.getBytes());
@@ -409,7 +408,7 @@ public class Router {
   /************************* Interactive methods *****************************/
   /***************************************************************************/  
 
-  public void handleUserInputs() {
+  private void handleUserInputs() {
     try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
       String line = "";
       while ((line = reader.readLine()) != null) {
@@ -491,7 +490,35 @@ public class Router {
     }
   }
 
-  public void connectToRouter(int port) {
+  private void expireDHCP() {
+    new Thread() {
+      @Override
+      public void run() {
+        while (true) {
+          try {
+            DHCP[] list =  dhcpServer.tick();
+            if (false) {
+              for (DHCP item : list) {
+                UDP udpPacket = new UDP(UDP.DHCP_CLIENT, UDP.DHCP_SERVER, item.getBytes());
+                IP ipPacket = new IP(item.getChaddr(), addressIP, ipID++, IP.UDP_PORT, udpPacket.getBytes());
+                System.out.println("here");
+                // byte[] destMAC = getMAC(ipPacket.destination());
+                // if (destMAC == null)
+                //   continue;
+                // Ethernet frame = new Ethernet(destMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
+                // sendFrame(frame, true);
+              }
+            }
+            Thread.sleep(1000);
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    }.start();
+  }
+
+  private void connectToRouter(int port) {
     ICMP routerAd = new ICMP(ICMP.ROUTER_SOLICITATION, (byte)icmpID++, new byte[1]);
     IP ipPacket = new IP(IP.broadcastIP, externalIP, ipID++, IP.ICMP_PORT, routerAd.getBytes());
     Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, externalMAC, Ethernet.IP_PORT, ipPacket.getBytes());
@@ -499,7 +526,7 @@ public class Router {
     sendFrame(frame, false);
   }
 
-  public String connectedLinks() {
+  private String connectedLinks() {
     String s = String.format("----------------------\nEXTERNAL LINKS\n");
     if (externalLinks.size() == 0) {
       s += "None";
@@ -519,7 +546,7 @@ public class Router {
     return s + "\n";
   }
 
-  public void portForward(String port, String IP) {
+  private void portForward(String port, String IP) {
     int portNum;
     byte[] ip = new byte[4];
     try {

@@ -136,10 +136,18 @@ public class Client {
 
   public void handleDHCPPacket(byte[] packet) {
     DHCP dhcpPacket =  new DHCP(packet);
+    System.out.println(dhcpPacket.toString());
     if (dhcpPacket.getMessageType() == DHCP.BOOT_REPLY) {
       addressIP = dhcpPacket.getCiaddr();
       routerIP = dhcpPacket.getGateway();
       System.out.println(toString());
+    } else if (dhcpPacket.getMessageType() == DHCP.ADDRESS_RELEASE) {
+      for (int i = 0; i < 4; i++) {
+        addressIP[i] = 0;
+      }
+      System.out.println("IP address released.");
+    } else {
+      System.out.println("Unknown address type " + dhcpPacket.getMessageType());
     }
   }
 

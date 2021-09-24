@@ -2,6 +2,8 @@ package nat;
 
 public class UDP {
   public static final int MESSAGE_PORT = 6000;
+  public static final int DHCP_SERVER = 67;
+  public static final int DHCP_CLIENT = 68;
   private int destPort;
   private int sourcePort;
   private byte[] payload;
