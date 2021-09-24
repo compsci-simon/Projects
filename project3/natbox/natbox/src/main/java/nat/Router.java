@@ -41,21 +41,22 @@ public class Router {
       this.arpTable = new ARPTable();
       this.naptTable = new NAPT(externalIP);
       System.out.println("Router started...");
-      internalInterface = new DatagramSocket(5000);
+      //internalInterface = new DatagramSocket(5000);
       new Thread() {
         @Override
         public void run() {
-          handleInternalConnections(5000);
+          //handleInternalConnections(5000);
         }
       }.start();
     } catch (Exception e) {
       e.printStackTrace();
     }
+    handleUserInputs();
   }
 
   public static void main(String[] args) {
     Router r = new Router();
-    r.handleUserInputs();
+    //r.handleUserInputs();
   }
 
   /***************************************************************************/
@@ -64,6 +65,7 @@ public class Router {
 
   public void handleInternalConnections(int port) {
     try {
+    this.internalInterface = new DatagramSocket(port);
       DatagramPacket packet;
       while (true) {
     	  packet = new DatagramPacket(new byte[1500], 1500);
@@ -132,7 +134,7 @@ public class Router {
       // Packets that need to be routed
 
       ipPacket = naptTable.translate(ipPacket);
-      System.out.println(naptTable.containsSession(packet));
+      //System.out.println(naptTable.containsSession(packet));
       if (ipPacket == null) {
         System.out.println("Could not translate IP packet");
         return;
