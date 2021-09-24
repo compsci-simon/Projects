@@ -40,6 +40,7 @@ public class NAPT {
 			return packet;
 		} else {
 			if (!containsSession(packet, transportLayerPortDest(packet))) {
+				System.out.println("Session not contained");
 				return packet;
 			} else {
 				byte[] value = getExternalSession(packet, transportLayerPortDest(packet));
@@ -73,12 +74,24 @@ public class NAPT {
 	}
 	
 	public boolean containsSession(IP packet, int port) {
+		System.out.println(port);
 		if (port == -1)
 			return false;
 		byte[] sourceIP = packet.source();
 		byte[] destIP = packet.destination();
-		if (!naptTable.containsKey(toLong(sourceIP, port)))
-			return false;
+		if (!IP.sameNetwork(packet.source(), internalIP)) {
+			// Sessions bound from WAN to LAN
+			if (naptTable.containsKey(toLong(IP.nilIP, port))) {
+				System.out.println("Nil source matched in the NAT table");
+				return true;
+			}
+			if (!naptTable.containsKey(toLong(sourceIP, port)))
+				return false;
+		} else {
+			// Sessions bound from LAN to WAN
+			if (!naptTable.containsKey(toLong(sourceIP, port)))
+				return false;
+		}
 		byte[] value = naptTable.get(toLong(sourceIP, port));
 		byte[] portBytes = Constants.intToBytes(port);
 		for (int i = 0; i < 4; i++) {
@@ -150,7 +163,12 @@ public class NAPT {
 	}
 
 	public byte[] getExternalSession(IP externalPacket, int port) {
-		return naptTable.get(toLong(externalPacket.destination(), port));
+		if (naptTable.get(toLong(externalPacket.source(), port)) == null) {
+			System.out.println("here");
+			return naptTable.get(toLong(IP.nilIP, port));
+		} else {
+			return naptTable.get(toLong(externalPacket.source(), port));
+		}
 	}
 
 	public byte[] getInternalSession(IP internalPacket, int port) {
