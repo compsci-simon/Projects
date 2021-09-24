@@ -33,12 +33,14 @@ public class NAPT {
 			return null;
 		}
 		if (IP.sameNetwork(internalIP, packet.source())) {
+			// Translating outgoing packets
 			if (!containsSession(packet, transportLayerPortSource(packet))) {
 				addSession(packet.source(), packet.destination(), transportLayerPortSource(packet));
 			}
 			packet.setSource(externalIP);
 			return packet;
 		} else {
+			// Translating incoming packets
 			if (!containsSession(packet, transportLayerPortDest(packet))) {
 				System.out.println("Session not contained");
 				return packet;
@@ -47,7 +49,6 @@ public class NAPT {
 				byte[] newIP = new byte[4];
 				System.arraycopy(value, 4, newIP, 0, 4);
 				packet.setDest(newIP);
-				System.out.println(packet.toString());
 				return packet;
 			}
 		}
@@ -65,12 +66,24 @@ public class NAPT {
 		byte[] portBytes = Constants.intToBytes(port);
 
 		Long key = toLong(sourceIP, port);
-		byte[] value = new byte[12];
-		System.arraycopy(portBytes, 0, value, 0, 4);
-		System.arraycopy(destIP, 0, value, 4, 4);
-		System.arraycopy(sourceIP, 0, value, 8, 4);
-		naptTable.put(key, value);
-		byte[] result = naptTable.get(key);
+		byte[] value1 = new byte[12];
+		byte[] value2 = new byte[12];
+
+		System.arraycopy(portBytes, 0, value1, 0, 4);
+		System.arraycopy(destIP, 0, value1, 4, 4);
+		System.arraycopy(sourceIP, 0, value1, 8, 4);
+		naptTable.put(key, value1);
+
+		if (!IP.isNilIP(sourceIP)) {
+			// This conditional checks that we dont put the nil IP in the destination
+			// when port forwarding
+			key = toLong(sourceIP, port);
+			System.arraycopy(portBytes, 0, value2, 0, 4);
+			System.arraycopy(sourceIP, 0, value2, 4, 4);
+			System.arraycopy(destIP, 0, value2, 8, 4);
+			naptTable.put(key, value2);
+		}
+
 		naptTable.toString();
 	}
 	
@@ -114,7 +127,7 @@ public class NAPT {
 
 	public void portForward(int port, byte[] destLANIP) {
 		if (!IP.sameNetwork(destLANIP, internalIP)) {
-			System.err.println("You cannot forward to external IP "+IP.ipString(destLANIP));
+			System.err.println("You cannot forward to external IP " + IP.ipString(destLANIP));
 			return;
 		}
 		addSession(IP.nilIP, destLANIP, port);
@@ -165,7 +178,6 @@ public class NAPT {
 
 	public byte[] getExternalSession(IP externalPacket, int port) {
 		if (naptTable.get(toLong(externalPacket.source(), port)) == null) {
-			System.out.println("here");
 			return naptTable.get(toLong(IP.nilIP, port));
 		} else {
 			return naptTable.get(toLong(externalPacket.source(), port));

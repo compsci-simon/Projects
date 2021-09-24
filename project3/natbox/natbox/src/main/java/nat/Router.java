@@ -138,42 +138,45 @@ public class Router {
         }
     } else if (Arrays.equals(externalIP, ipPacket.destination())) {
       // Packets from external interface
+
       ipPacket = naptTable.translate(ipPacket);
       System.out.println("\n\nReceieved packet on external interface\n\n");
       if (IP.sameNetwork(ipPacket.destination(), addressIP)) {
         byte[] lanMAC = getMAC(ipPacket.destination());
-        Ethernet frame = new Ethernet(lanMAC, addressMAC, ipPacket.getDemuxPort(), ipPacket.getBytes());
+        Ethernet frame = new Ethernet(lanMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
         sendFrame(frame, true);
+      } else {
+        switch (ipPacket.getDemuxPort()) {
+          case IP.UDP_PORT:
+            handleUDPPacket(ipPacket);
+            break;
+          case IP.ICMP_PORT:
+            handleICMPPacket(ipPacket);
+            break;
+          default:
+            System.err.println("Unknown demux port for IP packet");
+            break;
+          }
       }
-      switch (ipPacket.getDemuxPort()) {
-        case IP.UDP_PORT:
-          handleUDPPacket(ipPacket);
-          break;
-        case IP.ICMP_PORT:
-          handleICMPPacket(ipPacket);
-          break;
-        default:
-          System.err.println("Unknown demux port for IP packet");
-          break;
-        }
-    } 
-    // else {
-    //   // Packets that need to be routed
+    } else {
+      // Packets that need to be routed
 
-    //   ipPacket = naptTable.translate(ipPacket);
-    //   //System.out.println(naptTable.containsSession(packet));
-    //   if (ipPacket == null) {
-    //     System.out.println("Could not translate IP packet");
-    //     return;
-    //   }
-    //   System.out.println(IP.ipString(ipPacket.source()));
-    //   boolean LAN = IP.sameNetwork(ipPacket.destination(), addressIP);
-    //   byte[] destMAC = getMAC(ipPacket.destination());
-    //   byte[] sourceMAC = LAN ? addressMAC : externalMAC;
-    //   Ethernet frame = new Ethernet(destMAC, sourceMAC, Ethernet.IP_PORT, ipPacket.getBytes());
+      ipPacket = naptTable.translate(ipPacket);
+      //System.out.println(naptTable.containsSession(packet));
+      if (ipPacket == null) {
+        System.out.println("Could not translate IP packet");
+        return;
+      }
+      System.out.println(IP.ipString(ipPacket.source()));
+      boolean LAN = IP.sameNetwork(ipPacket.destination(), addressIP);
+      byte[] destMAC = getMAC(ipPacket.destination());
+      if (destMAC == null)
+        return;
+      byte[] sourceMAC = LAN ? addressMAC : externalMAC;
+      Ethernet frame = new Ethernet(destMAC, sourceMAC, Ethernet.IP_PORT, ipPacket.getBytes());
       
-    //   sendFrame(frame, LAN);
-    // }
+      sendFrame(frame, LAN);
+    }
   }
 
   public void handleICMPPacket(IP ipPacket) {

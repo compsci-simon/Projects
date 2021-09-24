@@ -1,5 +1,6 @@
 package nat;
 
+import java.lang.reflect.Array;
 import java.util.Arrays;
 
 public class IP {
@@ -208,4 +209,7 @@ public class IP {
     return newIP;
   }
 
+  public static boolean isNilIP(byte[] ip) {
+    return Arrays.equals(nilIP, ip);
+  }
 }
