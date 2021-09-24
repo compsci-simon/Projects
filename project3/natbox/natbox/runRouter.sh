@@ -1,1 +1,1 @@
-java -cp target/classes nat.Router 5000 
+java -cp target/classes nat.Router 5000 6000 

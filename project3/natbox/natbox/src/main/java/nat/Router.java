@@ -28,7 +28,7 @@ public class Router {
   private int icmpID;
   private int skipLinkPortNum = -1;
 
-  public Router (int port) {
+  public Router (int portIn, int portEx) {
     this.ipID = 0;
     this.icmpID = 0;
     this.internalLinks = new ArrayList<Integer>();
@@ -41,12 +41,20 @@ public class Router {
       this.arpTable = new ARPTable();
       this.naptTable = new NAPT(externalIP);
       System.out.println("Router started...");
-      System.out.println(port);
-      internalInterface = new DatagramSocket(port);
+      System.out.println(portIn);
+      System.out.println(portEx);
+      internalInterface = new DatagramSocket(portIn);
+      externalInterface = new DatagramSocket(portEx);
       new Thread() {
         @Override
         public void run() {
           handleInternalConnections();
+        }
+      }.start();
+      new Thread() {
+        @Override
+        public void run() {
+          handleExternalConnections();
         }
       }.start();
     } catch (Exception e) {
@@ -56,7 +64,7 @@ public class Router {
   }
 
   public static void main(String[] args) {
-    Router r = new Router(Integer.parseInt(args[0]));
+    Router r = new Router(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
     r.handleUserInputs();
   }
 
@@ -82,9 +90,8 @@ public class Router {
     }
   }
 
-  private void handleExternalConnections(int port) {
+  private void handleExternalConnections() {
     try {
-      this.externalInterface = new DatagramSocket(port);
       DatagramPacket packet;
       while (true) {
     	  packet = new DatagramPacket(new byte[1500], 1500);
@@ -132,6 +139,7 @@ public class Router {
     } else if (Arrays.equals(externalIP, ipPacket.destination())) {
       // Packets from external interface
       ipPacket = naptTable.translate(ipPacket);
+      System.out.println("\n\nReceieved packet on external interface\n\n");
       if (IP.sameNetwork(ipPacket.destination(), addressIP)) {
         byte[] lanMAC = getMAC(ipPacket.destination());
         Ethernet frame = new Ethernet(lanMAC, addressMAC, ipPacket.getDemuxPort(), ipPacket.getBytes());
@@ -148,23 +156,24 @@ public class Router {
           System.err.println("Unknown demux port for IP packet");
           break;
         }
-    } else {
-      // Packets that need to be routed
+    } 
+    // else {
+    //   // Packets that need to be routed
 
-      ipPacket = naptTable.translate(ipPacket);
-      //System.out.println(naptTable.containsSession(packet));
-      if (ipPacket == null) {
-        System.out.println("Could not translate IP packet");
-        return;
-      }
-      System.out.println(IP.ipString(ipPacket.source()));
-      boolean LAN = IP.sameNetwork(ipPacket.destination(), addressIP);
-      byte[] destMAC = getMAC(ipPacket.destination());
-      byte[] sourceMAC = LAN ? addressMAC : externalMAC;
-      Ethernet frame = new Ethernet(destMAC, sourceMAC, Ethernet.IP_PORT, ipPacket.getBytes());
+    //   ipPacket = naptTable.translate(ipPacket);
+    //   //System.out.println(naptTable.containsSession(packet));
+    //   if (ipPacket == null) {
+    //     System.out.println("Could not translate IP packet");
+    //     return;
+    //   }
+    //   System.out.println(IP.ipString(ipPacket.source()));
+    //   boolean LAN = IP.sameNetwork(ipPacket.destination(), addressIP);
+    //   byte[] destMAC = getMAC(ipPacket.destination());
+    //   byte[] sourceMAC = LAN ? addressMAC : externalMAC;
+    //   Ethernet frame = new Ethernet(destMAC, sourceMAC, Ethernet.IP_PORT, ipPacket.getBytes());
       
-      sendFrame(frame, LAN);
-    }
+    //   sendFrame(frame, LAN);
+    // }
   }
 
   public void handleICMPPacket(IP ipPacket) {
@@ -446,7 +455,7 @@ public class Router {
           new Thread() {
             @Override
             public void run() {
-              handleExternalConnections(externalPort);
+              handleExternalConnections();
             }
           }.start();
           System.out.println("External interface is open on port " + externalPort);

@@ -127,6 +127,8 @@ public class Client {
     System.out.println(udpPacket.toString());
     if (udpPacket.destinationPort() == DHCP.CLIENT_PORT) {
       handleDHCPPacket(udpPacket.payload());
+    } else if (udpPacket.destinationPort() == UDP.MESSAGE_PORT) {
+      System.out.println(new String(udpPacket.payload()));
     } else {
       System.out.println("UDP packet sent to unknown port");
     }
@@ -192,11 +194,17 @@ public class Client {
     if (IP.sameNetwork(addressIP, ip)) {
       // Do not send frame to router
       byte[] destinationMAC = getMAC(ipPacket.destination());
+      if (destinationMAC == null) {
+        return;
+      }
       Ethernet frame = new Ethernet(destinationMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
       sendFrame(frame);
     } else {
       // Send frame to router
       byte[] routerMAC = getMAC(routerIP);
+      if (routerMAC == null) {
+        return;
+      }
       Ethernet frame = new Ethernet(routerMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
       sendFrame(frame);
     }
