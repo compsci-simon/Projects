@@ -11,6 +11,14 @@ public class NAPT {
   private byte[] internalIP = {(byte) 0xC0, (byte) 0xA8, 0, 1};
 	private ArrayList<Integer> allocatedPorts;
 	private HashMap<Long, byte[]> naptTable;
+	/**
+	 * value[] Structure = {
+	 * 			port, port, port, port, 
+	 * 			destIP, destIP, destIP, destIP, 
+	 * 			sourceIP, sourceIP, sourceIP, sourceIP
+	 * }
+	 * 
+	 */
 
 	public NAPT(byte[] externalIP) {
 		this.externalIP = externalIP;
@@ -19,24 +27,23 @@ public class NAPT {
 	}
 
 	public IP translate(IP packet) {
+		System.out.println(toString());
 		if (packet.getDemuxPort() != IP.UDP_PORT && packet.getDemuxPort() != IP.TCP_PORT) {
 			System.err.println("IP Packet must be UDP or TCP to pass natbox");
 			return null;
 		}
 		if (IP.sameNetwork(internalIP, packet.source())) {
 			if (!containsSession(packet, transportLayerPortSource(packet))) {
-				addSession(packet, transportLayerPortSource(packet));
+				addSession(packet.source(), packet.destination(), transportLayerPortSource(packet));
 			}
 			packet.setSource(externalIP);
 			return packet;
 		} else {
 			if (!containsSession(packet, transportLayerPortDest(packet))) {
-				System.err.println("Cannot forward this packet");
-				return null;
+				return packet;
 			} else {
 				byte[] value = getExternalSession(packet, transportLayerPortDest(packet));
 				byte[] newIP = new byte[4];
-				packet.setDest(newIP);
 				System.arraycopy(value, 4, newIP, 0, 4);
 				packet.setDest(newIP);
 				return packet;
@@ -50,14 +57,12 @@ public class NAPT {
 		naptTable.put(toLong(addressIP, port), toBytes(externalIP, externalPort));
 	}
 
-	public void addSession(IP packet, int port) {
+	public void addSession(byte[] sourceIP, byte[] destIP, int port) {
 		if (port == -1)
 			return;
 		byte[] portBytes = Constants.intToBytes(port);
-		byte[] sourceIP = packet.source();
-		byte[] destIP = packet.destination();
 
-		Long key = toLong(packet.source(), packet.getDemuxPort());
+		Long key = toLong(sourceIP, port);
 		byte[] value = new byte[12];
 		System.arraycopy(portBytes, 0, value, 0, 4);
 		System.arraycopy(sourceIP, 0, value, 4, 4);
@@ -78,12 +83,35 @@ public class NAPT {
 			if (portBytes[i] != value[i]) 
 				return false;
 		}
-		for (int i = 4; i < 8; i++) {
-			if (sourceIP[i] != value[i]) 
-				return false;
-		}
 		for (int i = 8; i < 12; i++) {
 			if (destIP[i] != value[i]) 
+			return false;
+		}
+		if (nilSource(value))
+			return true;
+		for (int i = 4; i < 8; i++) {
+			if (sourceIP[i] != value[i]) 
+			return false;
+		}
+		return true;
+	}
+
+	public void portForward(int port, byte[] destLANIP) {
+		if (!IP.sameNetwork(destLANIP, internalIP)) {
+			System.err.println("You cannot forward to external IP "+IP.ipString(destLANIP));
+			return;
+		}
+		addSession(IP.nilIP, destLANIP, port);
+	}
+
+	/**
+	 * We allow traffic from any source through if the dest IP is the nil IP
+	 * @param value the value of the key - value pair form the table
+	 * @return whether or not the destination address is the nilIP
+	 */
+	public boolean nilSource(byte[] value) {
+		for (int i = 4; i < 8; i++) {
+			if (value[i] != 0)
 				return false;
 		}
 		return true;
@@ -206,6 +234,13 @@ public class NAPT {
     }
     return -1;
 	}
+
+	public String valueToString(byte[] value) {
+		String s = String.format("Internal IP = %d.%d.%d.%d, " 
+				+ "External IP = %d.%d.%d.%d, port number = %d", 
+				value[4]&0xff, value[5]&0xff, value[6]&0xff, value[7]&0xff, value[8]&0xff, value[9]&0xff, value[10]&0xff, value[11]&0xff, getPort(value));
+		return null;
+	}
 	
 	public String toString() {
 	    Iterator<Map.Entry<Long, byte[]>> hmIterator = naptTable.entrySet().iterator();
@@ -215,10 +250,10 @@ public class NAPT {
 	    } else {
 	      while (hmIterator.hasNext()) {
 	        Map.Entry<Long, byte[]> element = hmIterator.next();
-	        s = String.format("%s\n%s -> %s", s, combinationToString(toBytes(element.getKey())), combinationToString(element.getValue()));
+	        s = String.format("%s\n%s", s, valueToString(element.getValue()));
 	      }
-	      s += "\n";
 	    }
+	    s += "\n";
 	    return s;
 	  }
 	

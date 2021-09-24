@@ -114,9 +114,27 @@ public class Router {
     IP ipPacket = new IP(packet);
     System.out.println(ipPacket.toString());
 
-    if (ipPacket.isBroadcast() || Arrays.equals(addressIP, ipPacket.destination()) || 
-      Arrays.equals(externalIP, ipPacket.destination())) {
+    if (ipPacket.isBroadcast() || Arrays.equals(addressIP, ipPacket.destination())) {
       // This is broadcast IP packets
+      switch (ipPacket.getDemuxPort()) {
+        case IP.UDP_PORT:
+          handleUDPPacket(ipPacket);
+          break;
+        case IP.ICMP_PORT:
+          handleICMPPacket(ipPacket);
+          break;
+        default:
+          System.err.println("Unknown demux port for IP packet");
+          break;
+        }
+    } else if (Arrays.equals(externalIP, ipPacket.destination())) {
+      // Packets from external interface
+      ipPacket = naptTable.translate(ipPacket);
+      if (!Arrays.equals(ipPacket.destination(), addressIP)) {
+        byte[] lanMAC = getMAC(ipPacket.destination());
+        Ethernet frame = new Ethernet(lanMAC, addressMAC, ipPacket.getDemuxPort(), ipPacket.getBytes());
+        sendFrame(frame, true);
+      }
       switch (ipPacket.getDemuxPort()) {
         case IP.UDP_PORT:
           handleUDPPacket(ipPacket);
@@ -132,7 +150,6 @@ public class Router {
       // Packets that need to be routed
 
       ipPacket = naptTable.translate(ipPacket);
-      System.out.println(naptTable.containsSession(packet));
       if (ipPacket == null) {
         System.out.println("Could not translate IP packet");
         return;
@@ -431,10 +448,16 @@ public class Router {
           }.start();
           System.out.println("External interface is open on port " + externalPort);
 
+        } else if (line.equals("port forward")) {
+          System.out.print("Enter a port: ");
+          String port = reader.readLine();
+          System.out.print("Enter a LAN IP: ");
+          String ip = reader.readLine();
+          portForward(port, ip);
         } else if (line.split(" ")[0].equals("ping")) {
           ping(line.split(" ")[1]);
           
-        } else if (line.split(" ")[0].equals("napt table")) {
+        } else if (line.equals("napt table")) {
         	naptTable.toString();
         	
         } else if (line.equals("arp table")) { 
@@ -476,6 +499,31 @@ public class Router {
       }
     }
     return s + "\n";
+  }
+
+  public void portForward(String port, String IP) {
+    int portNum;
+    byte[] ip = new byte[4];
+    try {
+      portNum = Integer.parseInt(port);
+      if (portNum < 1) {
+        System.err.println("Invalid port number " + port);
+        return;
+      }
+      String[] ipBytes = IP.split("[.]");
+      if (ipBytes.length != 4) {
+        System.err.println("IP must be 4 octets, not " + ipBytes.length);
+        return;
+      }
+      for (int i = 0; i < 4; i++) {
+        ip[i] = (byte) Integer.parseInt(ipBytes[i]);
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+      return;
+    }
+    naptTable.portForward(portNum, ip);
+    System.out.println(naptTable.toString());
   }
 
   public String toString() {
