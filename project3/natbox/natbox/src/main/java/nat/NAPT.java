@@ -63,15 +63,12 @@ public class NAPT {
 		byte[] portBytes = Constants.intToBytes(port);
 
 		Long key = toLong(sourceIP, port);
-		System.out.println(key);
 		byte[] value = new byte[12];
 		System.arraycopy(portBytes, 0, value, 0, 4);
-		System.arraycopy(sourceIP, 0, value, 4, 4);
-		System.arraycopy(destIP, 0, value, 8, 4);
-		System.out.println(value.toString());
+		System.arraycopy(destIP, 0, value, 4, 4);
+		System.arraycopy(sourceIP, 0, value, 8, 4);
 		naptTable.put(key, value);
 		byte[] result = naptTable.get(key);
-		System.out.println(result);
 		naptTable.toString();
 	}
 	
@@ -88,14 +85,14 @@ public class NAPT {
 			if (portBytes[i] != value[i]) 
 				return false;
 		}
-		for (int i = 8; i < 12; i++) {
-			if (destIP[i] != value[i]) 
+		for (int i = 0; i < 4; i++) {
+			if (destIP[i] != value[i + 8]) 
 			return false;
 		}
 		if (nilSource(value))
 			return true;
-		for (int i = 4; i < 8; i++) {
-			if (sourceIP[i] != value[i]) 
+		for (int i = 0; i < 4; i++) {
+			if (sourceIP[i] != value[i + 4]) 
 			return false;
 		}
 		return true;
@@ -241,8 +238,8 @@ public class NAPT {
 	}
 
 	public String valueToString(byte[] value) {
-		String s = String.format("Internal IP = %d.%d.%d.%d, " 
-				+ "External IP = %d.%d.%d.%d, port number = %d", 
+		String s = String.format("Destination IP = %d.%d.%d.%d, " 
+				+ "Source IP = %d.%d.%d.%d, port number = %d", 
 				value[4]&0xff, value[5]&0xff, value[6]&0xff, value[7]&0xff, value[8]&0xff, value[9]&0xff, value[10]&0xff, value[11]&0xff, getPort(value));
 		return s;
 	}

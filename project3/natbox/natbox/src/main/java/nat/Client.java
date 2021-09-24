@@ -18,7 +18,7 @@ public class Client {
   private int portNum = -1;
   private String address;
 
-  public Client(String address) {
+  public Client(String address, int port) {
     this.address = address;
     this.addressMAC = Ethernet.generateRandomMAC();
     this.ipIdentifier = 0;
@@ -26,7 +26,7 @@ public class Client {
     System.out.println("Client started...");
 
     try {
-      this.portNum = 5000;
+      this.portNum = port;
       new Thread() {
         @Override
         public void run() {
@@ -42,7 +42,7 @@ public class Client {
   }
 
   public static void main(String[] args) {
-    Client c = new Client("localhost");
+    Client c = new Client("localhost", Integer.parseInt(args[0]));
     c.handleUserInputs();
   }
   

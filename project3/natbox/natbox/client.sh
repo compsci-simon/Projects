@@ -1,1 +1,1 @@
-java -cp target/classes nat.Client
+java -cp target/classes nat.Client 5000

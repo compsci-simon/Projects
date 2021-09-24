@@ -28,7 +28,7 @@ public class Router {
   private int icmpID;
   private int skipLinkPortNum = -1;
 
-  public Router () {
+  public Router (int port) {
     this.ipID = 0;
     this.icmpID = 0;
     this.internalLinks = new ArrayList<Integer>();
@@ -41,11 +41,12 @@ public class Router {
       this.arpTable = new ARPTable();
       this.naptTable = new NAPT(externalIP);
       System.out.println("Router started...");
-      internalInterface = new DatagramSocket(5000);
+      System.out.println(port);
+      internalInterface = new DatagramSocket(port);
       new Thread() {
         @Override
         public void run() {
-          handleInternalConnections(5000);
+          handleInternalConnections();
         }
       }.start();
     } catch (Exception e) {
@@ -55,7 +56,7 @@ public class Router {
   }
 
   public static void main(String[] args) {
-    Router r = new Router();
+    Router r = new Router(Integer.parseInt(args[0]));
     r.handleUserInputs();
   }
 
@@ -63,7 +64,7 @@ public class Router {
   /**************************** Handling methods *****************************/
   /***************************************************************************/
 
-  public void handleInternalConnections(int port) {
+  public void handleInternalConnections() {
     try {
       DatagramPacket packet;
       while (true) {
@@ -425,7 +426,7 @@ public class Router {
           new Thread() {
             @Override
             public void run() {
-              handleInternalConnections(internalPort);
+              handleInternalConnections();
             }
           }.start();
           System.out.println("Internal interface is open on port " + internalPort);
