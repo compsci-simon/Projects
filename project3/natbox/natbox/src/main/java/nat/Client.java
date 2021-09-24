@@ -26,11 +26,12 @@ public class Client {
     System.out.println("Client started...");
 
     try {
-      this.portNum = 5000;
+      //this.portNum = 5000;
       new Thread() {
         @Override
         public void run() {
-          handleInterface();
+          //handleInterface();
+        	handleUserInputs();
         }
       }.start();
       Thread.sleep(100);      
@@ -38,12 +39,12 @@ public class Client {
       e.printStackTrace();
     }
     sendDHCPDiscover();
-    handleUserInputs();
+    //handleUserInputs();
   }
 
   public static void main(String[] args) {
     Client c = new Client("localhost");
-    c.handleUserInputs();
+    //c.handleUserInputs();
   }
   
   /***************************************************************************/
