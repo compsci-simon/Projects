@@ -63,11 +63,16 @@ public class NAPT {
 		byte[] portBytes = Constants.intToBytes(port);
 
 		Long key = toLong(sourceIP, port);
+		System.out.println(key);
 		byte[] value = new byte[12];
 		System.arraycopy(portBytes, 0, value, 0, 4);
 		System.arraycopy(sourceIP, 0, value, 4, 4);
 		System.arraycopy(destIP, 0, value, 8, 4);
+		System.out.println(value.toString());
 		naptTable.put(key, value);
+		byte[] result = naptTable.get(key);
+		System.out.println(result);
+		naptTable.toString();
 	}
 	
 	public boolean containsSession(IP packet, int port) {
@@ -239,7 +244,7 @@ public class NAPT {
 		String s = String.format("Internal IP = %d.%d.%d.%d, " 
 				+ "External IP = %d.%d.%d.%d, port number = %d", 
 				value[4]&0xff, value[5]&0xff, value[6]&0xff, value[7]&0xff, value[8]&0xff, value[9]&0xff, value[10]&0xff, value[11]&0xff, getPort(value));
-		return null;
+		return s;
 	}
 	
 	public String toString() {

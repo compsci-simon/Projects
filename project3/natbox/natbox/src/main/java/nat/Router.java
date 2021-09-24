@@ -41,11 +41,11 @@ public class Router {
       this.arpTable = new ARPTable();
       this.naptTable = new NAPT(externalIP);
       System.out.println("Router started...");
-      //internalInterface = new DatagramSocket(5000);
+      internalInterface = new DatagramSocket(5000);
       new Thread() {
         @Override
         public void run() {
-          //handleInternalConnections(5000);
+          handleInternalConnections(5000);
         }
       }.start();
     } catch (Exception e) {
@@ -56,7 +56,7 @@ public class Router {
 
   public static void main(String[] args) {
     Router r = new Router();
-    //r.handleUserInputs();
+    r.handleUserInputs();
   }
 
   /***************************************************************************/
@@ -65,7 +65,6 @@ public class Router {
 
   public void handleInternalConnections(int port) {
     try {
-    this.internalInterface = new DatagramSocket(port);
       DatagramPacket packet;
       while (true) {
     	  packet = new DatagramPacket(new byte[1500], 1500);
