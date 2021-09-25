@@ -58,8 +58,7 @@ public class Router {
         }
       }.start();
       //expireDHCP();
-      
-      
+  
       new Thread() {
 	        @Override
 	        public void run() {
@@ -180,7 +179,6 @@ public class Router {
       }
     } else {
       // Packets that need to be routed form the router
-    	System.out.println("Going through here");
       ipPacket = naptTable.translate(ipPacket);
       //System.out.println(naptTable.containsSession(packet));
       if (ipPacket == null) {
@@ -523,7 +521,6 @@ public class Router {
             if (list != null) {
               for (DHCP item : list) {
                 UDP udpPacket = new UDP(UDP.DHCP_CLIENT, UDP.DHCP_SERVER, item.getBytes());
-                System.out.println("CH address: " + IP.ipString(item.getChaddr()));
                 IP ipPacket = new IP(item.getChaddr(), addressIP, ipID++, IP.UDP_PORT, udpPacket.getBytes());
                 // byte[] destMAC = getMAC(ipPacket.destination());
                 // if (destMAC == null)
@@ -540,7 +537,7 @@ public class Router {
       }
     }.start();
   }
-
+  
   private void connectToRouter(int port) {
     ICMP routerAd = new ICMP(ICMP.ROUTER_SOLICITATION, (byte)icmpID++, new byte[1]);
     IP ipPacket = new IP(IP.broadcastIP, externalIP, ipID++, IP.ICMP_PORT, routerAd.getBytes());

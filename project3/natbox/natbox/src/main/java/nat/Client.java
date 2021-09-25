@@ -381,7 +381,9 @@ public class Client {
         	String message = reader.readLine();
         	udpSend(ipString, message);
         } else if (line.equals("disconnect")) {
-          portNum = -1;
+        	setIPNil();
+        	setGatewayNil();
+        	portNum = -1;
         } else if (line.equals("arp table")) { 
         	arpTable.toString();
         } else {
@@ -391,6 +393,18 @@ public class Client {
     } catch (Exception e) {
       e.printStackTrace();
     }
+  }
+  
+  public void setIPNil() {
+	  for (int i = 0; i < 4; i++) {
+		  addressIP[i] = (byte) 0;
+	  }
+  }
+  
+  public void setGatewayNil() {
+	  for (int i = 0; i < 4; i++) {
+		  routerIP[i] = (byte) 0;
+	  }
   }
 
   public String toString() {

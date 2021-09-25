@@ -36,9 +36,9 @@ public class DHCPServer {
     	allocatedIPs.get(i)[1]--;
       if (allocatedIPs.get(i)[1] <= 0) {
         DHCP tmp = new DHCP(DHCP.ADDRESS_RELEASE, 1, new byte[6]);
+        // not really sure what you want to do here
         byte[] ciaddr = {(byte) 0xC0, (byte) 0xA8, (byte) 0, (byte) allocatedIPs.get(i)[0]};
         tmp.setciaddr(ciaddr);
-        System.out.println("IP CI:" + IP.ipString(tmp.getCiaddr()));
         messages.add(tmp);
         toRemove.add(i);
       }
@@ -55,6 +55,13 @@ public class DHCPServer {
     } else {
       return null;
     }
+  }
+  
+  public DHCP removeIPDHCP(byte[] addressIP) {
+	  allocatedIPs.remove(IP.toInt(addressIP));
+	  DHCP tmp = new DHCP(DHCP.ADDRESS_RELEASE, 1, new byte[6]);
+	  tmp.setciaddr(addressIP);
+	  return tmp;
   }
 
   public void resetIPCountDown(byte[] ip) {
