@@ -132,22 +132,26 @@ public class NAPT {
 		addSession(IP.nilIP, destLANIP, port);
 	}
 	
+	
+	/**
+	 * Removes entries that have been idle for a certain amount of time
+	 * 
+	 * @param minutesToRefresh how often the NAPT table should be refreshed
+	 * @param SecsToRemove how long a napt entry should be unused before removing
+	 */
 	public void refreshNAPTTable(int minutesToRefresh, int SecsToRemove) {
     	while (true) {
     		try {
-    			// iterate through napt table and check for old entries 
     			ArrayList<Long> toRemoveList = new ArrayList<Long>(); 
     			Iterator<Map.Entry<Long, Long>> hmIterator = timeStampTable.entrySet().iterator();
     		    
     		    if (timeStampTable.size() == 0) {
-    		    	System.out.println("NAPT Table empty");
+    		    	// NAPT table is empty
     		    } else {
-    		    	System.out.println("Time stamp table");
+    		    	// iterate through napt table and check for old entries 
     		      while (hmIterator.hasNext()) {
     		        Map.Entry<Long, Long> element = hmIterator.next();
-    		        System.out.println(getAddress(toBytes(element.getKey())) +  " " + getPort(toBytes(element.getKey())) + " " + element.getValue());
     		        if (System.currentTimeMillis() - (long) 1000*SecsToRemove >= element.getValue()) {
-    		        	System.out.println("NAPT Entry is old, should be removed");
     		        	naptTable.remove(element.getKey());
     		        	toRemoveList.add(element.getKey());
     		        }
