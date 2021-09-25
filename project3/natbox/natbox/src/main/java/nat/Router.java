@@ -58,7 +58,14 @@ public class Router {
         }
       }.start();
       //expireDHCP();
-      naptTable.refreshNAPTTable(10);
+      
+      
+      new Thread() {
+	        @Override
+	        public void run() {
+	        	naptTable.refreshNAPTTable(1, 45);
+	        }
+      }.start();
     } catch (Exception e) {
       e.printStackTrace();
     }

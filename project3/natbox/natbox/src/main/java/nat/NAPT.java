@@ -132,36 +132,36 @@ public class NAPT {
 		addSession(IP.nilIP, destLANIP, port);
 	}
 	
-	public void refreshNAPTTable(int minutesToRefresh) {
-		new Thread() {
-	        @Override
-	        public void run() {
-	        	while (true) {
-	        		try {
-	        			// iterate through napt table and check for old entries 
-	        			Iterator<Map.Entry<Long, Long>> hmIterator = timeStampTable.entrySet().iterator();
-	        		    
-	        		    if (timeStampTable.size() == 0) {
-	        		      
-	        		    } else {
-	        		    	System.out.println("print out the time stamp table");
-	        		      while (hmIterator.hasNext()) {
-	        		        Map.Entry<Long, Long> element = hmIterator.next();
-	        		        System.out.println(getAddress(toBytes(element.getKey())) +  " " + getPort(toBytes(element.getKey())) + " " + element.getValue());
-	        		        if (System.currentTimeMillis() - (long) 1000*15 >= element.getValue()) {
-	        		        	System.out.println("NAPT Entry is old, should be removed");
-	        		        	naptTable.remove(element.getKey());
-	        		        	timeStampTable.remove(element.getKey());
-	        		        }
-	        		      }
-	        		    }
-	        	        Thread.sleep(20000);
-	        		    } catch (Exception e) {
-	        	        e.printStackTrace();
-	        	      }
-	        		}
-	        }
-	      }.start();
+	public void refreshNAPTTable(int minutesToRefresh, int SecsToRemove) {
+    	while (true) {
+    		try {
+    			// iterate through napt table and check for old entries 
+    			ArrayList<Long> toRemoveList = new ArrayList<Long>(); 
+    			Iterator<Map.Entry<Long, Long>> hmIterator = timeStampTable.entrySet().iterator();
+    		    
+    		    if (timeStampTable.size() == 0) {
+    		    	System.out.println("NAPT Table empty");
+    		    } else {
+    		    	System.out.println("Time stamp table");
+    		      while (hmIterator.hasNext()) {
+    		        Map.Entry<Long, Long> element = hmIterator.next();
+    		        System.out.println(getAddress(toBytes(element.getKey())) +  " " + getPort(toBytes(element.getKey())) + " " + element.getValue());
+    		        if (System.currentTimeMillis() - (long) 1000*SecsToRemove >= element.getValue()) {
+    		        	System.out.println("NAPT Entry is old, should be removed");
+    		        	naptTable.remove(element.getKey());
+    		        	toRemoveList.add(element.getKey());
+    		        }
+    		      }
+    		    }
+    		    for (int i = 0; i < toRemoveList.size(); i++) {
+    		    	timeStampTable.remove(toRemoveList.get(i));
+    		    }
+    	        //Thread.sleep(1000*60*minutesToRefresh);
+    		    Thread.sleep(1000*10);
+    		    } catch (Exception e) {
+    	        e.printStackTrace();
+    	      }
+    		}
 	}
 
 	/**
