@@ -10,6 +10,7 @@ public class NAPT {
 	private byte[] externalIP;
   private byte[] internalIP = {(byte) 0xC0, (byte) 0xA8, 0, 1};
 	private ArrayList<Integer> allocatedPorts;
+	private HashMap<Long, Long> timeStampTable;
 	private HashMap<Long, byte[]> naptTable;
 	/**
 	 * key = 
@@ -26,6 +27,7 @@ public class NAPT {
 		this.externalIP = externalIP;
 		allocatedPorts = new ArrayList<Integer>();
 		naptTable = new HashMap<Long, byte[]>();
+		timeStampTable = new HashMap<Long, Long>();
 	}
 
 	public IP translate(IP packet) {
@@ -75,6 +77,7 @@ public class NAPT {
 		System.arraycopy(destIP, 0, value1, 4, 4);
 		System.arraycopy(sourceIP, 0, value1, 8, 4);
 		naptTable.put(key, value1);
+		timeStampTable.put(key, System.currentTimeMillis());
 
 		if (!IP.isNilIP(sourceIP)) {
 			// This conditional checks that we dont put the nil IP in the destination
@@ -84,6 +87,7 @@ public class NAPT {
 			System.arraycopy(sourceIP, 0, value2, 4, 4);
 			System.arraycopy(destIP, 0, value2, 8, 4);
 			naptTable.put(key, value2);
+			timeStampTable.put(key, System.currentTimeMillis());
 		}
 
 		naptTable.toString();
@@ -101,6 +105,8 @@ public class NAPT {
 		if (!IP.sameNetwork(packet.source(), internalIP)) {
 			// Sessions bound from WAN to LAN
 			if (naptTable.containsKey(toLong(IP.nilIP, port))) {
+				// reset timer because entry was used
+				timeStampTable.put(toLong(IP.nilIP, port), System.currentTimeMillis());
 				System.out.println("Nil source matched in the NAT table");
 				return true;
 			}
@@ -113,6 +119,8 @@ public class NAPT {
 			if (!naptTable.containsKey(toLong(sourceIP, port)))
 				return false;
 		}
+		// reset timer because entry was used
+		timeStampTable.put(toLong(sourceIP, port), System.currentTimeMillis());
 		return true;
 	}
 
@@ -122,6 +130,38 @@ public class NAPT {
 			return;
 		}
 		addSession(IP.nilIP, destLANIP, port);
+	}
+	
+	public void refreshNAPTTable(int minutesToRefresh) {
+		new Thread() {
+	        @Override
+	        public void run() {
+	        	while (true) {
+	        		try {
+	        			// iterate through napt table and check for old entries 
+	        			Iterator<Map.Entry<Long, Long>> hmIterator = timeStampTable.entrySet().iterator();
+	        		    
+	        		    if (timeStampTable.size() == 0) {
+	        		      
+	        		    } else {
+	        		    	System.out.println("print out the time stamp table");
+	        		      while (hmIterator.hasNext()) {
+	        		        Map.Entry<Long, Long> element = hmIterator.next();
+	        		        System.out.println(getAddress(toBytes(element.getKey())) +  " " + getPort(toBytes(element.getKey())) + " " + element.getValue());
+	        		        if (System.currentTimeMillis() - (long) 1000*15 >= element.getValue()) {
+	        		        	System.out.println("NAPT Entry is old, should be removed");
+	        		        	naptTable.remove(element.getKey());
+	        		        	timeStampTable.remove(element.getKey());
+	        		        }
+	        		      }
+	        		    }
+	        	        Thread.sleep(20000);
+	        		    } catch (Exception e) {
+	        	        e.printStackTrace();
+	        	      }
+	        		}
+	        }
+	      }.start();
 	}
 
 	/**

@@ -57,7 +57,8 @@ public class Router {
           handleExternalConnections();
         }
       }.start();
-      expireDHCP();
+      //expireDHCP();
+      naptTable.refreshNAPTTable(10);
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -480,6 +481,9 @@ public class Router {
         } else if (line.equals("arp table")) { 
           System.out.println(arpTable.toString());
         	
+        } else if (line.equals("time table")) { 
+            System.out.println();
+        	
         } else {
           System.out.println("Unknown command");
         }
@@ -497,17 +501,17 @@ public class Router {
         while (true) {
           try {
             DHCP[] list =  dhcpServer.tick();
-            if (false) {
+            if (list != null) {
               for (DHCP item : list) {
                 UDP udpPacket = new UDP(UDP.DHCP_CLIENT, UDP.DHCP_SERVER, item.getBytes());
+                System.out.println("CH address: " + IP.ipString(item.getChaddr()));
                 IP ipPacket = new IP(item.getChaddr(), addressIP, ipID++, IP.UDP_PORT, udpPacket.getBytes());
-                System.out.println("here");
                 // byte[] destMAC = getMAC(ipPacket.destination());
                 // if (destMAC == null)
                 //   continue;
                 // Ethernet frame = new Ethernet(destMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
                 // sendFrame(frame, true);
-              }
+            }
             }
             Thread.sleep(1000);
           } catch (Exception e) {

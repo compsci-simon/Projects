@@ -33,11 +33,12 @@ public class DHCPServer {
     ArrayList<DHCP> messages = new ArrayList<DHCP>();
     ArrayList<Integer> toRemove = new ArrayList<Integer>();
     for (int i = 0; i < allocatedIPs.size(); i++) {
-      allocatedIPs.get(i)[1]--;
+    	allocatedIPs.get(i)[1]--;
       if (allocatedIPs.get(i)[1] <= 0) {
         DHCP tmp = new DHCP(DHCP.ADDRESS_RELEASE, 1, new byte[6]);
-        byte[] ciaddr = {(byte) 0xC0, (byte) 0xA8, 0, (byte)allocatedIPs.get(i)[3]};
+        byte[] ciaddr = {(byte) 0xC0, (byte) 0xA8, (byte) 0, (byte) allocatedIPs.get(i)[0]};
         tmp.setciaddr(ciaddr);
+        System.out.println("IP CI:" + IP.ipString(tmp.getCiaddr()));
         messages.add(tmp);
         toRemove.add(i);
       }
