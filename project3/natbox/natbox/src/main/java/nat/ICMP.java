@@ -3,6 +3,7 @@ package nat;
 public class ICMP {
   public static final byte PING_REQ = 0x08;
   public static final byte PING_RES = 0x00;
+  public static final byte ERROR_UNREACHABLE = 0x03;
   public static final byte ROUTER_SOLICITATION = (byte) 0x85;
   public static final byte ROUTER_ADVERTISEMENT = (byte) 0x86;
   private byte type;
@@ -26,6 +27,11 @@ public class ICMP {
     req.setType(PING_RES);
     return req;
   }
+  
+  public static ICMP UnreachableResponse(ICMP req) {
+	    req.setType(ERROR_UNREACHABLE);
+	    return req;
+	  }
 
   public void setType(byte type) {
     this.type = type;
@@ -64,6 +70,8 @@ public class ICMP {
         messageType = "Router advertisement";
       case ROUTER_SOLICITATION:
           messageType = "Router solicitation";
+      case ERROR_UNREACHABLE:
+          messageType = "ERROR: Destination unreachable";
         break;
       default:
         break;

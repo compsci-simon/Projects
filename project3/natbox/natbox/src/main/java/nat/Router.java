@@ -147,8 +147,20 @@ public class Router {
         }
     } else if (Arrays.equals(externalIP, ipPacket.destination())) {
       // Packets from external interface
-
+    	
+    	// not sure about when the error response should be sent but guess it would look like this
+    	byte[] tempSource = ipPacket.source();
       ipPacket = naptTable.translate(ipPacket);
+      
+      /*
+      if (Arrays.equals(ipPacket.source(), tempSource)) {
+    	  // header did not change, could not be routed, thus send error response
+    	  ICMP errorResponse = new ICMP(ICMP.ERROR_UNREACHABLE, (byte) icmpID++, new byte[1]);
+    	  IP ipPacketSend = new IP(IP.broadcastIP, externalIP, ipID++, IP.ICMP_PORT, errorResponse.getBytes());
+          Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, externalMAC, Ethernet.IP_PORT, ipPacketSend.getBytes());
+          sendFrame(frame, false);
+      }
+      */
       if (IP.sameNetwork(ipPacket.destination(), addressIP)) {
         byte[] lanMAC = getMAC(ipPacket.destination());
         Ethernet frame = new Ethernet(lanMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
@@ -168,7 +180,7 @@ public class Router {
       }
     } else {
       // Packets that need to be routed form the router
-
+    	System.out.println("Going through here");
       ipPacket = naptTable.translate(ipPacket);
       //System.out.println(naptTable.containsSession(packet));
       if (ipPacket == null) {
@@ -536,6 +548,7 @@ public class Router {
     addPortToExternalLinks(port);
     sendFrame(frame, false);
   }
+  
 
   private String connectedLinks() {
     String s = String.format("----------------------\nEXTERNAL LINKS\n");
