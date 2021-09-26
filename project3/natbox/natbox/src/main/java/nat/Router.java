@@ -150,15 +150,14 @@ public class Router {
     } else if (Arrays.equals(externalIP, ipPacket.destination())) {
       // Packets from external interface
     	
-    	// not sure about when the error response should be sent but guess it would look like this
     	byte[] tempSource = ipPacket.source();
       ipPacket = naptTable.translate(ipPacket);
-      
+   // not sure about when the error response should be sent but guess it would look like this
       /*
       if (Arrays.equals(ipPacket.source(), tempSource)) {
     	  // header did not change, could not be routed, thus send error response
     	  ICMP errorResponse = new ICMP(ICMP.ERROR_UNREACHABLE, (byte) icmpID++, new byte[1]);
-    	  IP ipPacketSend = new IP(IP.broadcastIP, externalIP, ipID++, IP.ICMP_PORT, errorResponse.getBytes());
+    	  IP ipPacketSend = new IP(ipPacket.source(), externalIP, ipID++, IP.ICMP_PORT, errorResponse.getBytes());
           Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, externalMAC, Ethernet.IP_PORT, ipPacketSend.getBytes());
           sendFrame(frame, false);
       }
