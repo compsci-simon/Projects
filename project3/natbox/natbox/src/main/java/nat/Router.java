@@ -251,6 +251,12 @@ public class Router {
       
     } else if (udpPacket.demuxPort() == UDP.MESSAGE_PORT) {
       System.out.println(new String(udpPacket.payload()));
+    
+    } else if (udpPacket.demuxPort() == UDP.RELEASE_PORT) {
+    	// don't think this is how it actually should work but gonna see if it does what we want to at least
+    	System.out.println("Releasing address");
+    	byte[] ipToRemove = ipPacket.source();
+    	dhcpServer.removeIP(ipToRemove);
     } else {
       System.out.println("Unknown udp port " + udpPacket.demuxPort());
     }
@@ -501,6 +507,9 @@ public class Router {
         } else if (line.equals("time table")) { 
             System.out.println();
         	
+        } else if (line.equals("dhcp table")) { 
+            System.out.println(dhcpServer.toString()); 
+        
         } else {
           System.out.println("Unknown command");
         }

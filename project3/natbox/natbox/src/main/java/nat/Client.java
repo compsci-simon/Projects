@@ -381,6 +381,7 @@ public class Client {
         	String message = reader.readLine();
         	udpSend(ipString, message);
         } else if (line.equals("disconnect")) {
+        	removeIP();
         	setIPNil();
         	setGatewayNil();
         	portNum = -1;
@@ -405,6 +406,19 @@ public class Client {
 	  for (int i = 0; i < 4; i++) {
 		  routerIP[i] = (byte) 0;
 	  }
+  }
+  
+  public void removeIP() {
+	  DHCP dhcp = new DHCP(DHCP.ADDRESS_RELEASE, 1, new byte[6]);
+	  UDP udpPacket = new UDP(UDP.RELEASE_PORT, UDP.DHCP_SERVER, dhcp.getBytes());
+	  System.out.println("port thing: " + udpPacket.demuxPort());
+      IP ipPacket = new IP(routerIP, addressIP, ipIdentifier++, IP.UDP_PORT, udpPacket.getBytes());
+      byte[] destMAC = getMAC(ipPacket.destination());
+      if (destMAC == null) {
+    	  return;
+      }
+      Ethernet frame = new Ethernet(destMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
+      sendFrame(frame);
   }
 
   public String toString() {
