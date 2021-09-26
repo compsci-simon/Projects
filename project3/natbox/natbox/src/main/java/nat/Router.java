@@ -137,6 +137,9 @@ public class Router {
         case IP.UDP_PORT:
           handleUDPPacket(ipPacket);
           break;
+        case IP.TCP_PORT:
+            handleTCPPacket(ipPacket.payload());
+            break;
         case IP.ICMP_PORT:
           handleICMPPacket(ipPacket);
           break;
@@ -169,6 +172,9 @@ public class Router {
           case IP.UDP_PORT:
             handleUDPPacket(ipPacket);
             break;
+          case IP.TCP_PORT:
+              handleTCPPacket(ipPacket.payload());
+              break;
           case IP.ICMP_PORT:
             handleICMPPacket(ipPacket);
             break;
@@ -253,7 +259,7 @@ public class Router {
       System.out.println(new String(udpPacket.payload()));
     
     } else if (udpPacket.demuxPort() == UDP.RELEASE_PORT) {
-    	// don't think this is how it actually should work but gonna see if it does what we want to at least
+    	// don't think this is how it actually should work but it does what we want it do to
     	System.out.println("Releasing address");
     	byte[] ipToRemove = ipPacket.source();
     	dhcpServer.removeIP(ipToRemove);
@@ -261,6 +267,16 @@ public class Router {
       System.out.println("Unknown udp port " + udpPacket.demuxPort());
     }
   }
+  
+  public void handleTCPPacket(byte[] packet) {
+    TCP tcpPacket = new TCP(packet);
+    System.out.println(tcpPacket.toString());
+    if (tcpPacket.destinationPort() == TCP.MESSAGE_PORT) {
+      System.out.println(new String(tcpPacket.payload()));
+    } else {
+      System.out.println("TCP packet sent to unknown port");
+    }
+}
 
   public byte[] getMAC(byte[] ip) {
 

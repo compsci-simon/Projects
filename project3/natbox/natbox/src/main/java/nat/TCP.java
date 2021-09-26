@@ -6,13 +6,14 @@ public class TCP {
   private int seqNum;
   private int ackNum;
   private byte[] payload;
+  public static final int MESSAGE_PORT = 6001;
 
   public TCP(byte[] packet) {
 
     this.destPort = (packet[0]&0xff)<<8 | packet[1]&0xff;
     this.sourcePort = (packet[2]&0xff)<<8 | packet[3]&0xff;
     this.seqNum = (packet[4]&0xff)<<24 | (packet[5]&0xff)<<16 | (packet[6]&0xff)<<8 | (packet[7]&0xff);
-    this.seqNum = (packet[8]&0xff)<<24 | (packet[9]&0xff)<<16 | (packet[10]&0xff)<<8 | (packet[11]&0xff);
+    this.ackNum = (packet[8]&0xff)<<24 | (packet[9]&0xff)<<16 | (packet[10]&0xff)<<8 | (packet[11]&0xff);
     this.payload = new byte[packet.length - 12];
     System.arraycopy(packet, 12, this.payload, 0, this.payload.length);
   }
@@ -24,7 +25,7 @@ public class TCP {
   }
 
   public byte[] getBytes() {
-    byte[] tcpPacket = new byte[payload.length + 4];
+    byte[] tcpPacket = new byte[payload.length + 12];
     
     tcpPacket[0] = (byte) (sourcePort>>8);
     tcpPacket[1] = (byte) (sourcePort&0xff);
@@ -55,4 +56,10 @@ public class TCP {
   public byte[] payload() {
     return payload;
   }
+  
+  public String toString() {
+	    String s = String.format("TCP toString\n----------------------" + 
+	      "\nDest port = %d\nSource port = %d\n", destPort, sourcePort);
+	    return s;
+	  }
 }

@@ -93,6 +93,9 @@ public class Client {
       case IP.UDP_PORT:
         handleUDPPacket(ipPacket.payload());
         break;
+      case IP.TCP_PORT:
+          handleTCPPacket(ipPacket.payload());
+          break;
       case IP.ICMP_PORT:
         handleICMPPacket(ipPacket);
         break;
@@ -131,6 +134,16 @@ public class Client {
       System.out.println(new String(udpPacket.payload()));
     } else {
       System.out.println("UDP packet sent to unknown port");
+    }
+  }
+  
+  public void handleTCPPacket(byte[] packet) {
+    TCP tcpPacket = new TCP(packet);
+    System.out.println(tcpPacket.toString());
+    if (tcpPacket.destinationPort() == TCP.MESSAGE_PORT) {
+      System.out.println(new String(tcpPacket.payload()));
+    } else {
+      System.out.println("TCP packet sent to unknown port");
     }
   }
 
@@ -244,6 +257,57 @@ public class Client {
 			  }
 		  }
 		  udpSend(ip, message);
+	  }
+  }
+  
+  public void tcpSend(byte[] ip, String message) {
+	    TCP tcpPacket = new TCP(UDP.MESSAGE_PORT, UDP.MESSAGE_PORT, message.getBytes());
+	    IP ipPacket = new IP(ip, addressIP, ipIdentifier++, IP.TCP_PORT, tcpPacket.getBytes());
+	    if (IP.sameNetwork(addressIP, ip)) {
+	      // Do not send frame to router
+	      byte[] destinationMAC = getMAC(ipPacket.destination());
+	      if (destinationMAC == null) {
+	        return;
+	      }
+	      Ethernet frame = new Ethernet(destinationMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
+	      sendFrame(frame);
+	    } else {
+	      // Send frame to router
+	      byte[] routerMAC = getMAC(routerIP);
+	      if (routerMAC == null) {
+	        return;
+	      }
+	      Ethernet frame = new Ethernet(routerMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
+	      sendFrame(frame);
+	    }
+	  }
+  
+  public void tcpSend(String ipString, String message) {
+	  ipString = ipString.strip();
+	  if (ipString.equals("router")) {
+		  if (routerIP != null) {
+			  ping(routerIP);
+		  } else {
+			  System.err.println("Router IP not yet set");
+			  return;
+		  }
+	  } else {
+		  String[] ipStringArray = ipString.split("[.]");
+		  if (ipStringArray.length != 4) {
+			  System.err.println("Incorrect IP format");
+			  return;
+		  }
+		  byte[] ip = new byte[4];
+  
+		  for (int i = 0; i < 4; i++) {
+			  try {
+				  ip[i] = (byte) Integer.parseInt(ipStringArray[i]);
+			  } catch (Exception e) {
+				  e.printStackTrace();
+				  return;
+			  }
+		  }
+		  tcpSend(ip, message);
 	  }
   }
 
@@ -380,6 +444,12 @@ public class Client {
           System.out.print("message: ");
         	String message = reader.readLine();
         	udpSend(ipString, message);
+        } else if (line.equals("tcp send")) {
+            System.out.print("IP: ");
+            String ipString = reader.readLine();
+            System.out.print("message: ");
+          	String message = reader.readLine();
+          	tcpSend(ipString, message);
         } else if (line.equals("disconnect")) {
         	removeIP();
         	setIPNil();
