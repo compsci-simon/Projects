@@ -73,7 +73,7 @@ public class ICMP {
           messageType = "Router solicitation";
           break;
       case ERROR_UNREACHABLE:
-          messageType = "ERROR: Destination unreachable";
+          messageType = "ERROR - Destination unreachable";
         break;
       default:
         break;

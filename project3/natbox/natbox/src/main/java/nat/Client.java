@@ -326,9 +326,14 @@ public class Client {
   public void ping(byte[] ip) {
     ICMP ping = new ICMP(ICMP.PING_REQ, icmpID++, new byte[1]);
     IP ipPacket = new IP(ip, addressIP, ipIdentifier++, IP.ICMP_PORT, ping.getBytes());
-    byte[] mac = getMAC(ip);
-    if (mac == null) {
-      return;
+    byte[] mac;
+    if (!IP.sameNetwork(ip, addressIP)) {
+      mac = getMAC(routerIP);
+    } else {
+      mac = getMAC(ip);
+      if (mac == null) {
+        return;
+      }      
     }
     Ethernet frame = new Ethernet(mac, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
     sendFrame(frame);

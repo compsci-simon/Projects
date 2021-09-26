@@ -122,13 +122,14 @@ public class Router {
     if (ethernetFrame.protocol() == Ethernet.ARP_PORT) {
       handleARPPacket(ethernetFrame);
     } else if (ethernetFrame.protocol() == Ethernet.IP_PORT) {
-      handleIPPacket(ethernetFrame.payload());
+      handleIPPacket(ethernetFrame);
     }
     return true;
   }
 
-  private void handleIPPacket(byte[] packet) {
-    IP ipPacket = new IP(packet);
+  private void handleIPPacket(Ethernet receivedFrame) {
+
+    IP ipPacket = new IP(receivedFrame.payload());
     System.out.println(ipPacket.toString());
 
     if (ipPacket.isBroadcast() || Arrays.equals(addressIP, ipPacket.destination())) {
@@ -186,7 +187,7 @@ public class Router {
           }
       }
     } else {
-      // Packets that need to be routed form the router
+      // Packets that need to be routed from the router
       ipPacket = naptTable.translate(ipPacket);
       //System.out.println(naptTable.containsSession(packet));
       if (ipPacket == null) {
@@ -195,8 +196,15 @@ public class Router {
       }
       boolean LAN = IP.sameNetwork(ipPacket.destination(), addressIP);
       byte[] destMAC = getMAC(ipPacket.destination());
-      if (destMAC == null)
+      if (destMAC == null) {
+        // Create ICMP packet to return to host because client was unreachable
+        ICMP icmp = new ICMP(ICMP.ERROR_UNREACHABLE, (byte) (icmpID++), new byte[1]);
+        IP receivedPacket = new IP(receivedFrame.payload());
+        IP packetIP = new IP(receivedPacket.source(), addressIP, ipID, IP.ICMP_PORT, icmp.getBytes());
+        Ethernet frame = new Ethernet(receivedFrame.source(), addressMAC, Ethernet.IP_PORT, packetIP.getBytes());
+        sendFrame(frame, true);
         return;
+      }
       byte[] sourceMAC = LAN ? addressMAC : externalMAC;
       Ethernet frame = new Ethernet(destMAC, sourceMAC, Ethernet.IP_PORT, ipPacket.getBytes());
       
@@ -573,7 +581,6 @@ public class Router {
     sendFrame(frame, false);
   }
   
-
   private String connectedLinks() {
     String s = String.format("----------------------\nEXTERNAL LINKS\n");
     if (externalLinks.size() == 0) {

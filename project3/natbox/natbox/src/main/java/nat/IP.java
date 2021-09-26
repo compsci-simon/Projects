@@ -29,6 +29,12 @@ public class IP {
     this.payload = payload;
   }
 
+  public static void main(String[] args) {
+    byte[] x = {(byte) 0xC0, (byte) 0xA8, 0, (byte)0xff};
+    byte[] y = {23, 23, 23, 23};
+    System.out.println(sameNetwork(x, y));
+  }
+
   public IP (byte[] packet) {
     this.totalLength = (packet[2]<<8) | (packet[3]&0xff);
     this.identifier = ((packet[4]&0xff)<<8) | (packet[5]&0xff);
