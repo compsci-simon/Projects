@@ -481,7 +481,6 @@ public class Client {
   public void removeIP() {
 	  DHCP dhcp = new DHCP(DHCP.ADDRESS_RELEASE, 1, new byte[6]);
 	  UDP udpPacket = new UDP(UDP.RELEASE_PORT, UDP.DHCP_SERVER, dhcp.getBytes());
-	  System.out.println("port thing: " + udpPacket.demuxPort());
       IP ipPacket = new IP(routerIP, addressIP, ipIdentifier++, IP.UDP_PORT, udpPacket.getBytes());
       byte[] destMAC = getMAC(ipPacket.destination());
       if (destMAC == null) {
