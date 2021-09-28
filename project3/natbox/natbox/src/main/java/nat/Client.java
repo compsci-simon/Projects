@@ -17,6 +17,7 @@ public class Client {
   private byte icmpID;
   private int portNum = -1;
   private String address = "localhost";
+  private boolean ack = false;
 
   public Client(int port) {
     this.addressMAC = Ethernet.generateRandomMAC();
@@ -75,7 +76,11 @@ public class Client {
     Ethernet ethernetFrame = new Ethernet(frame);
     System.out.println(ethernetFrame.toString());
     if (ethernetFrame.protocol() == Ethernet.ARP_PORT) {
-      handleARPPacket(ethernetFrame.payload());
+      if (Arrays.equals(addressMAC, ethernetFrame.destination())
+                      || ethernetFrame.isBroadcast()) {
+
+        handleARPPacket(ethernetFrame.payload());
+      }
       return true;
     } else if (ethernetFrame.protocol() == Ethernet.IP_PORT) {
       if (Arrays.equals(addressMAC, ethernetFrame.destination())
@@ -98,8 +103,8 @@ public class Client {
         handleUDPPacket(ipPacket.payload());
         break;
       case IP.TCP_PORT:
-          handleTCPPacket(ipPacket.payload());
-          break;
+        handleTCPPacket(ipPacket);
+        break;
       case IP.ICMP_PORT:
         handleICMPPacket(ipPacket);
         break;
@@ -142,11 +147,31 @@ public class Client {
     }
   }
   
-  public void handleTCPPacket(byte[] packet) {
+  public void handleTCPPacket(IP ipPacket) {
+    byte[] packet = ipPacket.payload();
     TCP tcpPacket = new TCP(packet);
     System.out.println(tcpPacket.toString());
     if (tcpPacket.destinationPort() == TCP.MESSAGE_PORT) {
-      System.out.println(new String(tcpPacket.payload()));
+      switch (tcpPacket.getType()) {
+        case TCP.ACK:
+          ack = true;
+          break;
+        case TCP.SYN:
+          sendACK(ipPacket.source(), tcpPacket);
+          break;
+        case TCP.PUSH:
+          if (tcpPacket.destinationPort() == TCP.MESSAGE_PORT) {
+            System.out.println(new String(tcpPacket.payload()));
+            System.out.println();
+          } else {
+            System.out.println("Unknown destination port " + tcpPacket.destinationPort());
+          }
+          sendACK(ipPacket.source(), tcpPacket);
+          break;
+        default:
+          System.out.println("Unknown TCP packet type");
+          break;
+      }
     } else {
       System.out.println("TCP packet sent to unknown port");
     }
@@ -266,26 +291,28 @@ public class Client {
   }
   
   public void tcpSend(byte[] ip, String message) {
-	    TCP tcpPacket = new TCP(UDP.MESSAGE_PORT, UDP.MESSAGE_PORT, message.getBytes());
-	    IP ipPacket = new IP(ip, addressIP, ipIdentifier++, IP.TCP_PORT, tcpPacket.getBytes());
-	    if (IP.sameNetwork(addressIP, ip)) {
-	      // Do not send frame to router
-	      byte[] destinationMAC = getMAC(ipPacket.destination());
-	      if (destinationMAC == null) {
-	        return;
-	      }
-	      Ethernet frame = new Ethernet(destinationMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
-	      sendFrame(frame);
-	    } else {
-	      // Send frame to router
-	      byte[] routerMAC = getMAC(routerIP);
-	      if (routerMAC == null) {
-	        return;
-	      }
-	      Ethernet frame = new Ethernet(routerMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
-	      sendFrame(frame);
-	    }
-	  }
+
+    if (!sendSyn(ip)) {
+      System.err.println("Failed to receive ACK");
+      return;
+    }
+    boolean LAN = IP.sameNetwork(ip, addressIP);
+    byte[] destMAC = LAN ? getMAC(ip) : getMAC(routerIP);
+    TCP tcpPacket = new TCP(TCP.MESSAGE_PORT, TCP.MESSAGE_PORT, TCP.PUSH, message.getBytes());
+    IP ipPacket = new IP(ip, addressIP, ipIdentifier++, IP.TCP_PORT, tcpPacket.getBytes());
+    Ethernet frame = new Ethernet(destMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
+    ack = false;
+    for (int i = 0; i < 2; i++) {
+      try {
+        sendFrame(frame);
+        if (ack)
+          break;
+        Thread.sleep(100);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
   
   public void tcpSend(String ipString, String message) {
 	  ipString = ipString.strip();
@@ -314,6 +341,46 @@ public class Client {
 		  }
 		  tcpSend(ip, message);
 	  }
+  }
+
+  private boolean sendSyn(byte[] ip) {
+    boolean LAN = IP.sameNetwork(ip, addressIP);
+    byte[] destMAC;
+    if (!LAN) {
+      destMAC = getMAC(routerIP);
+    } else {
+      destMAC = getMAC(ip);
+    }
+    
+    TCP syn = new TCP(TCP.MESSAGE_PORT, TCP.MESSAGE_PORT, TCP.SYN, new byte[0]);
+    IP ipPacket = new IP(ip, addressIP, ipIdentifier++, IP.TCP_PORT, syn.getBytes());
+    Ethernet frame = new Ethernet(destMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
+    ack = false;
+    int i = 0;
+    for (; i < 2; i++) {
+      try {
+        sendFrame(frame);
+        Thread.sleep(100);
+        if (ack)
+          break;
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+    if (i == 2) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+  private void sendACK(byte[] ip, TCP packet) {
+    TCP tcpPacket = new TCP(packet.destinationPort(), packet.sourcePort(), TCP.ACK, packet.payload());
+    IP ipPacket = new IP(ip, addressIP, ipIdentifier++, IP.TCP_PORT, tcpPacket.getBytes());
+    boolean LAN = IP.sameNetwork(ip, addressIP);
+    byte[] destMAC = LAN ? getMAC(ip) : getMAC(routerIP);
+    Ethernet frame = new Ethernet(destMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
+    sendFrame(frame);
   }
 
   private void sendRequestARP(byte[] destIP) {
@@ -465,6 +532,7 @@ public class Client {
         	removeIP();
         	setIPNil();
         	setGatewayNil();
+          socket = null;
         	portNum = -1;
         } else if (line.equals("arp table")) { 
         	arpTable.toString();

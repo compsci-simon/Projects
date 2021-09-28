@@ -149,7 +149,7 @@ public class NAPT {
     		        Map.Entry<Long, Long> element = hmIterator.next();
     		        if (System.currentTimeMillis() - (long) 1000*SecsToRemove >= element.getValue()) {
     		        	naptTable.remove(element.getKey());
-    		        	System.out.println(naptTable.toString());
+    		        	System.out.println(toString());
     		        	toRemoveList.add(element.getKey());
     		        }
     		      }
