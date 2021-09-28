@@ -27,10 +27,16 @@ public class Router {
   private int ipID;
   private int icmpID;
   private int skipLinkPortNum = -1;
+  private static int minToRefresh = 1;
+  private int secondsToRefresh = 45;
 
-  public Router (int portIn, int portEx) {
+  public Router (int portIn, int portEx, int min, int seconds) {
+    this.internalPort = portIn;
+    this.externalPort = portEx;
     this.ipID = 0;
     this.icmpID = 0;
+    this.minToRefresh = min;
+    this.secondsToRefresh = seconds;
     this.internalLinks = new ArrayList<Integer>();
     this.externalLinks = new ArrayList<Integer>();
     this.addressMAC = Ethernet.generateRandomMAC();
@@ -41,30 +47,29 @@ public class Router {
       this.arpTable = new ARPTable();
       this.naptTable = new NAPT(externalIP);
       System.out.println("Router started...");
-      System.out.println(portIn);
-      System.out.println(portEx);
-      internalInterface = new DatagramSocket(portIn);
-      externalInterface = new DatagramSocket(portEx);
-      new Thread() {
-        @Override
-        public void run() {
-          handleInternalConnections();
-        }
-      }.start();
-      new Thread() {
-        @Override
-        public void run() {
-          handleExternalConnections();
-        }
-      }.start();
-      //expireDHCP();
-  
-      new Thread() {
-	        @Override
-	        public void run() {
-	        	naptTable.refreshNAPTTable(1, 45);
-	        }
-      }.start();
+      if (portIn != -1 && portEx != -1) {
+        new Thread() {
+          @Override
+          public void run() {
+            handleInternalConnections();
+          }
+        }.start();
+        new Thread() {
+          @Override
+          public void run() {
+            handleExternalConnections();
+          }
+        }.start();
+        //expireDHCP();
+    
+        new Thread() {
+            @Override
+            public void run() {
+              naptTable.refreshNAPTTable(minToRefresh, secondsToRefresh);
+            }
+        }.start();
+      }
+      handleUserInputs();
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -72,8 +77,20 @@ public class Router {
   }
 
   public static void main(String[] args) {
-    Router r = new Router(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
-    r.handleUserInputs();
+    System.out.println(args.length);
+    if (args.length == 4) {
+      try {
+        int portIn = Integer.parseInt(args[0]);
+        int portEx = Integer.parseInt(args[1]);
+        int min = Integer.parseInt(args[2]);
+        int seconds = Integer.parseInt(args[3]);
+        new Router(portIn, portEx, min, seconds);        
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    } else {
+      new Router(-1, -1, 1, 45);
+    }
   }
 
   /***************************************************************************/
@@ -81,7 +98,12 @@ public class Router {
   /***************************************************************************/
 
   public void handleInternalConnections() {
+    if (internalPort == -1) {
+      System.err.println("You need to set the internal portnum first");
+      return;
+    }
     try {
+      internalInterface = new DatagramSocket(internalPort);
       DatagramPacket packet;
       while (true) {
     	  packet = new DatagramPacket(new byte[1500], 1500);
@@ -99,7 +121,12 @@ public class Router {
   }
 
   private void handleExternalConnections() {
+    if (externalPort == -1) {
+      System.err.println("Need to set port number first");
+      return;
+    }
     try {
+      externalInterface = new DatagramSocket(externalPort);
       DatagramPacket packet;
       while (true) {
     	  packet = new DatagramPacket(new byte[1500], 1500);
@@ -119,10 +146,12 @@ public class Router {
       return true;
     System.out.println(ethernetFrame.toString());
     
-    if (ethernetFrame.protocol() == Ethernet.ARP_PORT) {
-      handleARPPacket(ethernetFrame);
-    } else if (ethernetFrame.protocol() == Ethernet.IP_PORT) {
-      handleIPPacket(ethernetFrame);
+    if (Arrays.equals(ethernetFrame.destination(), addressMAC) || ethernetFrame.isBroadcast()) {
+      if (ethernetFrame.protocol() == Ethernet.ARP_PORT) {
+        handleARPPacket(ethernetFrame);
+      } else if (ethernetFrame.protocol() == Ethernet.IP_PORT) {
+        handleIPPacket(ethernetFrame);
+      }
     }
     return true;
   }
@@ -149,23 +178,10 @@ public class Router {
           break;
         }
     } else if (Arrays.equals(externalIP, ipPacket.destination())) {
-      // Packets from external interface
+      // Packets received from external interface
     	
-    	byte[] tempSource = ipPacket.source();
       ipPacket = naptTable.translate(ipPacket);
    
-      // not sure about when the error response should be sent but guess it would look like this
-      /*
-      if (Arrays.equals(ipPacket.source(), tempSource)) {
-    	  // header did not change, could not be routed, thus send error response
-    	  ICMP errorResponse = new ICMP(ICMP.ERROR_UNREACHABLE, (byte) icmpID++, new byte[1]);
-    	  IP ipPacketSend = new IP(ipPacket.source(), externalIP, ipID++, IP.ICMP_PORT, errorResponse.getBytes());
-          Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, externalMAC, Ethernet.IP_PORT, ipPacketSend.getBytes());
-          sendFrame(frame, false);
-          return;
-      }
-      */
-      
       if (IP.sameNetwork(ipPacket.destination(), addressIP)) {
         byte[] lanMAC = getMAC(ipPacket.destination());
         Ethernet frame = new Ethernet(lanMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
@@ -188,6 +204,7 @@ public class Router {
       }
     } else {
       // Packets that need to be routed from the router
+
       ipPacket = naptTable.translate(ipPacket);
       //System.out.println(naptTable.containsSession(packet));
       if (ipPacket == null) {
@@ -195,20 +212,21 @@ public class Router {
         return;
       }
       boolean LAN = IP.sameNetwork(ipPacket.destination(), addressIP);
-      byte[] destMAC = getMAC(ipPacket.destination());
-      if (destMAC == null) {
-        // Create ICMP packet to return to host because client was unreachable
-        ICMP icmp = new ICMP(ICMP.ERROR_UNREACHABLE, (byte) (icmpID++), new byte[1]);
-        IP receivedPacket = new IP(receivedFrame.payload());
-        IP packetIP = new IP(receivedPacket.source(), addressIP, ipID, IP.ICMP_PORT, icmp.getBytes());
-        Ethernet frame = new Ethernet(receivedFrame.source(), addressMAC, Ethernet.IP_PORT, packetIP.getBytes());
-        sendFrame(frame, true);
-        return;
+      if (!LAN) {
+        byte[] destMAC = getMAC(ipPacket.destination());
+        if (destMAC == null) {
+          // Create ICMP packet to return to host because client was unreachable
+          ICMP icmp = new ICMP(ICMP.ERROR_UNREACHABLE, (byte) (icmpID++), new byte[1]);
+          IP receivedPacket = new IP(receivedFrame.payload());
+          IP packetIP = new IP(receivedPacket.source(), addressIP, ipID, IP.ICMP_PORT, icmp.getBytes());
+          Ethernet frame = new Ethernet(receivedFrame.source(), addressMAC, Ethernet.IP_PORT, packetIP.getBytes());
+          sendFrame(frame, true);
+          return;
+        }
+        Ethernet frame = new Ethernet(destMAC, externalMAC, Ethernet.IP_PORT, ipPacket.getBytes());
+        
+        sendFrame(frame, LAN);
       }
-      byte[] sourceMAC = LAN ? addressMAC : externalMAC;
-      Ethernet frame = new Ethernet(destMAC, sourceMAC, Ethernet.IP_PORT, ipPacket.getBytes());
-      
-      sendFrame(frame, LAN);
     }
   }
 

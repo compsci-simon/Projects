@@ -99,15 +99,11 @@ public class NAPT {
 			return false;
 		}
 		byte[] sourceIP = packet.source();
-		byte[] destIP = packet.destination();
-		byte[] value = naptTable.get(toLong(sourceIP, port));
-		byte[] portBytes = Constants.intToBytes(port);
 		if (!IP.sameNetwork(packet.source(), internalIP)) {
 			// Sessions bound from WAN to LAN
 			if (naptTable.containsKey(toLong(IP.nilIP, port))) {
 				// reset timer because entry was used
 				timeStampTable.put(toLong(IP.nilIP, port), System.currentTimeMillis());
-				System.out.println("Nil source matched in the NAT table");
 				return true;
 			}
 			if (!naptTable.containsKey(toLong(sourceIP, port))) {

@@ -92,7 +92,7 @@ public class Ethernet {
     String s = String.format("\n\t-----------------------------------------\n" + 
     "\t|***************************************|\n" +
     "\t-----------------------------------------\n\n" +
-    "%d\nETHERNET toString\n----------------------\nDestination MAC = %s" + 
+    "Timestamp: %d\nETHERNET toString\n----------------------\nDestination MAC = %s" + 
     "\nSource MAC = %s\nDemux Port = %d\n", 
       System.currentTimeMillis(), macString(destMAC), macString(sourceMAC), demuxProtocol);
     return s;

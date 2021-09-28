@@ -16,34 +16,38 @@ public class Client {
   private static byte[] subnetMask;
   private byte icmpID;
   private int portNum = -1;
-  private String address;
+  private String address = "localhost";
 
-  public Client(String address, int port) {
-    this.address = address;
+  public Client(int port) {
     this.addressMAC = Ethernet.generateRandomMAC();
     this.ipIdentifier = 0;
     arpTable = new ARPTable();
     System.out.println("Client started...");
-
-    try {
-      this.portNum = port;
-      new Thread() {
-        @Override
-        public void run() {
-          handleInterface();
-        }
-      }.start();
-      Thread.sleep(100);      
-    } catch (Exception e) {
-      e.printStackTrace();
+    if (port != -1) {
+      try {
+        this.portNum = port;
+        new Thread() {
+          @Override
+          public void run() {
+            handleInterface();
+          }
+        }.start();
+        Thread.sleep(100);      
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+      sendDHCPDiscover();
+      handleUserInputs();
     }
-    sendDHCPDiscover();
     handleUserInputs();
   }
 
   public static void main(String[] args) {
-    Client c = new Client("localhost", Integer.parseInt(args[0]));
-    c.handleUserInputs();
+    if (args.length != 1) {
+      new Client(-1);
+    } else {
+      new Client(Integer.parseInt(args[0]));
+    }
   }
   
   /***************************************************************************/
@@ -132,6 +136,7 @@ public class Client {
       handleDHCPPacket(udpPacket.payload());
     } else if (udpPacket.destinationPort() == UDP.MESSAGE_PORT) {
       System.out.println(new String(udpPacket.payload()));
+      System.out.println();
     } else {
       System.out.println("UDP packet sent to unknown port");
     }
@@ -455,6 +460,7 @@ public class Client {
             System.out.print("message: ");
           	String message = reader.readLine();
           	tcpSend(ipString, message);
+            System.out.println();
         } else if (line.equals("disconnect")) {
         	removeIP();
         	setIPNil();
