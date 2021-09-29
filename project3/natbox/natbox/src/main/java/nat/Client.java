@@ -535,7 +535,7 @@ public class Client {
           socket = null;
         	portNum = -1;
         } else if (line.equals("arp table")) { 
-        	arpTable.toString();
+        	System.out.println(arpTable.toString());
         } else {
           System.out.println("Unknown command");
         }
