@@ -28,7 +28,7 @@ public class Router {
   private static int minToRefresh = 1;
   private int secondsToRefresh = 45;
   private InetAddress iaddress;
-  private static final int TIMEOUT = 200;
+  private static final int TIMEOUT = 400;
 
   public Router (int portIn, int portEx, int min, int seconds) {
     this.internalPort = portIn;
@@ -212,7 +212,8 @@ public class Router {
           }
       }
     } else {
-      // Packets that need to be routed from the router
+      // Packets that need to be routed from the router and are not destined 
+      // for the router
 
       ipPacket = naptTable.translate(ipPacket);
       //System.out.println(naptTable.containsSession(packet));

@@ -18,7 +18,7 @@ public class Client {
   private int portNum = -1;
   private String address;
   private boolean ack = false;
-  private static final int TIMEOUT = 200;
+  private static final int TIMEOUT = 400;
 
   public Client(String address, int port) {
     this.address = address;
