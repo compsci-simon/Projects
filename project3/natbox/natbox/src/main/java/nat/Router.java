@@ -132,7 +132,6 @@ public class Router {
     	  packet = new DatagramPacket(new byte[1500], 1500);
         externalInterface.receive(packet);
         addPortToExternalLinks(packet.getPort());
-        iaddress = packet.getAddress();
         if (!handleFrame(packet.getData()))
           break;
       }
@@ -383,6 +382,11 @@ public class Router {
         }
       }
     } else {
+      try {
+        packet.setAddress(InetAddress.getLocalHost());
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
       for (int i = 0; i < externalLinks.size(); i++) {
         packet.setPort(externalLinks.get(i));
         try {
@@ -415,10 +419,6 @@ public class Router {
     byte[] srcIP = internal ? addressIP : externalIP;
     byte[] srcMAC = internal ? addressMAC : externalMAC;
     ARP arpPacket = new ARP(ARP.ARP_REPLY, srcMAC, srcIP, destMAC, destIP);
-    if (internal) {
-      System.out.println("We should not be here!!!!!!!!!!!!!!!!");
-      System.out.println(arpPacket.toString());
-    }
     Ethernet frame = new Ethernet(destMAC, addressMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
     sendFrame(frame, internal);
   }
