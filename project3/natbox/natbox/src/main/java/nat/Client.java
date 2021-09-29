@@ -18,6 +18,7 @@ public class Client {
   private int portNum = -1;
   private String address;
   private boolean ack = false;
+  private static final int TIMEOUT = 200;
 
   public Client(String address, int port) {
     this.address = address;
@@ -451,7 +452,7 @@ public class Client {
       System.out.println("Sent ARP request");
       sendRequestARP(ip);
       try {
-        Thread.sleep(200);
+        Thread.sleep(TIMEOUT);
       } catch (Exception e) {
         e.printStackTrace();
       }

@@ -28,6 +28,7 @@ public class Router {
   private static int minToRefresh = 1;
   private int secondsToRefresh = 45;
   private InetAddress iaddress;
+  private static final int TIMEOUT = 200;
 
   public Router (int portIn, int portEx, int min, int seconds) {
     this.internalPort = portIn;
@@ -317,7 +318,7 @@ public class Router {
       System.out.println("Sent ARP request\n");
       sendRequestARP(ip);
       try {
-        Thread.sleep(100);
+        Thread.sleep(TIMEOUT);
       } catch (Exception e) {
         e.printStackTrace();
       }
