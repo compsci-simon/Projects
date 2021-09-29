@@ -186,6 +186,12 @@ public class Router {
    
       if (IP.sameNetwork(ipPacket.destination(), addressIP)) {
         byte[] lanMAC = getMAC(ipPacket.destination());
+        if (lanMAC == null) {
+          return;
+        }
+        System.out.println("Received packet here!!!!!!!!!!!!!!!!!!!!!!!!");
+        System.out.println(ipPacket.toString());
+        System.out.println("--------------------------------------------");
         Ethernet frame = new Ethernet(lanMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
         sendFrame(frame, true);
       } else {
