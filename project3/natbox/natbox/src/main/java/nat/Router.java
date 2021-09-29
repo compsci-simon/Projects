@@ -146,7 +146,8 @@ public class Router {
       return true;
     System.out.println(ethernetFrame.toString());
     
-    if (Arrays.equals(ethernetFrame.destination(), addressMAC) || ethernetFrame.isBroadcast()) {
+    if (Arrays.equals(ethernetFrame.destination(), addressMAC) || ethernetFrame.isBroadcast() || 
+        Arrays.equals(ethernetFrame.destination(), externalMAC)) {
       if (ethernetFrame.protocol() == Ethernet.ARP_PORT) {
         handleARPPacket(ethernetFrame);
       } else if (ethernetFrame.protocol() == Ethernet.IP_PORT) {
@@ -413,6 +414,10 @@ public class Router {
     byte[] srcIP = internal ? addressIP : externalIP;
     byte[] srcMAC = internal ? addressMAC : externalMAC;
     ARP arpPacket = new ARP(ARP.ARP_REPLY, srcMAC, srcIP, destMAC, destIP);
+    if (internal) {
+      System.out.println("We should not be here!!!!!!!!!!!!!!!!");
+      System.out.println(arpPacket.toString());
+    }
     Ethernet frame = new Ethernet(destMAC, addressMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
     sendFrame(frame, internal);
   }
