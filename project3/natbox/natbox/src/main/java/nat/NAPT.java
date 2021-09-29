@@ -138,7 +138,8 @@ public class NAPT {
 	public void refreshNAPTTable(int minutesToRefresh, int SecsToRemove) {
     	while (true) {
     		try {
-    			ArrayList<Long> toRemoveList = new ArrayList<Long>(); 
+    			ArrayList<Long> toRemoveTimeList = new ArrayList<Long>(); 
+    			ArrayList<Long> toRemoveNAPTList = new ArrayList<Long>(); 
     			Iterator<Map.Entry<Long, Long>> hmIterator = timeStampTable.entrySet().iterator();
     		    
     		    if (timeStampTable.size() == 0) {
@@ -148,14 +149,17 @@ public class NAPT {
     		      while (hmIterator.hasNext()) {
     		        Map.Entry<Long, Long> element = hmIterator.next();
     		        if (System.currentTimeMillis() - (long) 1000*SecsToRemove >= element.getValue()) {
-    		        	naptTable.remove(element.getKey());
-    		        	System.out.println(toString());
-    		        	toRemoveList.add(element.getKey());
+    		        	toRemoveNAPTList.add(element.getKey());
+    		        	toRemoveTimeList.add(element.getKey());
     		        }
     		      }
     		    }
-    		    for (int i = 0; i < toRemoveList.size(); i++) {
-    		    	timeStampTable.remove(toRemoveList.get(i));
+    		    for (int i = 0; i < toRemoveNAPTList.size(); i++) {
+    		    	naptTable.remove(toRemoveNAPTList.get(i));
+    		    	System.out.println(toString());
+    		    }
+    		    for (int i = 0; i < toRemoveTimeList.size(); i++) {
+    		    	timeStampTable.remove(toRemoveTimeList.get(i));
     		    }
     	        Thread.sleep(1000*60*minutesToRefresh);
     		    } catch (Exception e) {
