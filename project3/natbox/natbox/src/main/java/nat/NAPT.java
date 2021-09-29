@@ -157,8 +157,7 @@ public class NAPT {
     		    for (int i = 0; i < toRemoveList.size(); i++) {
     		    	timeStampTable.remove(toRemoveList.get(i));
     		    }
-    	        //Thread.sleep(1000*60*minutesToRefresh);
-    		    Thread.sleep(1000*10);
+    	        Thread.sleep(1000*60*minutesToRefresh);
     		    } catch (Exception e) {
     	        e.printStackTrace();
     	      }
