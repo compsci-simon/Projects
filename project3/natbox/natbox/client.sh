@@ -1,1 +1,1 @@
-java -cp target/classes nat.Client 5000
+java -cp target/classes nat.Client 10.147.18.241 5000

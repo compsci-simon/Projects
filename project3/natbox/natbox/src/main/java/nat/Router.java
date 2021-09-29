@@ -18,8 +18,6 @@ public class Router {
   private byte[] addressIP = {(byte) 0xC0, (byte) 0xA8, 0, 1};
   private byte[] externalIP;
   private byte[] externalMAC;
-  public static final byte[] subnetMask = {(byte)0xff, (byte)0xff, (byte)0xff, 0};
-  public static final byte[] broadcastIP = {(byte) 0xC0, (byte) 0xA8, 0, (byte)0xff};
   private boolean handleInternal = false;
   private boolean handleExternal = false;
   private int internalPort;
@@ -29,6 +27,7 @@ public class Router {
   private int skipLinkPortNum = -1;
   private static int minToRefresh = 1;
   private int secondsToRefresh = 45;
+  private InetAddress iaddress;
 
   public Router (int portIn, int portEx, int min, int seconds) {
     this.internalPort = portIn;
@@ -89,7 +88,7 @@ public class Router {
         e.printStackTrace();
       }
     } else {
-      new Router(-1, -1, 1, 45);
+      new Router(-1, -1, 60, 45);
     }
   }
 
@@ -109,6 +108,7 @@ public class Router {
     	  packet = new DatagramPacket(new byte[1500], 1500);
         internalInterface.receive(packet);
         addPortToInternalLinks(packet.getPort());
+        iaddress = packet.getAddress();
         skipLinkPortNum = packet.getPort();
         sendFrame(new Ethernet(packet.getData()), true);
         skipLinkPortNum = -1;
@@ -132,6 +132,7 @@ public class Router {
     	  packet = new DatagramPacket(new byte[1500], 1500);
         externalInterface.receive(packet);
         addPortToExternalLinks(packet.getPort());
+        iaddress = packet.getAddress();
         if (!handleFrame(packet.getData()))
           break;
       }
@@ -363,7 +364,7 @@ public class Router {
   private void sendFrame(Ethernet frame, boolean LAN) {
 	  DatagramPacket packet = new DatagramPacket(new byte[1500], 1500);
     try {
-      packet.setAddress(InetAddress.getLocalHost());      
+      packet.setAddress(iaddress);      
     } catch (Exception e) {
       e.printStackTrace();
       return;

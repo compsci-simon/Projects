@@ -16,10 +16,11 @@ public class Client {
   private static byte[] subnetMask;
   private byte icmpID;
   private int portNum = -1;
-  private String address = "localhost";
+  private String address;
   private boolean ack = false;
 
-  public Client(int port) {
+  public Client(String address, int port) {
+    this.address = address;
     this.addressMAC = Ethernet.generateRandomMAC();
     this.ipIdentifier = 0;
     arpTable = new ARPTable();
@@ -44,10 +45,10 @@ public class Client {
   }
 
   public static void main(String[] args) {
-    if (args.length != 1) {
-      new Client(-1);
+    if (args.length != 2) {
+      new Client("localhost", -1);
     } else {
-      new Client(Integer.parseInt(args[0]));
+      new Client(args[0], Integer.parseInt(args[1]));
     }
   }
   
@@ -521,6 +522,7 @@ public class Client {
           System.out.print("message: ");
         	String message = reader.readLine();
         	udpSend(ipString, message);
+          System.out.println();
         } else if (line.equals("tcp send")) {
             System.out.print("IP: ");
             String ipString = reader.readLine();

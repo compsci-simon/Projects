@@ -1,1 +1,1 @@
-java -cp target/classes nat.Client 7000
+java -cp target/classes nat.Client localhost 7000
