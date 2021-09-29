@@ -135,7 +135,7 @@ public class NAPT {
 	 * @param minutesToRefresh how often the NAPT table should be refreshed
 	 * @param SecsToRemove how long a napt entry should be unused before removing
 	 */
-	public void refreshNAPTTable(int minutesToRefresh, int SecsToRemove) {
+	public void refreshNAPTTable(int secsToRefresh, int secsToRemove) {
     	while (true) {
     		try {
     			ArrayList<Long> toRemoveTimeList = new ArrayList<Long>(); 
@@ -148,7 +148,7 @@ public class NAPT {
     		    	// iterate through napt table and check for old entries 
     		      while (hmIterator.hasNext()) {
     		        Map.Entry<Long, Long> element = hmIterator.next();
-    		        if (System.currentTimeMillis() - (long) 1000*SecsToRemove >= element.getValue()) {
+    		        if (System.currentTimeMillis() - (long) 1000*secsToRemove >= element.getValue()) {
     		        	toRemoveNAPTList.add(element.getKey());
     		        	toRemoveTimeList.add(element.getKey());
     		        }
@@ -161,7 +161,7 @@ public class NAPT {
     		    for (int i = 0; i < toRemoveTimeList.size(); i++) {
     		    	timeStampTable.remove(toRemoveTimeList.get(i));
     		    }
-    	        Thread.sleep(1000*60*minutesToRefresh);
+    	        Thread.sleep(1000*secsToRefresh);
     		    } catch (Exception e) {
     	        e.printStackTrace();
     	      }
