@@ -307,9 +307,9 @@ public class Client {
     for (int i = 0; i < 2; i++) {
       try {
         sendFrame(frame);
+        Thread.sleep(TIMEOUT);
         if (ack)
           break;
-        Thread.sleep(100);
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -353,6 +353,9 @@ public class Client {
     } else {
       destMAC = getMAC(ip);
     }
+    if (destMAC == null) {
+      return false;
+    }
     
     TCP syn = new TCP(TCP.MESSAGE_PORT, TCP.MESSAGE_PORT, TCP.SYN, new byte[0]);
     IP ipPacket = new IP(ip, addressIP, ipIdentifier++, IP.TCP_PORT, syn.getBytes());
@@ -362,7 +365,7 @@ public class Client {
     for (; i < 2; i++) {
       try {
         sendFrame(frame);
-        Thread.sleep(100);
+        Thread.sleep(TIMEOUT*5);
         if (ack)
           break;
       } catch (Exception e) {
@@ -446,7 +449,8 @@ public class Client {
 
     boolean hasIP = arpTable.containsMAC(ip);
     int i = 0;
-    for (; i < 2; i++) {
+    int tries = 5;
+    for (; i < tries; i++) {
       if (hasIP)
         break;
       System.out.println("Sent ARP request");
@@ -458,7 +462,7 @@ public class Client {
       }
       hasIP = arpTable.containsMAC(ip);
     }
-    if (i == 2) {
+    if (i == tries) {
       System.out.println(String.format("Could not resolve IP: %s to physical address", IP.ipString(ip)));
       return null;
     }
