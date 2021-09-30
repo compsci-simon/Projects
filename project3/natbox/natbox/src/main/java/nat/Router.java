@@ -43,7 +43,7 @@ public class Router {
     this.externalIP = IP.generateRandomIP();
     this.externalMAC = Ethernet.generateRandomMAC();
     try {
-      this.dhcpServer = new DHCPServer(addressIP, 5);
+      this.dhcpServer = new DHCPServer(addressIP);
       this.arpTable = new ARPTable();
       this.naptTable = new NAPT(externalIP);
       System.out.println("Router started...");
@@ -580,33 +580,6 @@ public class Router {
     }
   }
 
-  private void expireDHCP() {
-    new Thread() {
-      @Override
-      public void run() {
-        while (true) {
-          try {
-            DHCP[] list =  dhcpServer.tick();
-            if (list != null) {
-              for (DHCP item : list) {
-                UDP udpPacket = new UDP(UDP.DHCP_CLIENT, UDP.DHCP_SERVER, item.getBytes());
-                IP ipPacket = new IP(item.getChaddr(), addressIP, ipID++, IP.UDP_PORT, udpPacket.getBytes());
-                // byte[] destMAC = getMAC(ipPacket.destination());
-                // if (destMAC == null)
-                //   continue;
-                // Ethernet frame = new Ethernet(destMAC, addressMAC, Ethernet.IP_PORT, ipPacket.getBytes());
-                // sendFrame(frame, true);
-            }
-            }
-            Thread.sleep(1000);
-          } catch (Exception e) {
-            e.printStackTrace();
-          }
-        }
-      }
-    }.start();
-  }
-  
   private void connectToRouter(int port) {
     ICMP routerAd = new ICMP(ICMP.ROUTER_SOLICITATION, (byte)icmpID++, new byte[1]);
     IP ipPacket = new IP(IP.broadcastIP, externalIP, ipID++, IP.ICMP_PORT, routerAd.getBytes());

@@ -15,7 +15,11 @@ import io.netty.buffer.ByteBufOutputStream;
 
 import java.util.*;
 
-public class DHCP implements Serializable {
+/**
+ * This class is used to create and process DHCP packets which are used when
+ * the client wants to obtain an IP address
+ */
+public class DHCP {
   public static final byte BOOT_REQUEST = 1;
   public static final byte BOOT_REPLY = 2;
   public static final byte ADDRESS_RELEASE = 3;
@@ -34,6 +38,12 @@ public class DHCP implements Serializable {
   private byte[] giaddr;
   private byte[] chaddr;
 
+  /**
+   * Constructor that creates a DHCP packet from scratch
+   * @param messageType The type of DHCP message
+   * @param transactionID The ID of the message
+   * @param chaddr The client hardware or MAC address
+   */
   public DHCP(int messageType, int transactionID, byte[] chaddr) {
     this.messageType = messageType;
     this.transactionID = transactionID;
@@ -44,6 +54,11 @@ public class DHCP implements Serializable {
     this.giaddr = new byte[4];
   }
 
+  /**
+   * Creates a DHCP packet from the payload of a UDP packet which is just a 
+   * byte array
+   * @param packet The byte array which is the payload of the UDP packet
+   */
   public DHCP(byte[] packet) {
     this.messageType = packet[0]&0xff;
     this.transactionID = (packet[4]&0xff)<<24 | (packet[5]&0xff)<<16 | (packet[6]&0xff)<<8 |
@@ -60,10 +75,23 @@ public class DHCP implements Serializable {
     System.arraycopy(packet, 28, chaddr, 0, 6);
   }
 
+  /**
+   * Used to easily generated a DHCP boot request
+   * @param transactionID The transaction number
+   * @param chaddr The clients MAC
+   * @return DHCP object which represents a DHCP boot request
+   */
   public static DHCP bootRequest(int transactionID, byte[] chaddr) {
     return new DHCP(BOOT_REQUEST, transactionID, chaddr);
   }
 
+  /**
+   * Used to generate a response to a bootrequest
+   * @param bootRequest The bootrequest to respond to
+   * @param ciaddr The client MAC
+   * @param siaddr The server MAC
+   * @return The DHCP object that represents a bootresponse to a bootrequest
+   */
   public static DHCP bootReply(DHCP bootRequest, byte[] ciaddr, byte[] siaddr) {
     bootRequest.messageType = BOOT_REPLY;
     bootRequest.ciaddr = ciaddr;
@@ -71,22 +99,27 @@ public class DHCP implements Serializable {
     return bootRequest;
   }
 
-  public byte[] serialize() throws Exception {
-    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-    ObjectOutputStream oos = new ObjectOutputStream(bos);
-    oos.writeObject(this);
-    oos.flush();
-    return bos.toByteArray();
-  }
-
+  /**
+   * Getter for type
+   * @return The type of the DHCP message
+   */
   public int getMessageType() {
     return messageType;
   }
 
+  /**
+   * Setter for the message type
+   * @param messageType The new type of the message
+   */
   public void setMessageType(int messageType) {
     this.messageType = messageType;
   }
 
+  /**
+   * The byte representation of the DHCP object that will be encapsulated
+   * in a UDP packet and sent over the network
+   * @return The byte array that represents this DHCP packet
+   */
   public byte[] getBytes() {
     ArrayList<Byte> packetBytes = new ArrayList<Byte>();
     // Setting operation code
@@ -157,14 +190,26 @@ public class DHCP implements Serializable {
     return packetB;
   }
 
+  /**
+   * Getter for the ciaddr
+   * @return The client IP address
+   */
   public byte[] getCiaddr() {
     return ciaddr;
   }
 
+  /**
+   * Getter for the chaddr
+   * @return The client MAC address
+   */
   public byte[] getChaddr() {
     return chaddr;
   }
 
+  /**
+   * Setter for the ciaddr
+   * @param ip The ip to set ciaddr to
+   */
   public void setciaddr(byte[] ip) {
     if (ip == null || ip.length != 4) {
       System.err.println("IP format incorrect");
@@ -173,6 +218,10 @@ public class DHCP implements Serializable {
     this.ciaddr = ip;
   }
 
+  /**
+   * Setter for siaddr
+   * @param ip The IP to set siaddr to
+   */
   public void setsiaddr(byte[] ip) {
     if (ip == null || ip.length != 4) {
       System.err.println("IP format incorrect");
@@ -181,10 +230,17 @@ public class DHCP implements Serializable {
     this.siaddr = ip;
   }
 
+  /**
+   * Getter for the gateway
+   * @return The gateway
+   */
   public byte[] getGateway() {
     return siaddr;
   }
 
+  /**
+   * Returns a string representation of a DHCP packet
+   */
   public String toString() {
     String s = String.format("DHCP toString:\nMessage Type = %d\n" +
                             "ciaddr = %s\nyiaddr = %s\nsiaddr = %s\n" +

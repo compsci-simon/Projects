@@ -6,6 +6,11 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.*;
 
+/**
+ * The client can be seen as a simulation of a host such as your personal
+ * computer at home. This personal computer can connect to a router and
+ * and then communicated with other clients on the LAN or on the WAN.
+ */
 public class Client {
   private byte[] addressIP = {0, 0, 0, 0};
   private byte[] addressMAC;
@@ -20,6 +25,14 @@ public class Client {
   private boolean ack = false;
   private static final int TIMEOUT = 400;
 
+  /**
+   * This constructs a client that will connect to a router at a specified
+   * address and on a specific UDP port
+   * 
+   * @param address The IP address of the machine running the router simulator
+   * @param port The UDP port on which the router is accepting incoming 
+   *            connections on the host machine running the router.
+   */
   public Client(String address, int port) {
     this.address = address;
     this.addressMAC = Ethernet.generateRandomMAC();
@@ -57,6 +70,10 @@ public class Client {
   /**************************** Handling methods *****************************/
   /***************************************************************************/
 
+  /**
+   * This method handles all UDP packets received that need to be turned into 
+   * Ethernet frames.
+   */
   private void handleInterface() {
     try {
       DatagramPacket packet;
@@ -73,6 +90,12 @@ public class Client {
     }
   }
 
+  /**
+   * This method takes the bytes receieved over the simulated physical link
+   * and turns them into an Ethernet frame which has a header and a payload.
+   * @param frame The bytes received over the simulated physical link
+   * @return True for whether or not the router must continue running.
+   */
   private boolean handleFrame(byte[] frame) {
     
     Ethernet ethernetFrame = new Ethernet(frame);
@@ -93,6 +116,11 @@ public class Client {
     return true;
   }
 
+  /**
+   * This method takes the payload from the ethernet frame and transforms it 
+   * into an IP packet that can be processed further.
+   * @param packet The byte array payload from the ethernet frame.
+   */
   private void handleIPPacket(byte[] packet) {
     IP ipPacket = new IP(packet);
     System.out.println(ipPacket.toString());
@@ -119,6 +147,10 @@ public class Client {
     }
   }
 
+  /**
+   * This method handles ICMP packets
+   * @param ipPacket The IP packet that contains an ICMP packet
+   */
   public void handleICMPPacket(IP ipPacket) {
     ICMP icmpPacket = new ICMP(ipPacket.payload());
     System.out.println(icmpPacket.toString());
@@ -136,6 +168,10 @@ public class Client {
     }
   }
 
+  /**
+   * This method handles UDP packets
+   * @param packet The payload of the IP packet which is a UDP packet
+   */
   public void handleUDPPacket(byte[] packet) {
     UDP udpPacket = new UDP(packet);
     System.out.println(udpPacket.toString());
@@ -149,6 +185,10 @@ public class Client {
     }
   }
   
+  /**
+   * This method handles TCP packets
+   * @param ipPacket The IP packet that contains the TCP packet
+   */
   public void handleTCPPacket(IP ipPacket) {
     byte[] packet = ipPacket.payload();
     TCP tcpPacket = new TCP(packet);
@@ -179,6 +219,10 @@ public class Client {
     }
   }
 
+  /**
+   * This method handles DHCP packets
+   * @param packet The byte array that represents the DHCP packet
+   */
   public void handleDHCPPacket(byte[] packet) {
     DHCP dhcpPacket =  new DHCP(packet);
     System.out.println(dhcpPacket.toString());
@@ -196,6 +240,10 @@ public class Client {
     }
   }
 
+  /**
+   * This method handles ARP packets
+   * @param packet The byte array that represents the ARP packet
+   */
   private void handleARPPacket(byte[] packet) {
       ARP arpPacket = new ARP(packet);
       System.out.println(arpPacket.toString());
@@ -218,6 +266,10 @@ public class Client {
   /**************************** Sending methods ******************************/
   /***************************************************************************/
 
+  /**
+   * This method sents an simulated ethernet frame over the simulated network.
+   * @param frame The ethernet frame to send
+   */
   public void sendFrame(Ethernet frame) {
     if (portNum == -1) {
       return;
@@ -233,14 +285,23 @@ public class Client {
     }
   }
 
+  /**
+   * Send a dhcp discover to the router to determine what my IP address is as 
+   * well as my default gateway
+   */
   public void sendDHCPDiscover() {
     byte[] packetDHCP = generateDHCPDiscoverPacket();
-    byte[] packetUDP = encapsulateUDP(DHCP.SERVER_PORT, DHCP.CLIENT_PORT, packetDHCP);
-    byte[] packetIP = encapsulateIP(IP.UDP_PORT, IP.broadcastIP, IP.relayIP, packetUDP);
-    Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, addressMAC, Ethernet.IP_PORT, packetIP);
+    UDP packetUDP = new UDP(DHCP.SERVER_PORT, DHCP.CLIENT_PORT, packetDHCP);
+    IP packetIP = new IP(IP.broadcastIP, addressIP, ipIdentifier++, IP.UDP_PORT, packetUDP.getBytes());
+    Ethernet frame = new Ethernet(Ethernet.BROADCASTMAC, addressMAC, Ethernet.IP_PORT, packetIP.getBytes());
     sendFrame(frame);
   }
   
+  /**
+   * Send a udp message to an IP address
+   * @param ip The IP address of the intended receiver
+   * @param message The message to be sent
+   */
   public void udpSend(byte[] ip, String message) {
     UDP udpPacket = new UDP(UDP.MESSAGE_PORT, UDP.MESSAGE_PORT, message.getBytes());
     IP ipPacket = new IP(ip, addressIP, ipIdentifier++, IP.UDP_PORT, udpPacket.getBytes());
@@ -263,6 +324,11 @@ public class Client {
     }
   }
   
+  /**
+   * Send a UDP message to a specified IP address
+   * @param ipString The String that needs to be converted into a byte[]
+   * @param message The message to be sent
+   */
   public void udpSend(String ipString, String message) {
 	  ipString = ipString.strip();
 	  if (ipString.equals("router")) {
@@ -292,6 +358,11 @@ public class Client {
 	  }
   }
   
+  /**
+   * Send a TCP message to an IP address
+   * @param ip The IP address to send the message to
+   * @param message The message to send
+   */
   public void tcpSend(byte[] ip, String message) {
 
     if (!sendSyn(ip)) {
@@ -316,6 +387,11 @@ public class Client {
     }
   }
   
+  /**
+   * Send a TCP message to an IP address
+   * @param ipString The IP address that needs to be converted to a byte[]
+   * @param message The message to send
+   */
   public void tcpSend(String ipString, String message) {
 	  ipString = ipString.strip();
 	  if (ipString.equals("router")) {
@@ -345,6 +421,12 @@ public class Client {
 	  }
   }
 
+  /**
+   * Sends a syn message to a TCP receiver to check whether or not a connection
+   * can be established
+   * @param ip The IP address to send the SYN to
+   * @return Whether or not an ACK was received
+   */
   private boolean sendSyn(byte[] ip) {
     boolean LAN = IP.sameNetwork(ip, addressIP);
     byte[] destMAC;
@@ -379,6 +461,12 @@ public class Client {
     }
   }
 
+  /**
+   * The TCP ack that is sent to the source after a TCP message has been 
+   * successfully received
+   * @param ip The IP address to send the ACK to
+   * @param packet The TCP packet that was received
+   */
   private void sendACK(byte[] ip, TCP packet) {
     TCP tcpPacket = new TCP(packet.destinationPort(), packet.sourcePort(), TCP.ACK, packet.payload());
     IP ipPacket = new IP(ip, addressIP, ipIdentifier++, IP.TCP_PORT, tcpPacket.getBytes());
@@ -388,18 +476,32 @@ public class Client {
     sendFrame(frame);
   }
 
+  /**
+   * Send an ARP request to the specified IP address to resolved its
+   * physical hardware address
+   * @param destIP The IP address to be resolved to a MAC address
+   */
   private void sendRequestARP(byte[] destIP) {
 	  ARP arpPacket = new ARP(ARP.ARP_REQUEST, addressMAC, addressIP, ARP.zeroMAC, destIP);
 	  Ethernet frame = new Ethernet(ARP.broadcastMAC, addressMAC, ARP.DEMUX_PORT, arpPacket.getBytes());
 	  sendFrame(frame);
   }
 
+  /**
+   * Used to send an ARP response when an ARP request is received
+   * @param destMAC The MAC of the host that sent the ARP request
+   * @param destIP The IP of the host that sent the ARP request
+   */
   private void sendResponseARP(byte[] destMAC, byte[] destIP) {
 	  ARP arpPacket = new ARP(2, addressMAC, addressIP, destMAC, destIP);
     Ethernet frame = new Ethernet(destMAC, addressMAC, Ethernet.ARP_PORT, arpPacket.getBytes());
 	  sendFrame(frame);
   }
 
+  /**
+   * Used to ping a host on the LAN
+   * @param ip The IP of the host to ping
+   */
   public void ping(byte[] ip) {
     ICMP ping = new ICMP(ICMP.PING_REQ, icmpID++, new byte[1]);
     IP ipPacket = new IP(ip, addressIP, ipIdentifier++, IP.ICMP_PORT, ping.getBytes());
@@ -416,6 +518,10 @@ public class Client {
     sendFrame(frame);
   }
 
+  /**
+   * Used to ping a host on the LAN
+   * @param ipString The IP of the host to be converted to a byte[]
+   */
   public void ping(String ipString) {
     ipString = ipString.strip();
     if (ipString.equals("router")) {
@@ -445,6 +551,12 @@ public class Client {
     }
   }
 
+  /**
+   * Used to resolved an  IP address into a MAC address
+   * @param ip The IP address that needs to be resolved
+   * @return The MAC address of the corresponding IP address or null if it
+   * cannot be resolved
+   */
   public byte[] getMAC(byte[] ip) {
 
     boolean hasIP = arpTable.containsMAC(ip);
@@ -469,26 +581,23 @@ public class Client {
     return arpTable.getMAC(ip);
   }
 
+  /**
+   * This method is used to in DHCPDiscover method to help generate the
+   * DHCP request and then turn it into a byte array
+   * @return The byte array that represents the DHCP request
+   */
   public byte[] generateDHCPDiscoverPacket() {
     return DHCP.bootRequest(ipIdentifier++, addressMAC).getBytes();
-  }
-
-  public byte[] encapsulateEthernet(byte[] destAddr, byte[] sourceAddr, int demuxPort, byte[] payload) {
-    return new Ethernet(destAddr, sourceAddr, demuxPort, payload).getBytes();
-  }
-
-  public byte[] encapsulateIP(int protocol, byte[] destAddr, byte[] sourceAddr, byte[] payload) {
-    return new IP(destAddr, sourceAddr, ipIdentifier++, protocol, payload).getBytes();
-  }
-
-  private byte[] encapsulateUDP(int destPort, int sourcePort, byte[] payload) {
-    return new UDP(destPort, sourcePort, payload).getBytes();
   }
 
   /***************************************************************************/
   /****************************** Other methods ******************************/
   /***************************************************************************/
 
+  /**
+   * Used to take all user inputs from the console and to execute various 
+   * commands accordingly
+   */
   public void handleUserInputs() {
     try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
       String line = "";
@@ -552,18 +661,27 @@ public class Client {
     }
   }
   
+  /**
+   * Sets the clients IP to the nil IP
+   */
   public void setIPNil() {
 	  for (int i = 0; i < 4; i++) {
 		  addressIP[i] = (byte) 0;
 	  }
   }
   
+  /**
+   * Sets the clients gateway to nil
+   */
   public void setGatewayNil() {
 	  for (int i = 0; i < 4; i++) {
 		  routerIP[i] = (byte) 0;
 	  }
   }
   
+  /**
+   * Used to disconnect from the router so that the IP is back in the DHCP pool
+   */
   public void removeIP() {
 	  DHCP dhcp = new DHCP(DHCP.ADDRESS_RELEASE, 1, new byte[6]);
 	  UDP udpPacket = new UDP(UDP.RELEASE_PORT, UDP.DHCP_SERVER, dhcp.getBytes());
@@ -576,6 +694,9 @@ public class Client {
       sendFrame(frame);
   }
 
+  /**
+   * @return The String representation of the client object
+   */
   public String toString() {
     String routerString = "Not set";
     String subnetString = "Not set";
@@ -595,6 +716,11 @@ public class Client {
     return s;
   }
 
+  /**
+   * Sets the port number of the UDP packet over which all communication is 
+   * sent
+   * @param num
+   */
   public void setPortNum(int num) {
     portNum = num;
   }
