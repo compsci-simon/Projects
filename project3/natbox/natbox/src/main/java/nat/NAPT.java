@@ -5,7 +5,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-
+/**
+ * Used to store information with regards to how IP packets must be changed
+ */
 public class NAPT {
 	private byte[] externalIP;
   private byte[] internalIP = {(byte) 0xC0, (byte) 0xA8, 0, 1};
@@ -23,6 +25,10 @@ public class NAPT {
 	 * 
 	 */
 
+	/**
+	 * Constructor to create a new NAPT table
+	 * @param externalIP This is the external IP of the router
+	 */
 	public NAPT(byte[] externalIP) {
 		this.externalIP = externalIP;
 		allocatedPorts = new ArrayList<Integer>();
@@ -30,6 +36,11 @@ public class NAPT {
 		timeStampTable = new HashMap<Long, Long>();
 	}
 
+	/**
+	 * Returns an IP packet with the destination or source changed
+	 * @param packet The packet to be translated
+	 * @return The translated packet
+	 */
 	public IP translate(IP packet) {
 		System.out.println(toString());
 		if (packet.getDemuxPort() != IP.UDP_PORT && packet.getDemuxPort() != IP.TCP_PORT) {
@@ -58,12 +69,24 @@ public class NAPT {
 		}
 	}
 
+	/**
+	 * Adds an IP and destination port to destination IP combination to the table
+	 * @param addressIP The source address
+	 * @param port The destination port
+	 */
 	public void addPair(byte[] addressIP, int port) {
 		int externalPort = lowestFreePort();
 	  allocatedPorts.add(externalPort);
 		naptTable.put(toLong(addressIP, port), toBytes(externalIP, externalPort));
 	}
 
+	/**
+	 * Adds a session which allows bi-directional traffic to flow using this
+	 * session
+	 * @param sourceIP The source IP
+	 * @param destIP The destination IP
+	 * @param port The destination application port
+	 */ 
 	public void addSession(byte[] sourceIP, byte[] destIP, int port) {
 		if (port == -1)
 			return;
@@ -93,6 +116,13 @@ public class NAPT {
 		naptTable.toString();
 	}
 	
+	/**
+	 * Determines whether a packet should be allowd to be translated by whether
+	 * or not the session is contained within the table
+	 * @param packet The packet in question
+	 * @param port The destination port of the packet
+	 * @return True if the packet belongs to a sesion in the table
+	 */
 	public boolean containsSession(IP packet, int port) {
 		if (port == -1) {
 			System.out.println("Invalid port");
@@ -120,6 +150,11 @@ public class NAPT {
 		return true;
 	}
 
+	/**
+	 * Forwards a port to allow incoming sessions on this nat box
+	 * @param port The port to forward
+	 * @param destLANIP The LAN IP to which the traffic is forwarded
+	 */
 	public void portForward(int port, byte[] destLANIP) {
 		if (!IP.sameNetwork(destLANIP, internalIP)) {
 			System.err.println("You cannot forward to external IP " + IP.ipString(destLANIP));
@@ -127,7 +162,6 @@ public class NAPT {
 		}
 		addSession(IP.nilIP, destLANIP, port);
 	}
-	
 	
 	/**
 	 * Removes entries that have been idle for a certain amount of time

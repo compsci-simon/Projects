@@ -220,11 +220,21 @@ public class IP {
     return i;
   }
 
+  /**
+   * Used in a few other toString method and converts an IP address to a string
+   * @param ip The IP to convert
+   * @return The string representation
+   */
   public static String ipString(int ipInt) {
     byte[] ip = toBytes(ipInt);
     return String.format("%d.%d.%d.%d", ip[0]&0xff, ip[1]&0xff, ip[2]&0xff, ip[3]&0xff);
   }
 
+  /**
+   * Converts an IP address to an integer
+   * @param ip The IP address to convert
+   * @return The integer that represents that IP
+   */
   public static int toInt(byte[] ip) {
     if (ip.length != 4) {
       System.err.println("Invalid IP format");
@@ -235,6 +245,10 @@ public class IP {
     return temp;
   }
 
+  /**
+   * Generates a random IP address
+   * @return The random IP
+   */
   public static byte[] generateRandomIP() {
     byte[] ip = new byte[4];
     for (int i = 0; i < 4; i++) {
@@ -248,6 +262,12 @@ public class IP {
     return ip;
   }
 
+  /**
+   * Determines whether two IP addresses are on the same LAN
+   * @param ipA The first IP
+   * @param ipB The second IP
+   * @return Whether or not they are on the same LAN
+   */
   public static boolean sameNetwork(byte[] ipA, byte[] ipB) {
     if (isBroadcast(ipA) || isBroadcast(ipB)) 
       return true;
@@ -270,6 +290,11 @@ public class IP {
     }
   }
 
+  /**
+   * Converts an integer to a byte array
+   * @param ip The integer
+   * @return The byte array
+   */
   public static byte[] toBytes(int ip) {
     byte[] newIP = new byte[4];
     newIP[0] = (byte) ((ip>>24)&0xff);
@@ -279,6 +304,11 @@ public class IP {
     return newIP;
   }
 
+  /**
+   * Used to determine whether or not an IP is the nil IP
+   * @param ip The IP address in question
+   * @return True if the IP is nil
+   */
   public static boolean isNilIP(byte[] ip) {
     return Arrays.equals(nilIP, ip);
   }
