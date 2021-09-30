@@ -34,16 +34,12 @@ public class UDP {
     return udpPacket;
   }
 
-  public int demuxPort() {
-    return destPort;
-  }
-
   public byte[] payload() {
     return payload;
   }
   
   public int sourcePort() {
-	    return destPort;
+	    return sourcePort;
 	  }
 
   public int destinationPort() {

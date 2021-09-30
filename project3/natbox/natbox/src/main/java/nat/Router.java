@@ -6,6 +6,11 @@ import java.net.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+/**
+ * The router that contains a DHCP server, a natbox and allows
+ * clients to connect to it. Simulates some of the basic funcitonality
+ * of an actual router.
+ */
 public class Router {
   private DatagramSocket internalInterface;
   private DatagramSocket externalInterface;
@@ -30,6 +35,13 @@ public class Router {
   private InetAddress iaddress;
   private static final int TIMEOUT = 400;
 
+  /**
+   * Creates a router from scratch
+   * @param portIn The port on which internal connections will be accepted
+   * @param portEx The port on which external connections will be accepted
+   * @param min The interval at which to check the napt table for refreshing
+   * @param seconds How long an entry should last in the napt table
+   */
   public Router (int portIn, int portEx, int min, int seconds) {
     this.internalPort = portIn;
     this.externalPort = portEx;
@@ -97,6 +109,10 @@ public class Router {
   /**************************** Handling methods *****************************/
   /***************************************************************************/
 
+  /**
+   * This method handles all UDP packets received on the internal interface
+   * that need to be turned into Ethernet frames.
+   */
   public void handleInternalConnections() {
     if (internalPort == -1) {
       System.err.println("You need to set the internal portnum first");
@@ -121,6 +137,10 @@ public class Router {
     }
   }
 
+  /**
+   * This method handles all UDP packets received on the external interface
+   * that need to be turned into Ethernet frames.
+   */
   private void handleExternalConnections() {
     if (externalPort == -1) {
       System.err.println("Need to set port number first");
@@ -140,7 +160,13 @@ public class Router {
       e.printStackTrace();
     }
   }
-
+  
+  /**
+   * This method takes the bytes receieved over the simulated physical link
+   * and turns them into an Ethernet frame which has a header and a payload.
+   * @param frame The bytes received over the simulated physical link
+   * @return True for whether or not the router must continue running.
+   */
   private boolean handleFrame(byte[] frame) {
     Ethernet ethernetFrame = new Ethernet(frame);
     if (Arrays.equals(ethernetFrame.source(), addressMAC))
@@ -158,6 +184,11 @@ public class Router {
     return true;
   }
 
+  /**
+   * This method takes the payload from the ethernet frame and transforms it 
+   * into an IP packet that can be processed further.
+   * @param packet The byte array payload from the ethernet frame.
+   */
   private void handleIPPacket(Ethernet receivedFrame) {
 
     IP ipPacket = new IP(receivedFrame.payload());
@@ -240,12 +271,10 @@ public class Router {
     }
   }
 
-  // Client A - 192.168.0.2 -> 234.56.12.200
-  // Router A - 78.205.67.2 - > 234.56.12.200
-  // Ext Client - 192.168.0.2
-  // Router B - 234.56.12.200 receives the packet from 78.205.67.2
-  // NBNBNBNBNB Port forward source 0.0.0.0 -> 192.168.0.2
-
+  /**
+   * This method handles ICMP packets
+   * @param ipPacket The IP packet that contains an ICMP packet
+   */
   public void handleICMPPacket(IP ipPacket) {
     ICMP icmpPacket = new ICMP(ipPacket.payload());
     System.out.println(icmpPacket.toString());
@@ -280,10 +309,14 @@ public class Router {
 
   }
 
+  /**
+   * This method handles UDP packets
+   * @param packet The payload of the IP packet which is a UDP packet
+   */
   public void handleUDPPacket(IP ipPacket) {
     UDP udpPacket = new UDP(ipPacket.payload());
     System.out.println(udpPacket.toString());
-    if (udpPacket.demuxPort() == DHCP.SERVER_PORT) {
+    if (udpPacket.destinationPort() == DHCP.SERVER_PORT) {
       DHCP dhcpReq = new DHCP(udpPacket.payload());
       System.out.println(dhcpReq.toString());
       DHCP bootReply = dhcpServer.generateBootResponse(dhcpReq);
@@ -293,19 +326,23 @@ public class Router {
       Ethernet frame = new Ethernet(bootReply.getChaddr(), addressMAC, Ethernet.IP_PORT, ipPack.getBytes());
       sendFrame(frame, true);
       
-    } else if (udpPacket.demuxPort() == UDP.MESSAGE_PORT) {
+    } else if (udpPacket.destinationPort() == UDP.MESSAGE_PORT) {
       System.out.println(new String(udpPacket.payload()));
     
-    } else if (udpPacket.demuxPort() == UDP.RELEASE_PORT) {
+    } else if (udpPacket.destinationPort() == UDP.RELEASE_PORT) {
     	// don't think this is how it actually should work but it does what we want it do to
     	System.out.println("Releasing address");
     	byte[] ipToRemove = ipPacket.source();
     	dhcpServer.removeIP(ipToRemove);
     } else {
-      System.out.println("Unknown udp port " + udpPacket.demuxPort());
+      System.out.println("Unknown udp port " + udpPacket.destinationPort());
     }
   }
-  
+    
+  /**
+   * This method handles TCP packets
+   * @param ipPacket The IP packet that contains the TCP packet
+   */
   public void handleTCPPacket(byte[] packet) {
     TCP tcpPacket = new TCP(packet);
     System.out.println(tcpPacket.toString());
@@ -340,6 +377,10 @@ public class Router {
     return arpTable.getMAC(ip);
   }
   
+  /**
+   * This method handles ARP packets
+   * @param packet The byte array that represents the ARP packet
+   */
   private void handleARPPacket(Ethernet ethernetFrame) {
       byte[] packet = ethernetFrame.payload();
       ARP arpPacket = new ARP(packet);
@@ -370,6 +411,10 @@ public class Router {
   /**************************** Sending methods ******************************/
   /***************************************************************************/
   
+  /**
+   * This method sents an simulated ethernet frame over the simulated network.
+   * @param frame The ethernet frame to send
+   */  
   private void sendFrame(Ethernet frame, boolean LAN) {
 	  DatagramPacket packet = new DatagramPacket(new byte[1500], 1500);
     try {
@@ -408,6 +453,11 @@ public class Router {
     }
   }
   
+  /**
+   * Send an ARP request to the specified IP address to resolved its
+   * physical hardware address
+   * @param destIP The IP address to be resolved to a MAC address
+   */
   private void sendRequestARP(byte[] destIP) {
     boolean internal = true;
     if (!IP.sameNetwork(destIP, addressIP)) {
@@ -421,6 +471,11 @@ public class Router {
 	  sendFrame(frame, internal);
   }
 
+  /**
+   * Used to send an ARP response when an ARP request is received
+   * @param destMAC The MAC of the host that sent the ARP request
+   * @param destIP The IP of the host that sent the ARP request
+   */
   private void sendResponseARP(byte[] destMAC, byte[] destIP) {
     boolean internal = true;
     if (!IP.sameNetwork(destIP, addressIP)) {
@@ -433,6 +488,11 @@ public class Router {
     sendFrame(frame, internal);
   }
 
+  /**
+   * Used to add a udp socket port to the list of external links for use 
+   * when communicating over the external links
+   * @param port The port to be added
+   */
   private void addPortToInternalLinks(int port) {
     for (int i = 0; i < internalLinks.size(); i++) {
       if (internalLinks.get(i) == port) {
@@ -442,6 +502,11 @@ public class Router {
     internalLinks.add(port);
   }
 
+  /**
+   * Used to add a udp socket port to the list of internal links for use 
+   * when communicating over the internal links
+   * @param port The port to be added
+   */
   private void addPortToExternalLinks(int port) {
     for (int i = 0; i < externalLinks.size(); i++) {
       if (externalLinks.get(i) == port) {
@@ -451,6 +516,10 @@ public class Router {
     externalLinks.add(port);
   }
 
+  /**
+   * Used to ping a host on the LAN
+   * @param ip The IP of the host to ping
+   */
   public void ping(byte[] ip) {
     boolean internal = true;
     if (!IP.sameNetwork(ip, addressIP)) {
@@ -468,7 +537,11 @@ public class Router {
     Ethernet frame = new Ethernet(destMAC, sourceMAC, Ethernet.IP_PORT, ipPacket.getBytes());
     sendFrame(frame, internal);
   }
-
+  
+  /**
+   * Used to ping a host on the LAN
+   * @param ipString The IP of the host to be converted to a byte[]
+   */
   public void ping(String ipString) {
     ipString = ipString.strip();
     byte[] ip = new byte[4];
@@ -492,6 +565,10 @@ public class Router {
   /************************* Interactive methods *****************************/
   /***************************************************************************/  
 
+  /**
+   * Handles user inputs from the console and performs various actions based 
+   * on the inputs
+   */
   private void handleUserInputs() {
     try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
       String line = "";
@@ -580,6 +657,10 @@ public class Router {
     }
   }
 
+  /**
+   * Connect the router to another router over the simulated WAN
+   * @param port The port of the udp socket on the other router
+   */
   private void connectToRouter(int port) {
     ICMP routerAd = new ICMP(ICMP.ROUTER_SOLICITATION, (byte)icmpID++, new byte[1]);
     IP ipPacket = new IP(IP.broadcastIP, externalIP, ipID++, IP.ICMP_PORT, routerAd.getBytes());
@@ -588,26 +669,12 @@ public class Router {
     sendFrame(frame, false);
   }
   
-  private String connectedLinks() {
-    String s = String.format("----------------------\nEXTERNAL LINKS\n");
-    if (externalLinks.size() == 0) {
-      s += "None";
-    } else {
-      for (int i = 0; i < externalLinks.size(); i++) {
-        s = String.format("%s%d ", s, externalLinks.get(i));
-      }
-    }
-    s = String.format("%s\nINTERNAL LINKS\n", s);
-    if (internalLinks.size() == 0) {
-      s += "None";
-    } else {
-      for (int i = 0; i < internalLinks.size(); i++) {
-        s = String.format("%s%d ", s, internalLinks.get(i));
-      }
-    }
-    return s + "\n";
-  }
-
+  /**
+   * Uses the natbox to port forward traffic receieved on the external
+   * interface that is destined for the specified port
+   * @param port The port to forward
+   * @param IP The internal IP address
+   */
   private void portForward(String port, String IP) {
     int portNum;
     byte[] ip = new byte[4];
@@ -633,6 +700,9 @@ public class Router {
     System.out.println(naptTable.toString());
   }
 
+  /**
+   * @return The String that represents the status of the router
+   */
   public String toString() {
     String internalInterfacePort = "Closed";
     String externalInterfacePort = "Closed";

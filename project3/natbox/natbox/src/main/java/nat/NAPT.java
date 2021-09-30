@@ -215,6 +215,12 @@ public class NAPT {
 		return true;
 	}
 	 
+	/**
+	 * Gets the source port of the transport layer protocol that the IP packet
+	 * encapsulates
+	 * @param packet The IP packet
+	 * @return The port number
+	 */
 	public int transportLayerPortSource(IP packet) {
 		int port;
 		if (packet.getDemuxPort() == IP.UDP_PORT) {
@@ -230,6 +236,12 @@ public class NAPT {
 		return port;
 	}	 
 
+	/**
+	 * Gets the destination port of the transport layer protocol that the IP packet
+	 * encapsulates
+	 * @param packet The IP packet
+	 * @return The port number
+	 */
 	public int transportLayerPortDest(IP packet) {
 		int port;
 		if (packet.getDemuxPort() == IP.UDP_PORT) {
@@ -245,6 +257,12 @@ public class NAPT {
 		return port;
 	}
 
+	/**
+	 * Gets the session for an external IP packet that is entering the natbox
+	 * @param externalPacket The IP packet
+	 * @param port The destination port
+	 * @return The value of the entry in the NAPT table
+	 */
 	public byte[] getExternalSession(IP externalPacket, int port) {
 		if (naptTable.get(toLong(externalPacket.source(), port)) == null) {
 			return naptTable.get(toLong(IP.nilIP, port));
@@ -253,10 +271,23 @@ public class NAPT {
 		}
 	}
 
+	/**
+	 * Gets the session for an internal IP packet that is entering the natbox
+	 * @param externalPacket The IP packet
+	 * @param port The destination port
+	 * @return The value of the entry in the NAPT table
+	 */
 	public byte[] getInternalSession(IP internalPacket, int port) {
 		return naptTable.get(toLong(internalPacket.source(), port));
 	}
 	
+	/**
+	 * Converts an IP address and a port to a long to used as a key in the nap
+	 * table
+	 * @param ipAddress The source IP address
+	 * @param port The destination port
+	 * @return The long which combines the IP and the port
+	 */
 	public long toLong(byte[] ipAddress, int port) {
 		byte[] bytes = new byte[8];
 		bytes[0] = (byte) ((port >> 24) & 0xff);
@@ -276,6 +307,12 @@ public class NAPT {
 		return key;
 	}
 	
+	/**
+	 * Converts an IP address and a port into a byte array
+	 * @param ipAddress The IP
+	 * @param port The port
+	 * @return The byte array
+	 */
 	public byte[] toBytes(byte[] ipAddress, int port) {
 		byte[] bytes = new byte[8];
 		bytes[0] = (byte) ((port >> 24) & 0xff);
@@ -290,6 +327,11 @@ public class NAPT {
 		return bytes;
 	}
 	
+	/**
+	 * Converts a long into a byte array for storing in the napt table
+	 * @param Long The long to convert
+	 * @return The byte array
+	 */
 	public byte[] toBytes(long Long) {
 		byte[] bytes = new byte[8];
 		bytes[0] = (byte) ((Long >> 56) & 0xff);
@@ -304,6 +346,11 @@ public class NAPT {
 		return bytes;
 	}
 	
+	/**
+	 * Getter for the IP address from the napt table value
+	 * @param bytes The value of the napt table
+	 * @return The IP address
+	 */
 	public byte[] getAddress(byte[] bytes) {
 		byte[] ipAddress = new byte[4];
 		ipAddress[0] = bytes[4];
@@ -313,17 +360,31 @@ public class NAPT {
 		return ipAddress;
 	}
 	
+	/**
+	 * Getter for the port from the value of the napt table entry
+	 * @param bytes The value of a napt table entry
+	 * @return The port number
+	 */
 	public int getPort(byte[] bytes) {
 		return ((bytes[0] & 0xff) << 24) | ((bytes[1] & 0xff) << 16) | 
 		    ((bytes[2] & 0xff) << 8) | (bytes[3] & 0xff);
 	}
 	
+	/**
+	 * Used in the toString method to create a string of a napt table entry
+	 * @param bytes The value of the entry
+	 * @return The string that represents this entry
+	 */
 	public String combinationToString(byte[] bytes) {
 		String ipAddress = IP.ipString(getAddress(bytes));
 		int port = getPort(bytes);
 		return ipAddress + ":" + port;
 	}
 	
+	/**
+	 * Gets the lowest free available port in the napt table
+	 * @return
+	 */
 	public int lowestFreePort() {
     for (int i = 2; i < 0xff; i++) {
       int j = 0;
@@ -337,6 +398,11 @@ public class NAPT {
     return -1;
 	}
 
+	/**
+	 * Used in the toString method to create a string of a napt table entry
+	 * @param bytes The value of the entry
+	 * @return The string that represents this entry
+	 */
 	public String valueToString(byte[] value, Long key) {
 		String s = String.format("Destination IP = %d.%d.%d.%d, " 
 				+ "Source IP = %d.%d.%d.%d, port number = %d, key = %016x", 
@@ -346,6 +412,9 @@ public class NAPT {
 		return s;
 	}
 	
+	/**
+	 * General toString method for printing out the object
+	 */
 	public String toString() {
 	    Iterator<Map.Entry<Long, byte[]>> hmIterator = naptTable.entrySet().iterator();
 	    String s = "\nNAPT TABLE toString\n----------------------";
