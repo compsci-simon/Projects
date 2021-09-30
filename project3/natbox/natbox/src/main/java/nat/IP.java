@@ -3,6 +3,10 @@ package nat;
 import java.lang.reflect.Array;
 import java.util.Arrays;
 
+/**
+ * The IP protocol and all responsibilities and constants assosciated with
+ * the protocol
+ */
 public class IP {
   public static byte[] broadcastIP = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
   public static byte[] relayIP = {0, 0, 0, 0};
@@ -17,6 +21,15 @@ public class IP {
   private byte[] payload;
   private int totalLength;
 
+  /**
+   * Used to construct a new IP packet
+   * @param destIP The destination address
+   * @param sourceIP The source address
+   * @param identifier The packet ID
+   * @param demuxPort The ID of the protocol of the payload
+   * @param payload The byte array representation of the encapsulated protocol 
+   * packet
+   */
   public IP (byte[] destIP, byte[] sourceIP, int identifier, int demuxPort, byte[] payload) {
     if (destIP.length != 4 || sourceIP.length != 4) {
       System.err.println("Incorrect IP format!");
@@ -28,13 +41,11 @@ public class IP {
     this.demuxPort = demuxPort;
     this.payload = payload;
   }
-
-  public static void main(String[] args) {
-    byte[] x = {(byte) 0xC0, (byte) 0xA8, 0, (byte)0xff};
-    byte[] y = {23, 23, 23, 23};
-    System.out.println(sameNetwork(x, y));
-  }
-
+  
+  /**
+   * Creates an IP packet from a byte array
+   * @param packet The byte array
+   */
   public IP (byte[] packet) {
     this.totalLength = (packet[2]<<8) | (packet[3]&0xff);
     this.identifier = ((packet[4]&0xff)<<8) | (packet[5]&0xff);
@@ -54,6 +65,16 @@ public class IP {
     }
   }
 
+  public static void main(String[] args) {
+    byte[] x = {(byte) 0xC0, (byte) 0xA8, 0, (byte)0xff};
+    byte[] y = {23, 23, 23, 23};
+    System.out.println(sameNetwork(x, y));
+  }
+
+  /**
+   * Gets the byte representation of an IP address
+   * @return The byte array that represents the IP address
+   */
   public byte[] getBytes() {
     byte[] header = new byte[20];
     header[0] = 0x45;
@@ -87,10 +108,26 @@ public class IP {
     return ipPacket;
   }
   
+  /**
+   * Getter for the source address
+   * @return The source address
+   */
   public byte[] source() {
     return sourceIP;
   }
-
+  
+  /**
+   * Getter for the destination address
+   * @return
+   */
+  public byte[] destination() {
+    return destIP;
+  }
+  
+  /**
+   * Setter for the source address
+   * @param ip The source address
+   */
   public void setSource(byte[] ip) {
     if (ip.length != 4) {
       System.err.println("Incorrect IP format");
@@ -99,6 +136,10 @@ public class IP {
     sourceIP = ip;
   }
 
+  /**
+   * Setter for the destination address
+   * @param ip The destination address
+   */
   public void setDest(byte[] ip) {
     if (ip.length != 4) {
       System.err.println("Incorrect IP format");
@@ -107,30 +148,48 @@ public class IP {
     destIP = ip;
   }
 
-  public byte[] destination() {
-    return destIP;
-  }
-
+  /**
+   * Getter for the packet ID
+   * @return The packet ID
+   */
   public int getIdentifier() {
     return identifier;
   }
 
+  /**
+   * Getter for the demux port
+   * @return The demux port
+   */
   public int getDemuxPort() {
     return demuxPort;
   }
 
+  /**
+   * Determines whether a packet is a broadcast
+   * @return True if the packet destination is broadcast
+   */
   public boolean isBroadcast() {
     return Arrays.equals(destIP, broadcastIP);
   }
 
+  /**
+   * Static method to determine with or not a 4 byte IP address is a braodcast
+   */
   private static boolean isBroadcast(byte[] ip) {
     return Arrays.equals(ip, broadcastIP);
   }
 
+  /**
+   * Getter for the payload
+   * @return The payload
+   */
   public byte[] payload() {
     return payload;
   }
 
+  /**
+   * General toString method
+   */
   public String toString() {
     String s = "IP toString\n----------------------" + 
     "\nDestination IP = ";
@@ -147,6 +206,11 @@ public class IP {
     return s;
   }
 
+  /**
+   * Used in a few other toString method and converts an IP address to a string
+   * @param ip The IP to convert
+   * @return The string representation
+   */
   public static String ipString(byte[] ip) {
     if (ip.length != 4) {
       System.err.println("Invalid IP format");

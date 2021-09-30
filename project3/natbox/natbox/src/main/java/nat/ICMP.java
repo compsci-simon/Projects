@@ -1,5 +1,8 @@
 package nat;
 
+/**
+ * The ICMP protocol
+ */
 public class ICMP {
   public static final byte PING_REQ = 0x08;
   public static final byte PING_RES = 0x00;
@@ -10,12 +13,23 @@ public class ICMP {
   private byte identifier;
   private byte[] data;
 
+  /**
+   * Used to construct an ICMP packet
+   * @param type The type of ICMP packet
+   * @param identifier The ID of the packet
+   * @param data The payload of the ICMP packet
+   */
   public ICMP(byte type, byte identifier, byte[] data) {
     this.type = type;
     this.identifier = identifier;
     this.data = data;
   }
 
+  /**
+   * Creates an ICMP packet from bytes. Generally on the receiving side
+   * to construct from a bytes contained in the IP payload
+   * @param packet The payload of the IP packet
+   */
   public ICMP(byte[] packet) {
     this.type = packet[0];
     this.identifier = packet[1];
@@ -23,20 +37,37 @@ public class ICMP {
     System.arraycopy(packet, 2, this.data, 0, data.length);
   }
 
+  /**
+   * Generates a ping response
+   * @param req The ping request
+   * @return The ping response
+   */
   public static ICMP pingResponse(ICMP req) {
     req.setType(PING_RES);
     return req;
   }
   
+  /**
+   * Generates an ICMP error message for unreachable hosts
+   * @return The ICMP error message
+   */
   public static ICMP UnreachableResponse(ICMP req) {
 	    req.setType(ERROR_UNREACHABLE);
 	    return req;
 	  }
 
+  /**
+   * Setter for the message type
+   * @param type The type to set the message to
+   */
   public void setType(byte type) {
     this.type = type;
   }
 
+  /**
+   * Used to convert the ICMP message into an encapsulatable object
+   * @return The byte array that can be encapsulated in an IP packet
+   */
   public byte[] getBytes() {
     byte[] packet = new byte[data.length + 2];
     packet[0] = type;
@@ -45,18 +76,33 @@ public class ICMP {
     return packet;
   }
 
+  /**
+   * Getter for ICMP message type
+   * @return Gets the ICMP message
+   */
   public byte getType() {
     return type;
   }
 
+  /**
+   * Getter for the ICMP ID
+   * @return The ID of the message
+   */
   public int getIdentifier() {
     return identifier;
   }
 
+  /**
+   * Getter for the payload
+   * @return The payload
+   */
   public byte[] getData() {
     return data;
   }
 
+  /**
+   * General toString
+   */
   public String toString() {
     String messageType = "";
     switch (type) {

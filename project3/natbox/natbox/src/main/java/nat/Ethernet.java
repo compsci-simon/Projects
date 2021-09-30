@@ -2,6 +2,10 @@ package nat;
 
 import java.util.Arrays;
 
+/**
+ * This class handles all responsibilities assosciated with the ethernet 
+ * protocol
+ */
 public class Ethernet {
   public static final byte[] BROADCASTMAC = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
   public static final byte[] ZEROMAC = {(byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00};
@@ -12,6 +16,13 @@ public class Ethernet {
   private byte[] sourceMAC;
   private int demuxProtocol;
 
+  /**
+   * Construct a new ethernet frame from scratch
+   * @param destMAC Destination MAC address
+   * @param sourceMAC Source MAC address
+   * @param demuxProtocol Protocol that ethernet frame is encapsulating
+   * @param payload The packet that the frame is encapsulating
+   */
   public Ethernet(byte[] destMAC, byte[] sourceMAC, int demuxProtocol, byte[] payload) {
 
     if (destMAC.length != 6 || sourceMAC.length != 6) {
@@ -24,6 +35,10 @@ public class Ethernet {
     this.demuxProtocol = demuxProtocol;
   }
 
+  /**
+   * Create an ethernet frame from a byte array
+   * @param frame The byte array that represents an ethernet frame
+   */
   public Ethernet(byte[] frame) {
     destMAC = new byte[6];
     sourceMAC = new byte[6];
@@ -34,6 +49,13 @@ public class Ethernet {
     System.arraycopy(frame, 14, payload, 0, frame.length - 14);
   }
 
+  /**
+   * Construct a new ethernet frame from scratch
+   * @param destMAC Destination MAC address
+   * @param sourceMAC Source MAC address
+   * @param demuxProtocol Protocol that ethernet frame is encapsulating
+   * @param packet The packet that the frame is encapsulating
+   */
   public Ethernet(byte[] destMAC, byte[] sourceMAC, int demuxProtocol, IP packet) {
 
     if (destMAC.length != 6 || sourceMAC.length != 6) {
@@ -46,6 +68,10 @@ public class Ethernet {
     this.demuxProtocol = demuxProtocol;
   }
 
+  /**
+   * Generates a random MAC address
+   * @return The MAC address
+   */
   public static byte[] generateRandomMAC() {
     byte[] mac = new byte[6];
     for (int i = 0; i < 6; i++) {
@@ -54,6 +80,11 @@ public class Ethernet {
     return mac;
   }
 
+  /**
+   * Converts an Ethernet object into a byte array that can be transported over
+   * the network
+   * @return The byte array that represents the object
+   */
   public byte[] getBytes() {
     byte[] header = new byte[14];
     System.arraycopy(destMAC, 0, header, 0, 6);
@@ -68,26 +99,50 @@ public class Ethernet {
     return frame;
   }
 
+  /**
+   * Getter for the destination MAC 
+   * @return The destination MAC
+   */
   public byte[] destination() {
     return destMAC;
   }
 
+  /**
+   * Getter for the source MAC
+   * @return The source MAC
+   */
   public byte[] source() {
     return sourceMAC;
   }
 
+  /**
+   * Getter for the payload of the frame
+   * @return The payload of the frame
+   */
   public byte[] payload() {
     return payload;
   }
 
+  /**
+   * Getter for the demux protocol used to determine the level 3 protocol
+   * @return The protocol
+   */
   public int protocol() {
     return demuxProtocol;
   }
 
+  /**
+   * Determines if the frame is a broadcast frame
+   * @return True if it is a broadcast frame
+   */
   public boolean isBroadcast() {
     return Arrays.equals(destMAC, BROADCASTMAC);
   }
 
+  /**
+   * Returns a string representation of the ethernet frame
+   * @return The String representing the Ethernet frame
+   */
   public String toString() {
     String s = String.format("\n\t-----------------------------------------\n" + 
     "\t|***************************************|\n" +
@@ -98,6 +153,11 @@ public class Ethernet {
     return s;
   }
 
+  /**
+   * Used in a few toString methods to convert a MAC address to a string
+   * @param mac The MAC address
+   * @return The string of the MAC. Hexadecimal bytes seperated by colons
+   */
   public static String macString(byte[] mac) {
     if (mac.length != 6) {
       System.err.println("Invalid MAC format");
