@@ -1,0 +1,19 @@
+.array-container {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+}
+
+.bar {
+  display: inline-block;
+  background-color: #F4C430;
+  margin: 0 1px;
+}
+
+.comparison {
+  background-color: rgb(172, 0, 0);
+}
+
+.swap {
+  background-color: rgb(159, 245, 236);
+}

@@ -1,0 +1,12 @@
+.App {
+  text-align: center;
+  display: flex;
+  justify-content: center;
+}
+
+.center-vert {
+  display: flex;
+  align-items: center;
+  height: 100vh;
+  position: absolute;
+}
